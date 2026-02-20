@@ -1,2 +1,23 @@
 fastapi
 uvicorn
+
+# Database
+sqlalchemy
+asyncpg
+psycopg2-binary
+
+# Migrations
+alembic
+
+# Auth & security
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+
+# Validation & config
+pydantic
+pydantic-settings
+email-validator
+
+# Utilities
+python-dotenv
