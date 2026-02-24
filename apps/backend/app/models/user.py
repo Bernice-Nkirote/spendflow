@@ -24,9 +24,14 @@ class User(Base):
         nullable=True
     )
 
+    role_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("roles.id"),
+        nullable=False
+    )
+
     name = Column(String, nullable=False)
     email= Column(String, nullable=False, unique=True)
-    role= Column(String, nullable=False, default="staff")
 
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True),server_default=func.now(),nullable=False)
@@ -34,4 +39,5 @@ class User(Base):
 # Relationships
     company = relationship("Company", back_populates="users")
     department = relationship("Department", back_populates="users")
+    role = relationship("Role")
     requisitions= relationship("PurchaseRequisition", back_populates="requester")

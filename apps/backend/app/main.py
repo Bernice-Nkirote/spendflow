@@ -8,6 +8,9 @@ from app.models import department
 from app.models import user
 from app.models import purchase_requisition
 from app.models import purchase_requisition_item
+from app.models import approval_workflows_table
+from app.models import approval_workflow_rules
+from app.models import pr_approvals_table
 
 # Creates FASTAPI app for you
 app = FastAPI(
