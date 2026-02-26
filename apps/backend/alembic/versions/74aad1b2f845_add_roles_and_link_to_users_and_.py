@@ -10,6 +10,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+import uuid
 
 
 # revision identifiers, used by Alembic.
@@ -34,12 +35,64 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('company_id', 'name', name='uq_company_role_name')
     )
-    op.add_column('approval_workflow_rules', sa.Column('role_id', sa.UUID(), nullable=False))
+    op.add_column('approval_workflow_rules', sa.Column('role_id', sa.UUID(), nullable=True))
+
+    # 3️⃣ Get an existing company id
+    connection = op.get_bind()
+    result = connection.execute(
+        sa.text("SELECT id FROM companies LIMIT 1")
+    ).fetchone()
+
+    if result is None:
+        raise Exception("No company exists. Cannot create default role.")
+
+    company_id = result[0]
+    default_role_id = uuid.uuid4()
+
+    # 4️⃣ Insert default role properly
+    connection.execute(
+        sa.text("""
+            INSERT INTO roles (id, company_id, name, description, is_active)
+            VALUES (:id, :company_id, :name, :description, :is_active)
+        """),
+        {
+            "id": default_role_id,
+            "company_id": company_id,
+            "name": "Default Role",
+            "description": "Auto-created during migration",
+            "is_active": True
+        }
+    )
+
+    # 5️⃣ Backfill existing workflow rows
+    connection.execute(
+        sa.text("""
+            UPDATE approval_workflow_rules
+            SET role_id = :role_id
+        """),
+        {"role_id": default_role_id}
+    )
+
+    # 6️⃣ Make role_id NOT NULL
+    op.alter_column(
+        'approval_workflow_rules',
+        'role_id',
+        nullable=False
+    )
     op.create_unique_constraint('uq_workflow_level', 'approval_workflow_rules', ['workflow_id', 'level_order'])
-    op.create_foreign_key(None, 'approval_workflow_rules', 'roles', ['role_id'], ['id'])
+    op.create_foreign_key('fk_workflow_role', 'approval_workflow_rules', 'roles', ['role_id'], ['id'])
     op.drop_column('approval_workflow_rules', 'role_required')
-    op.add_column('users', sa.Column('role_id', sa.UUID(), nullable=False))
-    op.create_foreign_key(None, 'users', 'roles', ['role_id'], ['id'])
+    op.add_column('users', sa.Column('role_id', sa.UUID(), nullable=True))
+    connection.execute(
+        sa.text("""
+                UPDATE users
+                SET role_id = :role_id
+            """),
+            {"role_id": default_role_id}
+    )
+
+    op.alter_column('users', 'role_id', nullable=False)
+    op.create_foreign_key("fk_users_role", 'users', 'roles', ['role_id'], ['id'])
     op.drop_column('users', 'role')
     # ### end Alembic commands ###
 
