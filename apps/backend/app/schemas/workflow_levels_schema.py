@@ -1,7 +1,8 @@
-from pydantic import BaseModel
+from pydantic import BaseModel,ConfigDict,Field
 from uuid import UUID
 from datetime import datetime
 from typing import Optional
+from workflowlevel_role_schema import WorkflowLevelRoleRead
 
 class WorkflowLevelBase(BaseModel):
     level_order: int
@@ -26,8 +27,6 @@ class WorkflowLevelRead(WorkflowLevelBase):
     created_at: datetime
     updated_at: datetime
 
-roles: Optional[list["WorkflowLevelRoleRead"]] = []
+    roles: list["WorkflowLevelRoleRead"] = Field(default_factory=list)
+    model_config = ConfigDict(from_attributes=True)
 
-model_config = {
-    "from_attributes":True
-}
