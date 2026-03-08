@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from uuid import UUID
 from datetime import datetime
 from typing import Optional
@@ -25,6 +25,4 @@ class RoleRead(RoleBase):
     created_at: datetime
     updated_at: datetime
 
-model_config = {
-    "from_attributes":True
-}
+    model_config = ConfigDict(from_attributes=True)

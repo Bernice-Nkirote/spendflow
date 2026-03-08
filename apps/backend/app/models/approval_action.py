@@ -12,7 +12,7 @@ class ApprovalAction(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     instance_id = Column(UUID(as_uuid=True), ForeignKey("approval_instances.id"),nullable=False)
     level_id = Column(UUID(as_uuid=True), ForeignKey("workflow_levels.id"), nullable=False)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users"), nullable=False)
+    users_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     # Action whether approved or rejected
     action = Column(String, nullable=False)  
     comment = Column(String, nullable=True)
