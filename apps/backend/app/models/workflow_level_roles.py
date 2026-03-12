@@ -7,7 +7,7 @@ from sqlalchemy.sql import func
 from sqlalchemy import UniqueConstraint
 from app.core.database import Base
 
-class WorkFlowLevelRole(Base):
+class WorkflowLevelRole(Base):
     __tablename__ = "workflow_level_roles"
 
     id = Column(UUID(as_uuid=True),primary_key=True,default=uuid.uuid4)

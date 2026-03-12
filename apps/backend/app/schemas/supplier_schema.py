@@ -23,6 +23,6 @@ class SupplierUpdate(BaseModel):
 class SupplierResponse(SupplierBase):
     id: UUID
     company_id: UUID
-    is_Active: bool
+    is_active: bool
 
     model_config = ConfigDict(from_attributes=True)

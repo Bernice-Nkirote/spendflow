@@ -2,21 +2,19 @@ from fastapi import FastAPI
 from app.core.config import settings
 from app.core.database import Base, engine
 from app.routers import pr
+from app.routers import supplier_router
+from app.routers import company_router
 
-from app.models import company
-from app.models import department
-from app.models import user
-from app.models import purchase_requisition
-from app.models import purchase_requisition_item
-from app.models import approval_workflows_table
-from app.models import approval_workflow_rules
-from app.models import pr_approvals_table
+from app import models
+Base.metadata.create_all(bind=engine)
 
 # Creates FASTAPI app for you
 app = FastAPI(
     title=settings.PROJECT_NAME
 )
-app.include_router(pr.router)
+app.include_router( supplier_router.router)
+
+app.include_router(company_router.router)
 
 # You use app.get to enter the building
 @app.get("/")

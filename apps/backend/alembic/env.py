@@ -15,7 +15,7 @@ from app.models import approval_workflows_table
 from app.models import workflow_level
 from app.models import workflow_level_roles
 from app.models import pr_approvals_table
-from app.models import role_table
+from app.models import role
 from app.models import approval_instance
 from app.models import approval_action
 from app.models import supplier

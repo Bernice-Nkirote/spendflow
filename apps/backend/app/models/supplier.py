@@ -24,6 +24,8 @@ class Supplier(Base):
 
     address = Column(String, nullable=True)
 
+    contact_person = Column(String, nullable=True)
+
     is_active = Column(Boolean, default=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
