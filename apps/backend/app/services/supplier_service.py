@@ -1,7 +1,9 @@
+from fastapi import HTTPException
 import uuid
 from sqlalchemy.orm import Session
 from app.repositories.supplier_repository import SupplierRepository
 from app.models.supplier import Supplier
+from uuid import UUID
 
 class SupplierService:
 
@@ -22,10 +24,15 @@ class SupplierService:
         return self.repo.create(db, supplier)
     
     
-    def get_supplier(self, db: Session, supplier_id: uuid.UUID):
-        return self.repo.get_by_id(db, supplier_id)
+    def get_supplier(self, db: Session, supplier_id: UUID, company_id: UUID):
 
+        supplier = self.repo.get_by_id(db, supplier_id)
 
-    def list_suppliers(self, db:Session):
-        return self.repo.get_all(db)
+        if not supplier or supplier.company_id != company_id:
+            raise HTTPException(status_code=404, detail="Supplier not found")
+
+        return supplier
+
+    def list_suppliers(self, db:Session, company_id: UUID):
+        return self.repo.get_all(db, company_id)
    

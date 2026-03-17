@@ -2,6 +2,7 @@ import uuid
 from sqlalchemy import Column, String,Integer, Boolean, Numeric, ForeignKey,DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from sqlalchemy import UniqueConstraint
 from app.core.database import Base
 
@@ -24,3 +25,6 @@ class Role(Base):
     __table_args__ =(
         UniqueConstraint('company_id', 'name', name='uq_company_role_name'),
     )
+
+# Relationship
+    users = relationship("User", back_populates="role")

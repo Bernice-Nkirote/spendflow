@@ -21,7 +21,8 @@ class User(Base):
     department_id = Column(
         UUID(as_uuid=True),
         ForeignKey("departments.id", ondelete="SET NULL"),
-        nullable=True
+        nullable=True,
+        index=True
     )
 
     role_id = Column(
@@ -31,7 +32,7 @@ class User(Base):
     )
 
     name = Column(String, nullable=False)
-    email= Column(String, nullable=False, unique=True)
+    email= Column(String, nullable=False, unique=True, index=True)
     phone_number = Column(String, unique=True, nullable=True)
     hashed_password = Column(String, nullable=False)
 
@@ -41,5 +42,5 @@ class User(Base):
 # Relationships
     company = relationship("Company", back_populates="users")
     department = relationship("Department", back_populates="users")
-    role = relationship("Role")
+    role = relationship("Role", back_populates="users")
     requisitions= relationship("PurchaseRequisition", back_populates="requester")

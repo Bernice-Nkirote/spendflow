@@ -24,7 +24,6 @@ def list_companies(db:Session = Depends(get_db)):
     return service.list_companies(db)
 
 # Get single company
-# Get company by ID
 @router.get("/{company_id}", response_model=CompanyResponse)
 def get_company(company_id: UUID, db: Session = Depends(get_db)):
     company = service.get_company(db, company_id)

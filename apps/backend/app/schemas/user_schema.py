@@ -16,6 +16,11 @@ class UserCreate(UserBase):
     role_id: UUID
     company_id: UUID
 
+# Login schema
+class UserLogin(BaseModel):
+    email: EmailStr
+    password:str
+    
 # Update Schema
 class UserUpdate(BaseModel):
     name: Optional[str] = None
