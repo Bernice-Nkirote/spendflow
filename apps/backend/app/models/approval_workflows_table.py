@@ -4,14 +4,9 @@ from sqlalchemy import Column, String, Boolean, Numeric, ForeignKey,DateTime,Enu
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
+from sqlalchemy import UniqueConstraint
 from app.core.database import Base
-import enum
-
-class EntityTypeEnum(str, enum.Enum):
-    PR = "PR"
-    PO = "PO"
-    INVOICE = "INVOICE"
-    PAYMENT = "PAYMENT"
+from app.models.enums import EntityTypeEnum
 
 class ApprovalWorkflow(Base):
     __tablename__ = "approval_workflows"
@@ -26,7 +21,11 @@ class ApprovalWorkflow(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(),onupdate=func.now(),nullable=False)
 
+    __table_args__ =(
+        UniqueConstraint('company_id', 'name', name='uq_workflow_name_per_company'),
+    )
+
+    # relationship
     levels = relationship("WorkflowLevel", back_populates="workflow",cascade="all, delete-orphan" )
 
-
-
+    

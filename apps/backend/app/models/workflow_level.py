@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Boolean,Integer, Numeric, ForeignKey,DateTime,JSON
+from sqlalchemy import Index, Column, String, Boolean,Integer, Numeric, ForeignKey,DateTime,JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -14,6 +14,9 @@ class WorkflowLevel(Base):
     workflow_id = Column(UUID(as_uuid=True),
                          ForeignKey("approval_workflows.id"),
                          nullable=False)
+    
+    # Name of the level e.g manager approval, finance approval
+    name = Column(String, nullable=True)
     level_order = Column(Integer, nullable=False)
     min_amount = Column(Numeric(14,2), nullable=True)
     max_amount=Column(Numeric(14,2), nullable=True)
@@ -26,7 +29,8 @@ class WorkflowLevel(Base):
     updated_at = Column(DateTime(timezone=True),server_default=func.now(),onupdate=func.now(),nullable=False)
     
     __table_args__=(
-        UniqueConstraint('workflow_id', 'level_order', name='uq_workflow_level-level_order'),
+        UniqueConstraint('workflow_id', 'level_order', name='uq_workflow_level_level_order'),
+        Index('ix_workflow_levels_workflow_id', 'workflow_id')
     )
 
 # relationship

@@ -13,6 +13,12 @@ class EntityTypeEnum(str, enum.Enum):
     INVOICE = "INVOICE"
     PAYMENT = "PAYMENT"
 
+class ApprovalStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+
+
 class ApprovalInstance(Base):
     __tablename__ = "approval_instances"
 
@@ -21,8 +27,7 @@ class ApprovalInstance(Base):
     entity_id = Column(UUID(as_uuid=True), nullable=False)
     entity_type = Column(Enum(EntityTypeEnum), nullable=False)
     current_level_id = Column(UUID(as_uuid=True), ForeignKey("workflow_levels.id"), nullable=True)
-    status = Column(String, default="PENDING", nullable=False)
-
+    status = Column(Enum(ApprovalStatus), default=ApprovalStatus.PENDING, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 

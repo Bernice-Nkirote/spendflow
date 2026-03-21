@@ -3,7 +3,7 @@ from uuid import UUID
 from datetime import datetime
 from typing import Optional,List
 from enum import Enum
-from approval_action_schema import ApprovalActionRead
+from .approval_action_schema import ApprovalActionRead
 
 class EntityTypeEnum(str, Enum):
     PR = "PR"
