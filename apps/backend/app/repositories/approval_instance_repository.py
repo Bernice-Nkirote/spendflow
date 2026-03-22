@@ -34,6 +34,4 @@ class ApprovalInstanceRepository:
         db.refresh(db_obj)
         return db_obj
 
-    def delete(self, db: Session, db_obj: ApprovalInstance) -> None:
-        db.delete(db_obj)
-        db.commit()
+    

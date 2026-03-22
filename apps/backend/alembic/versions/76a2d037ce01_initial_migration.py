@@ -1,18 +1,18 @@
-"""initial schema
+"""initial migration
 
-Revision ID: 7c2814c3db9f
+Revision ID: 76a2d037ce01
 Revises: 
-Create Date: 2026-03-08 10:04:11.636758
+Create Date: 2026-03-22 17:21:36.080083
 
 """
 from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-
+from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '7c2814c3db9f'
+revision: str = '76a2d037ce01'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -34,12 +34,13 @@ def upgrade() -> None:
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('company_id', sa.UUID(), nullable=False),
     sa.Column('name', sa.String(), nullable=False),
-    sa.Column('entity_type', sa.Enum('PR', 'PO', 'INVOICE', 'PAYMENT', name='entitytypeenum'), nullable=False),
+    sa.Column('entity_type', postgresql.ENUM('PR', 'PO', 'INVOICE', 'PAYMENT', name='entitytypeenum'), nullable=False),
     sa.Column('is_active', sa.Boolean(), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['company_id'], ['companies.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('company_id', 'name', name='uq_workflow_name_per_company')
     )
     op.create_table('departments',
     sa.Column('id', sa.UUID(), nullable=False),
@@ -63,6 +64,20 @@ def upgrade() -> None:
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('company_id', 'name', name='uq_company_role_name')
     )
+    op.create_table('suppliers',
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('company_id', sa.UUID(), nullable=False),
+    sa.Column('name', sa.String(), nullable=False),
+    sa.Column('email', sa.String(), nullable=True),
+    sa.Column('phone', sa.String(), nullable=True),
+    sa.Column('address', sa.String(), nullable=True),
+    sa.Column('contact_person', sa.String(), nullable=True),
+    sa.Column('is_active', sa.Boolean(), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+    sa.ForeignKeyConstraint(['company_id'], ['companies.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
     op.create_table('users',
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('company_id', sa.UUID(), nullable=False),
@@ -79,12 +94,14 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['department_id'], ['departments.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['role_id'], ['roles.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('email'),
     sa.UniqueConstraint('phone_number')
     )
+    op.create_index(op.f('ix_users_department_id'), 'users', ['department_id'], unique=False)
+    op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
     op.create_table('workflow_levels',
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('workflow_id', sa.UUID(), nullable=False),
+    sa.Column('name', sa.String(), nullable=True),
     sa.Column('level_order', sa.Integer(), nullable=False),
     sa.Column('min_amount', sa.Numeric(precision=14, scale=2), nullable=True),
     sa.Column('max_amount', sa.Numeric(precision=14, scale=2), nullable=True),
@@ -95,20 +112,37 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['department_id'], ['departments.id'], ),
     sa.ForeignKeyConstraint(['workflow_id'], ['approval_workflows.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('workflow_id', 'level_order', name='uq_workflow_level-level_order')
+    sa.UniqueConstraint('workflow_id', 'level_order', name='uq_workflow_level_level_order')
     )
+    op.create_index('ix_workflow_levels_workflow_id', 'workflow_levels', ['workflow_id'], unique=False)
     op.create_table('approval_instances',
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('workflow_id', sa.UUID(), nullable=False),
     sa.Column('entity_id', sa.UUID(), nullable=False),
-    sa.Column('entity_type', sa.Enum('PR', 'PO', 'INVOICE', 'PAYMENT', name='entitytypeenum'), nullable=False),
+    sa.Column('entity_type', postgresql.ENUM('PR', 'PO', 'INVOICE', 'PAYMENT', name='entitytypeenum'), nullable=False),
     sa.Column('current_level_id', sa.UUID(), nullable=True),
-    sa.Column('status', sa.String(), nullable=False),
+    sa.Column('status', postgresql.ENUM('PENDING', 'APPROVED', 'REJECTED', name='approvalstatusenum'), server_default='PENDING', nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['current_level_id'], ['workflow_levels.id'], ),
     sa.ForeignKeyConstraint(['workflow_id'], ['approval_workflows.id'], ),
     sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('purchase_orders',
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('po_number', sa.String(), nullable=False),
+    sa.Column('buyer_id', sa.UUID(), nullable=False),
+    sa.Column('supplier_id', sa.UUID(), nullable=False),
+    sa.Column('status', postgresql.ENUM('DRAFT', 'PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'SENT', 'COMPLETED', name='postatusenum'), server_default='DRAFT', nullable=False),
+    sa.Column('total_amount', sa.Numeric(precision=12, scale=2), nullable=False),
+    sa.Column('currency', sa.String(), nullable=True),
+    sa.Column('notes', sa.Text(), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
+    sa.ForeignKeyConstraint(['buyer_id'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['supplier_id'], ['suppliers.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('po_number')
     )
     op.create_table('purchase_requisitions',
     sa.Column('id', sa.UUID(), nullable=False),
@@ -128,6 +162,16 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['requested_by'], ['users.id'], ondelete='SET NULL'),
     sa.PrimaryKeyConstraint('id')
     )
+    op.create_table('user_roles',
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('user_id', sa.UUID(), nullable=True),
+    sa.Column('role_id', sa.UUID(), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
+    sa.ForeignKeyConstraint(['role_id'], ['roles.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('user_id', 'role_id', name='uq_user_role')
+    )
     op.create_table('workflow_level_roles',
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('level_id', sa.UUID(), nullable=False),
@@ -143,14 +187,15 @@ def upgrade() -> None:
     sa.Column('id', sa.UUID(), nullable=False),
     sa.Column('instance_id', sa.UUID(), nullable=False),
     sa.Column('level_id', sa.UUID(), nullable=False),
-    sa.Column('users_id', sa.UUID(), nullable=False),
-    sa.Column('action', sa.String(), nullable=False),
+    sa.Column('user_id', sa.UUID(), nullable=False),
+    sa.Column('action', postgresql.ENUM('APPROVED', 'REJECTED', name='actiontypeenum'), nullable=False),
     sa.Column('comment', sa.String(), nullable=True),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['instance_id'], ['approval_instances.id'], ),
     sa.ForeignKeyConstraint(['level_id'], ['workflow_levels.id'], ),
-    sa.ForeignKeyConstraint(['users_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('id')
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('instance_id', 'level_id', 'user_id', name='uq_user_level_action')
     )
     op.create_table('pr_approvals',
     sa.Column('id', sa.UUID(), nullable=False),
@@ -164,6 +209,17 @@ def upgrade() -> None:
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.ForeignKeyConstraint(['acted_by'], ['users.id'], ),
     sa.ForeignKeyConstraint(['pr_id'], ['purchase_requisitions.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_table('purchase_order_items',
+    sa.Column('id', sa.UUID(), nullable=False),
+    sa.Column('purchase_order_id', sa.UUID(), nullable=False),
+    sa.Column('product_name', sa.String(), nullable=False),
+    sa.Column('description', sa.String(), nullable=True),
+    sa.Column('quantity', sa.Numeric(precision=10, scale=2), nullable=False),
+    sa.Column('unit_price', sa.Numeric(precision=12, scale=2), nullable=False),
+    sa.Column('total_price', sa.Numeric(precision=12, scale=2), nullable=False),
+    sa.ForeignKeyConstraint(['purchase_order_id'], ['purchase_orders.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('purchase_requisition_items',
@@ -185,13 +241,20 @@ def downgrade() -> None:
     """Downgrade schema."""
     # ### commands auto generated by Alembic - please adjust! ###
     op.drop_table('purchase_requisition_items')
+    op.drop_table('purchase_order_items')
     op.drop_table('pr_approvals')
     op.drop_table('approval_actions')
     op.drop_table('workflow_level_roles')
+    op.drop_table('user_roles')
     op.drop_table('purchase_requisitions')
+    op.drop_table('purchase_orders')
     op.drop_table('approval_instances')
+    op.drop_index('ix_workflow_levels_workflow_id', table_name='workflow_levels')
     op.drop_table('workflow_levels')
+    op.drop_index(op.f('ix_users_email'), table_name='users')
+    op.drop_index(op.f('ix_users_department_id'), table_name='users')
     op.drop_table('users')
+    op.drop_table('suppliers')
     op.drop_table('roles')
     op.drop_table('departments')
     op.drop_table('approval_workflows')

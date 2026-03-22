@@ -7,6 +7,7 @@ from sqlalchemy.sql import func
 from sqlalchemy import UniqueConstraint
 from app.core.database import Base
 from app.models.enums import EntityTypeEnum
+from app.models.enums import entity_type_enum
 
 class ApprovalWorkflow(Base):
     __tablename__ = "approval_workflows"
@@ -15,7 +16,7 @@ class ApprovalWorkflow(Base):
     company_id = Column(UUID(as_uuid=True), ForeignKey("companies.id"), nullable=False)
 
     name = Column(String, nullable=False)
-    entity_type = Column(Enum(EntityTypeEnum), nullable=False)
+    entity_type = Column(entity_type_enum, nullable=False)
     is_active= Column(Boolean, default=True, nullable=False)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

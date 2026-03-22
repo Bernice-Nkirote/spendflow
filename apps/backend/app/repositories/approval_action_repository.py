@@ -6,22 +6,13 @@ from app.models.approval_action import ApprovalAction
 from app.schemas.approval_action_schema import ApprovalActionCreate
 
 class ApprovalActionRepository:
-    def __init__(self, db: Session):
-        self.db = db
 
-    def create(self, approval_action: ApprovalActionCreate) -> ApprovalAction:
-        db_action = ApprovalAction(
-            instance_id=approval_action.instance_id,
-            level_id=approval_action.level_id,
-            users_id=approval_action.users_id,
-            action=approval_action.action,
-            comment=approval_action.comment,
-        )
-        self.db.add(db_action)
-        self.db.commit()
-        self.db.refresh(db_action)
-        return db_action
-
+    def create(self, db: Session, obj: ApprovalAction) -> ApprovalAction:
+        db.add(obj)
+        db.commit()
+        db.refresh(obj)
+        return obj
+            
     def get_by_id(self, action_id: UUID) -> ApprovalAction:
         return self.db.query(ApprovalAction).filter(ApprovalAction.id == action_id).first()
 

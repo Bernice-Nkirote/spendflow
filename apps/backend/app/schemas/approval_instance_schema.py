@@ -2,14 +2,8 @@ from pydantic import BaseModel, ConfigDict
 from uuid import UUID
 from datetime import datetime
 from typing import Optional,List
-from enum import Enum
 from .approval_action_schema import ApprovalActionRead
-
-class EntityTypeEnum(str, Enum):
-    PR = "PR"
-    PO = "PO"
-    INVOICE = "INVOICE"
-    PAYMENT = "PAYMENT"
+from models.enums import EntityTypeEnum, ApprovalStatus
 
 class ApprovalInstanceCreate(BaseModel):
     workflow_id: UUID
@@ -22,7 +16,7 @@ class ApprovalInstanceRead(BaseModel):
     entity_id: UUID
     entity_type: EntityTypeEnum
     current_level_id: Optional[UUID]
-    status: str
+    status: ApprovalStatus
     created_at: datetime
     updated_at: datetime
 

@@ -1,5 +1,3 @@
-# app/services/workflow_level_role_service.py
-
 import uuid
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
@@ -10,19 +8,43 @@ from app.schemas.workflowlevel_role_schema import (
     WorkflowLevelRoleCreate,
     WorkflowLevelRoleUpdate
 )
-
-
+from app.models.workflow_level import WorkflowLevel
+from app.models.approval_workflows_table import ApprovalWorkflow
 class WorkflowLevelRoleService:
 
-    def __init__(self):
-        self.repo = WorkflowLevelRoleRepository()
+    def __init__(self, repo: WorkflowLevelRoleRepository):
+        self.repo = repo
 
     def create_workflow_level_role(
-        self, db: Session, data: WorkflowLevelRoleCreate
-    ) -> WorkflowLevelRole:
+        self, db: Session, data: WorkflowLevelRoleCreate, company_id
+    ):
+        # Security check
+        level = db.query(WorkflowLevel).join(ApprovalWorkflow).filter(
+            WorkflowLevel.id == data.level_id,
+            ApprovalWorkflow.company_id == company_id
+        ).first()
 
+        if not level:
+            raise HTTPException(
+                status_code=403,
+                detail="Unauthorized level"
+            )
+        
+        # Check for duplication
+        existing = self.repo.get_by_level_and_role(
+            db,
+            data.level_id,
+            data.role_id
+        )
+
+        if existing:
+            raise HTTPException(
+                status_code=400,
+                detail="Role already assigned to this level"
+            )
+        
+        # CREATE WORKFLOW ROLE
         obj = WorkflowLevelRole(
-            id=uuid.uuid4(),
             level_id=data.level_id,
             role_id=data.role_id
         )

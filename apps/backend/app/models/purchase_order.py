@@ -5,10 +5,11 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
 from app.models.enums import POStatusEnum
+from app.models.enums import po_status_enum
 
 
 class PurchaseOrder(Base):
-    __tablename__ = "purchase orders"
+    __tablename__ = "purchase_orders"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
@@ -17,7 +18,11 @@ class PurchaseOrder(Base):
     buyer_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     supplier_id = Column(UUID(as_uuid=True), ForeignKey("suppliers.id"), nullable=False)
 
-    status = Column(Enum(POStatusEnum), default=POStatusEnum.DRAFT)
+    status = Column(
+        po_status_enum, 
+        nullable=False, 
+        default=POStatusEnum,
+        server_default=POStatusEnum.DRAFT.value)
 
     total_amount = Column(Numeric(12,2), nullable=False)
 

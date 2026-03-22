@@ -1,5 +1,3 @@
-# app/repositories/workflow_level_role_repository.py
-
 import uuid
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -16,15 +14,27 @@ class WorkflowLevelRoleRepository:
         return obj
 
     def get_by_id(self, db: Session, obj_id: uuid.UUID) -> Optional[WorkflowLevelRole]:
-        return db.query(WorkflowLevelRole).filter(WorkflowLevelRole.id == obj_id).fist()
-
-    def get_all(self, db: Session) -> List[WorkflowLevelRole]:
-        return db.query(WorkflowLevelRole).all()
-
+        return db.query(WorkflowLevelRole).filter(WorkflowLevelRole.id == obj_id).first()
+    
+    # List all the approvers in Level one
+    # Will also help to populate UI dropdown
     def get_by_level(self, db: Session, level_id: uuid.UUID) -> List[WorkflowLevelRole]:
         return db.query(WorkflowLevelRole).filter(
             WorkflowLevelRole.level_id == level_id
         ).all()
+    
+    # list the role of a single person in Level one
+    # Also checks if role exists and avoids duplication
+    def get_by_level_and_role(self, db: Session, level_id: uuid.UUID, role_id: uuid.UUID):
+        return db.query(WorkflowLevelRole).filter(
+            WorkflowLevelRole.level_id == level_id,
+            WorkflowLevelRole.role_id == role_id
+        ).first()
+    
+    def get_all(self, db: Session) -> List[WorkflowLevelRole]:
+        return db.query(WorkflowLevelRole).all()
+
+    
 
     def update(self, db: Session, db_obj: WorkflowLevelRole, update_data: dict) -> WorkflowLevelRole:
         for key, value in update_data.items():

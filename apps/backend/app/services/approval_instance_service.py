@@ -5,7 +5,8 @@ from fastapi import HTTPException, status
 from app.models.approval_instance import ApprovalInstance
 from app.repositories.approval_instance_repository import ApprovalInstanceRepository
 from app.schemas.approval_instance_schema import ApprovalInstanceCreate
-
+from app.models.enums import ApprovalStatus
+from app.models.workflow_level import WorkflowLevel
 
 class ApprovalInstanceService:
 
@@ -22,13 +23,24 @@ class ApprovalInstanceService:
                 status_code=400,
                 detail="Approval instance already exists for this entity"
             )
+        
+        #  Here we set the first worklevel
+        first_level = db.query(WorkflowLevel).filter(
+            WorkflowLevel.workflow_id == data.workflow_id
+        ).order_by(WorkflowLevel.level_order).first()
 
+        if not first_level:
+            raise HTTPException(
+                status_code=400, 
+                detail="Workflow has no levels")
+        
+        # Create Instance
         instance = ApprovalInstance(
-            id=uuid.uuid4(),
             workflow_id=data.workflow_id,
             entity_id=data.entity_id,
             entity_type=data.entity_type,
-            status="PENDING"
+            current_level_id=first_level.id,
+            status=ApprovalStatus.PENDING
         )
 
         return self.repo.create(db, instance)
@@ -47,55 +59,4 @@ class ApprovalInstanceService:
     def get_all_instances(self, db: Session):
         return self.repo.get_all(db)
 
-    #  MOVE TO NEXT LEVEL (CORE LOGIC)
-    def move_to_next_level(self, db: Session, instance_id: uuid.UUID, next_level_id: uuid.UUID):
-
-        instance = self.repo.get_by_id(db, instance_id)
-
-        if not instance:
-            raise HTTPException(status_code=404, detail="Instance not found")
-
-        update_data = {
-            "current_level_id": next_level_id
-        }
-
-        return self.repo.update(db, instance, update_data)
-
-    # APPROVE INSTANCE
-    def approve_instance(self, db: Session, instance_id: uuid.UUID):
-
-        instance = self.repo.get_by_id(db, instance_id)
-
-        if not instance:
-            raise HTTPException(status_code=404, detail="Instance not found")
-
-        update_data = {
-            "status": "APPROVED",
-            "current_level_id": None
-        }
-
-        return self.repo.update(db, instance, update_data)
-
-    # REJECT INSTANCE
-    def reject_instance(self, db: Session, instance_id: uuid.UUID):
-
-        instance = self.repo.get_by_id(db, instance_id)
-
-        if not instance:
-            raise HTTPException(status_code=404, detail="Instance not found")
-
-        update_data = {
-            "status": "REJECTED",
-            "current_level_id": None
-        }
-
-        return self.repo.update(db, instance, update_data)
-
-    def delete_instance(self, db: Session, instance_id: uuid.UUID):
-        instance = self.repo.get_by_id(db, instance_id)
-
-        if not instance:
-            raise HTTPException(status_code=404, detail="Instance not found")
-
-        self.repo.delete(db, instance)
-        return {"message": "Deleted successfully"}
+   

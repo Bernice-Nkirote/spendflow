@@ -6,14 +6,18 @@ from uuid import UUID
 from app.schemas.approval_action_schema import ApprovalActionCreate, ApprovalActionRead
 from app.services.approval_action_service import ApprovalActionService
 from app.repositories.approval_action_repository import ApprovalActionRepository
+from app.repositories.approval_instance_repository import ApprovalInstanceRepository
 from app.core.database import get_db
 
 router = APIRouter(prefix="/approval-actions", tags=["Approval Actions"])
 
 # Dependency to inject service
-def get_service(db: Session = Depends(get_db)) -> ApprovalActionService:
-    repo = ApprovalActionRepository(db)
-    return ApprovalActionService(repo)
+def get_service(db: Session = Depends(get_db)):
+
+    action_repo = ApprovalActionRepository()
+    instance_repo = ApprovalInstanceRepository()
+
+    return ApprovalActionService(action_repo, instance_repo)
 
 @router.post("/", response_model=ApprovalActionRead)
 def create_action(
@@ -21,7 +25,7 @@ def create_action(
     service: ApprovalActionService = Depends(get_service)
 ):
     try: 
-        return service.create_action(approval_action)
+        return service.create_action(db, approval_action)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 

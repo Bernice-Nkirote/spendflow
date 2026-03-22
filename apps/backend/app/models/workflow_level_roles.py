@@ -33,4 +33,4 @@ class WorkflowLevelRole(Base):
 
     # Relationships
     level = relationship("WorkflowLevel", back_populates="roles")
-    role = relationship("Role")
+    role = relationship("Role", back_populates="level_roles")
