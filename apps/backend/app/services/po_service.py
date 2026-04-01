@@ -3,8 +3,10 @@ from datetime import datetime
 from app.models.purchase_order import PurchaseOrder, POStatusEnum
 from app.models.approval_instance import ApprovalInstance
 from app.models.approval_action import ApprovalAction
+from app.models.audit_log import AuditLog
 from app.models.enums import ActionType
 from app.repositories.po_repository import PurchaseOrderRepository
+from app.services.audit_log_service import AuditLogService
 from app.services.approval_instance_service import ApprovalInstanceService
 from app.services.po_pdf_service import PurchaseOrderPDFService
 from app.services.email_service import send_email_with_attachment
@@ -33,6 +35,16 @@ class PurchaseOrderService:
         )
 
         created_po = self.repo.create(po)
+        AuditLogService.log(
+            db=self.db,
+            entity="po",
+            entity_id=po.id,
+            action="APPROVE",
+            user_id=current_user["sub"],
+            old_values={"status": "PENDING_APPROVAL"},
+            new_values={"status": "APPROVED"}
+        )
+        self.db.commit()
 
         # Create Approval Instance
         approval_service = ApprovalInstanceService(self.db)
@@ -99,7 +111,18 @@ class PurchaseOrderService:
         self.db.add(action)
 
         # Update PO STATUS
+        old_status = po.status
         po.status = POStatusEnum.APPROVED
+
+        AuditLogService.log(
+            db=self.db,
+            entity="po",
+            entity_id=po.id,
+            action="APPROVE",
+            user_id=current_user["sub"],
+            old_values={"status": old_status.value},
+            new_values={"status": po.status.value}
+        )
         self.db.commit()
 
         return po
@@ -141,7 +164,21 @@ class PurchaseOrderService:
         )
 
         self.db.add(action)
+
+        old_status = po.status
         po.status = POStatusEnum.REJECTED
+
+        # Audit Log service REJECT
+        AuditLogService.log(
+            db=self.db,
+            entity="po",
+            entity_id=po.id,
+            action="REJECT",
+            user_id=current_user["sub"],
+            old_values={"status": old_status.value},
+            new_values={"status": po.status.value}
+        )
+
         self.db.commit()
         return po
     
@@ -180,7 +217,19 @@ class PurchaseOrderService:
         )
 
     # Update status
+        old_status = po.status
         po.status = POStatusEnum.SENT
+        
+        # Audit Log Sent 
+        AuditLogService.log(
+            db=self.db,
+            entity="po",
+            entity_id=po.id,
+            action="SENT",
+            user_id=None,
+            old_values={"status": old_status.value},
+            new_values={"status": po.status.value}
+        )
         self.db.commit()
 
         return po

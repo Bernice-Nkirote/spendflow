@@ -3,7 +3,7 @@ from uuid import UUID
 from datetime import datetime
 from typing import Optional,List
 from .approval_action_schema import ApprovalActionRead
-from models.enums import EntityTypeEnum, ApprovalStatus
+from app.models.enums import EntityTypeEnum, ApprovalStatus
 
 class ApprovalInstanceCreate(BaseModel):
     workflow_id: UUID

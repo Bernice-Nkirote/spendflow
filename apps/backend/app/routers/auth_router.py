@@ -31,7 +31,8 @@ def login(
         data={
             "sub": str(db_user.id),
             "company_id": str(db_user.company_id),
-            "role": str(db_user.role_id)
+            "role": str(db_user.role_id),
+            "type":"USER"
         }
     )
 

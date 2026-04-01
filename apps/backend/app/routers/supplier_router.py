@@ -45,3 +45,4 @@ def get_supplier(
 
     company_id = current_user["company_id"]
     return service.get_supplier(db, supplier_id, company_id)
+

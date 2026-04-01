@@ -16,9 +16,15 @@ from app.models import workflow_level
 from app.models import workflow_level_roles
 from app.models import pr_approvals_table
 from app.models import role
+from app.models import user_role
 from app.models import approval_instance
 from app.models import approval_action
 from app.models import supplier
+from app.models import invoice
+from app.models import invoice_line_item
+from app.models import payments
+from app.models import audit_log
+from app.models import enums
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

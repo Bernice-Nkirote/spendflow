@@ -36,3 +36,4 @@ class PurchaseOrder(Base):
     # Relationships
     items = relationship("PurchaseOrderItem", back_populates="purchase_order", cascade="all, delete-orphan")
     supplier = relationship("Supplier")
+    invoices = relationship("Invoice", backref="purchase_order")

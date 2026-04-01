@@ -25,6 +25,23 @@ class POStatusEnum(str, enum.Enum):
     SENT = "SENT"
     COMPLETED = "COMPLETED"
 
+class InvoiceStateEnum(str, enum.Enum):
+    PENDING = "PENDING"
+    PAID = "PAID"
+    APPROVED= "APPROVED"
+    SENT = "SENT"
+    PARTIALLY_PAID = "PARTIALLY PAID"
+    CANCELLED = "CANCELLED"
+
+class PaymentStatusEnum(str, enum.Enum):
+    PENDING = "PENDING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+
+class PaymentMethodEnum(str, enum.Enum):
+    BANK_TRANSFER = "BANK_TRANSFER"
+    MPESA = "MPESA"
+    CASH = "CASH"
 
 # POSTGRE SQL ENUMS
 entity_type_enum = ENUM(
@@ -48,5 +65,23 @@ action_type_enum = ENUM(
 po_status_enum = ENUM(
     *[e.value for e in POStatusEnum],
     name="postatusenum",
+    create_type=False
+)
+
+invoice_status_enum = ENUM(
+    *[e.value for e in InvoiceStateEnum],
+    name="invoicestatusenum",
+    create_type=False
+)
+
+payment_status_enum = ENUM(
+    *[e.value for e in PaymentStatusEnum],
+    name="paymentstatusenum",
+    create_type=False
+)
+
+payment_method_enum = ENUM(
+    *[e.value for e in PaymentMethodEnum],
+    name="paymentmethodenum",
     create_type=False
 )

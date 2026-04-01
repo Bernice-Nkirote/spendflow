@@ -36,6 +36,7 @@ class User(Base):
     phone_number = Column(String, unique=True, nullable=True)
     hashed_password = Column(String, nullable=False)
 
+
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True),server_default=func.now(),nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(),nullable=False)
@@ -44,3 +45,5 @@ class User(Base):
     department = relationship("Department", back_populates="users")
     role = relationship("Role", back_populates="users")
     requisitions= relationship("PurchaseRequisition", back_populates="requester")
+    invoices_submitted = relationship("Invoice",foreign_keys="Invoice.submitted_by_user_id",back_populates="submitted_by_user"
+)

@@ -35,4 +35,4 @@ class WorkflowLevel(Base):
 
 # relationship
     workflow= relationship("ApprovalWorkflow", back_populates="levels")
-    roles = relationship("WorkflowLevelRole", back_populates="level", cascade="all, delete-orphan")
+    level_roles = relationship("WorkflowLevelRole", back_populates="level", cascade="all, delete-orphan")

@@ -28,3 +28,4 @@ class Role(Base):
 
 # Relationship
     users = relationship("User", back_populates="role")
+    level_roles = relationship("WorkflowLevelRole", back_populates="role")
