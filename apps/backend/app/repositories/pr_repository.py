@@ -1,48 +1,88 @@
-from sqlalchemy.orm import Session
-from decimal import Decimal, ROUND_HALF_UP
-from app.models.purchase_requisition import PurchaseRequisition
-from app.models.purchase_requisition_item import PurchaseRequisitionItem
+from typing import Optional
 from uuid import UUID
 
-class PRRepository:
-    def create(self, db: Session, pr_data, user_id: UUID, company_id: UUID):
-        # Calculate total
-        total_amount = Decimal("0.00")
-        for item in pr_data.items:
-            total_amount += (item.quantity * item.unit_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-        total_amount = total_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-       
-        # Create PR
-        db_pr = PurchaseRequisition(
-            company_id=company_id,
-            requested_by=user_id,
-            department_id=pr_data.department_id,
-            title=pr_data.title,
-            description=pr_data.description,
-            total_amount=total_amount,
-            currency=pr_data.currency
+from sqlalchemy.orm import Session
+
+from app.models.enums import PRStatusEnum
+from app.models.purchase_requisition import PurchaseRequisition
+
+
+class PurchaseRequisitionRepository:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def create(self, requisition: PurchaseRequisition) -> PurchaseRequisition:
+        self.db.add(requisition)
+        self.db.commit()
+        self.db.refresh(requisition)
+        return requisition
+
+    def get_by_id(self, requisition_id: UUID, company_id: UUID) -> Optional[PurchaseRequisition]:
+        return (
+            self.db.query(PurchaseRequisition)
+            .filter(
+                PurchaseRequisition.id == requisition_id,
+                PurchaseRequisition.company_id == company_id,
+            )
+            .first()
         )
 
-        db.add(db_pr)
-        db.flush()
+    def get_all(
+        self,
+        company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> list[PurchaseRequisition]:
+        return (
+            self.db.query(PurchaseRequisition)
+            .filter(PurchaseRequisition.company_id == company_id)
+            .order_by(PurchaseRequisition.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
-        # Create PR Items
-        for item in pr_data.items:
-            db_item = PurchaseRequisitionItem(
-                requisition_id=db_pr.id,
-                description=item.description,
-                quantity=item.quantity,
-                unit_price=item.unit_price,
-               line_total=(item.quantity * item.unit_price).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    def get_by_pr_number(self, pr_number: str, company_id: UUID) -> Optional[PurchaseRequisition]:
+        return (
+            self.db.query(PurchaseRequisition)
+            .filter(
+                PurchaseRequisition.pr_number == pr_number,
+                PurchaseRequisition.company_id == company_id,
             )
-            db.add(db_item)
+            .first()
+        )
 
-        db.commit()
-        db.refresh(db_pr)
-        return db_pr
-    
-    def list_by_company(self, db:Session, company_id:UUID):
-        return db.query(PurchaseRequisition).filter_by(company_id=company_id).all()
-    
-    def get_by_id(self, db: Session, pr_id: UUID, company_id: UUID):
-        return db.query(PurchaseRequisition).filter_by(id=pr_id, company_id=company_id).first()
+    def get_by_status(
+        self,
+        status: PRStatusEnum,
+        company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> list[PurchaseRequisition]:
+        return (
+            self.db.query(PurchaseRequisition)
+            .filter(
+                PurchaseRequisition.company_id == company_id,
+                PurchaseRequisition.status == status,
+            )
+            .order_by(PurchaseRequisition.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+
+    def update(
+        self,
+        requisition: PurchaseRequisition,
+        update_data: dict,
+    ) -> PurchaseRequisition:
+        for key, value in update_data.items():
+            setattr(requisition, key, value)
+
+        self.db.commit()
+        self.db.refresh(requisition)
+        return requisition
+
+    def delete(self, requisition: PurchaseRequisition) -> None:
+        self.db.delete(requisition)
+        self.db.commit()

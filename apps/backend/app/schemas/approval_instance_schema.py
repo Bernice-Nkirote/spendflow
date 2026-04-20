@@ -1,14 +1,18 @@
-from pydantic import BaseModel, ConfigDict
-from uuid import UUID
 from datetime import datetime
-from typing import Optional,List
-from .approval_action_schema import ApprovalActionRead
+from typing import Optional, List
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field
+
 from app.models.enums import EntityTypeEnum, ApprovalStatus
+from .approval_action_schema import ApprovalActionRead
+
 
 class ApprovalInstanceCreate(BaseModel):
     workflow_id: UUID
     entity_id: UUID
     entity_type: EntityTypeEnum
+
 
 class ApprovalInstanceRead(BaseModel):
     id: UUID
@@ -17,9 +21,9 @@ class ApprovalInstanceRead(BaseModel):
     entity_type: EntityTypeEnum
     current_level_id: Optional[UUID]
     status: ApprovalStatus
+    company_id: UUID
     created_at: datetime
     updated_at: datetime
+    actions: List[ApprovalActionRead] = Field(default_factory=list)
 
-    # Optional:nested actions
-    actions: Optional[List["ApprovalActionRead"]] = []
     model_config = ConfigDict(from_attributes=True)

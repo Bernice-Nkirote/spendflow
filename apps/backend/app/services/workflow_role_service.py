@@ -1,99 +1,184 @@
 import uuid
-from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 
 from app.models.workflow_level_roles import WorkflowLevelRole
+from app.repositories.workflow_level_repository import WorkflowLevelRepository
 from app.repositories.workflow_role_repository import WorkflowLevelRoleRepository
 from app.schemas.workflowlevel_role_schema import (
     WorkflowLevelRoleCreate,
-    WorkflowLevelRoleUpdate
+    WorkflowLevelRoleUpdate,
 )
-from app.models.workflow_level import WorkflowLevel
-from app.models.approval_workflows_table import ApprovalWorkflow
+
 
 class WorkflowLevelRoleService:
-
-    def __init__(self, repo: WorkflowLevelRoleRepository):
+    def __init__(
+        self,
+        repo: WorkflowLevelRoleRepository,
+        workflow_level_repo: WorkflowLevelRepository,
+    ):
         self.repo = repo
+        self.workflow_level_repo = workflow_level_repo
 
     def create_workflow_level_role(
-        self, db: Session, data: WorkflowLevelRoleCreate, company_id
-    ):
-        # Security check
-        level = db.query(WorkflowLevel).join(ApprovalWorkflow).filter(
-            WorkflowLevel.id == data.level_id,
-            ApprovalWorkflow.company_id == company_id
-        ).first()
+        self,
+        data: WorkflowLevelRoleCreate,
+        company_id: uuid.UUID,
+    ) -> WorkflowLevelRole:
+        """
+        Assign a role to a workflow level in the current company.
+        """
+        if not data.level_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Workflow level id is required",
+            )
 
+        if not data.role_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Role id is required",
+            )
+
+        level = self.workflow_level_repo.get_by_id(data.level_id, company_id)
         if not level:
             raise HTTPException(
-                status_code=403,
-                detail="Unauthorized level"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Workflow level not found",
             )
-        
-        # Check for duplication
-        existing = self.repo.get_by_level_and_role(
-            db,
-            data.level_id,
-            data.role_id
-        )
 
+        existing = self.repo.get_by_level_and_role(
+            data.level_id,
+            data.role_id,
+            company_id,
+        )
         if existing:
             raise HTTPException(
-                status_code=400,
-                detail="Role already assigned to this level"
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Role already assigned to this workflow level",
             )
-        
-        # CREATE WORKFLOW ROLE
-        obj = WorkflowLevelRole(
+
+        workflow_level_role = WorkflowLevelRole(
+            company_id=company_id,
             level_id=data.level_id,
-            role_id=data.role_id
+            role_id=data.role_id,
         )
 
-        return self.repo.create(db, obj)
+        return self.repo.create(workflow_level_role)
 
-    def get_workflow_level_role(self, db: Session, obj_id: uuid.UUID):
-        obj = self.repo.get_by_id(db, obj_id)
+    def get_workflow_level_role(
+        self,
+        workflow_level_role_id: uuid.UUID,
+        company_id: uuid.UUID,
+    ) -> WorkflowLevelRole:
+        """
+        Get one workflow level role assignment in the current company.
+        """
+        if not workflow_level_role_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Workflow level role id is required",
+            )
 
-        if not obj:
+        workflow_level_role = self.repo.get_by_id(workflow_level_role_id, company_id)
+        if not workflow_level_role:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="WorkflowLevelRole not found"
+                detail="Workflow level role not found",
             )
-        return obj
 
-    def get_all_workflow_level_roles(self, db: Session):
-        return self.repo.get_all(db)
+        return workflow_level_role
 
-    def get_roles_by_level(self, db: Session, level_id: uuid.UUID):
-        return self.repo.get_by_level(db, level_id)
+    def get_all_workflow_level_roles(
+        self,
+        company_id: uuid.UUID,
+    ):
+        """
+        Get all workflow level role assignments in the current company.
+        """
+        return self.repo.get_all(company_id)
+
+    def get_roles_by_level(
+        self,
+        level_id: uuid.UUID,
+        company_id: uuid.UUID,
+    ):
+        """
+        Get all role assignments for one workflow level in the current company.
+        """
+        if not level_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Workflow level id is required",
+            )
+
+        level = self.workflow_level_repo.get_by_id(level_id, company_id)
+        if not level:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Workflow level not found",
+            )
+
+        return self.repo.get_by_level(level_id, company_id)
 
     def update_workflow_level_role(
         self,
-        db: Session,
-        obj_id: uuid.UUID,
-        data: WorkflowLevelRoleUpdate
-    ):
-        obj = self.repo.get_by_id(db, obj_id)
+        workflow_level_role_id: uuid.UUID,
+        data: WorkflowLevelRoleUpdate,
+        company_id: uuid.UUID,
+    ) -> WorkflowLevelRole:
+        """
+        Update a workflow level role assignment in the current company.
+        """
+        if not workflow_level_role_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Workflow level role id is required",
+            )
 
-        if not obj:
+        workflow_level_role = self.repo.get_by_id(workflow_level_role_id, company_id)
+        if not workflow_level_role:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="WorkflowLevelRole not found"
+                detail="Workflow level role not found",
             )
 
         update_data = data.model_dump(exclude_unset=True)
 
-        return self.repo.update(db, obj, update_data)
+        new_role_id = update_data.get("role_id")
+        if new_role_id is not None and new_role_id != workflow_level_role.role_id:
+            existing = self.repo.get_by_level_and_role(
+                workflow_level_role.level_id,
+                new_role_id,
+                company_id,
+            )
+            if existing:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Role already assigned to this workflow level",
+                )
 
-    def delete_workflow_level_role(self, db: Session, obj_id: uuid.UUID):
-        obj = self.repo.get_by_id(db, obj_id)
+        return self.repo.update(workflow_level_role, update_data)
 
-        if not obj:
+    def delete_workflow_level_role(
+        self,
+        workflow_level_role_id: uuid.UUID,
+        company_id: uuid.UUID,
+    ) -> dict:
+        """
+        Delete a workflow level role assignment in the current company.
+        """
+        if not workflow_level_role_id:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="WorkflowLevelRole not found"
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Workflow level role id is required",
             )
 
-        self.repo.delete(db, obj)
-        return {"message": "Deleted successfully"}
+        workflow_level_role = self.repo.get_by_id(workflow_level_role_id, company_id)
+        if not workflow_level_role:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Workflow level role not found",
+            )
+
+        self.repo.delete(workflow_level_role)
+        return {"message": "Workflow level role deleted successfully"}

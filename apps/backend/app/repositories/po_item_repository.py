@@ -1,26 +1,53 @@
+from uuid import UUID
+
+from sqlalchemy.orm import Session
+
 from app.models.purchase_order_item import PurchaseOrderItem
 
+
 class PurchaseOrderItemRepository:
-    def __init__(self, db):
+    def __init__(self, db: Session):
         self.db = db
 
-    def get_by_id(self, item_id):
-        return self.db.query(PurchaseOrderItem).filter(PurchaseOrderItem.id == item_id).first()
-
-    def get_all_by_po(self, po_id):
-        return self.db.query(PurchaseOrderItem).filter(PurchaseOrderItem.purchase_order_id == po_id).all()
-
-    def create(self, item: PurchaseOrderItem):
+    def create(self, item: PurchaseOrderItem) -> PurchaseOrderItem:
         self.db.add(item)
         self.db.commit()
         self.db.refresh(item)
         return item
 
-    def update(self, item: PurchaseOrderItem):
+    def get_by_id(
+        self,
+        item_id: UUID,
+        company_id: UUID,
+    ) -> PurchaseOrderItem | None:
+        return (
+            self.db.query(PurchaseOrderItem)
+            .filter(
+                PurchaseOrderItem.id == item_id,
+                PurchaseOrderItem.company_id == company_id,
+            )
+            .first()
+        )
+
+    def get_all_by_po(
+        self,
+        purchase_order_id: UUID,
+        company_id: UUID,
+    ) -> list[PurchaseOrderItem]:
+        return (
+            self.db.query(PurchaseOrderItem)
+            .filter(
+                PurchaseOrderItem.purchase_order_id == purchase_order_id,
+                PurchaseOrderItem.company_id == company_id,
+            )
+            .all()
+        )
+
+    def update(self, item: PurchaseOrderItem) -> PurchaseOrderItem:
         self.db.commit()
         self.db.refresh(item)
         return item
 
-    def delete(self, item: PurchaseOrderItem):
+    def delete(self, item: PurchaseOrderItem) -> None:
         self.db.delete(item)
         self.db.commit()

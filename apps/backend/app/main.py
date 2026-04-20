@@ -1,37 +1,34 @@
 from fastapi import FastAPI
+from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.core.database import Base, engine
-from app.routers import pr_router
-from app.routers import supplier_router
-from app.routers import company_router
-from app.routers import auth_router
-from app.routers import user_router
-from app.routers import department_router
-from app.routers import approval_workflow_router
-from app.routers import workflow_level_router
-from app.routers import workflow_role_router
-from app.routers import approval_instance_router
-from app.routers import approval_action_router
+from app.routers import router as main_router
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from app.core.scheduler import start_scheduler
 
-from app import models
+
 Base.metadata.create_all(bind=engine)
+
+# Create scheduler instance
+scheduler = AsyncIOScheduler()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # STARTUP
+    scheduler.start()
+    app.state.scheduler = scheduler
+    print("Scheduler started")
+    yield
+    # SHUTDOWN
+    scheduler.shutdown(wait=False)
+    print("Scheduler stopped")
 
 # Creates FASTAPI app for you
 app = FastAPI(
-    title=settings.PROJECT_NAME
+    title=settings.PROJECT_NAME, lifespan=lifespan
 )
 
-app.include_router(auth_router.router)
-app.include_router(company_router.router)
-app.include_router(user_router.router)
-app.include_router(supplier_router.router)
-app.include_router(pr_router.router)
-app.include_router(department_router.router)
-app.include_router(approval_workflow_router.router)
-app.include_router(workflow_level_router.router)
-app.include_router(workflow_role_router.router)
-app.include_router(approval_instance_router.router)
-app.include_router(approval_action_router.router)
+app.include_router(main_router)
 
 # You use app.get to enter the building
 @app.get("/")

@@ -6,26 +6,7 @@ from sqlalchemy import pool
 from alembic import context
 from app.core.database import Base
 
-from app.models import company
-from app.models import department
-from app.models import user
-from app.models import purchase_requisition
-from app.models import purchase_requisition_item
-from app.models import approval_workflows_table
-from app.models import workflow_level
-from app.models import workflow_level_roles
-from app.models import pr_approvals_table
-from app.models import role
-from app.models import user_role
-from app.models import approval_instance
-from app.models import approval_action
-from app.models import supplier
-from app.models import invoice
-from app.models import invoice_line_item
-from app.models import payments
-from app.models import audit_log
-from app.models import enums
-
+from app.models import *
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config

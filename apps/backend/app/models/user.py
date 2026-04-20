@@ -1,11 +1,12 @@
 import uuid
-from sqlalchemy import Column, String, ForeignKey, DateTime, Boolean
+
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
-
 from app.core.database import Base
+
 
 class User(Base):
     __tablename__ = "users"
@@ -15,35 +16,62 @@ class User(Base):
     company_id = Column(
         UUID(as_uuid=True),
         ForeignKey("companies.id", ondelete="CASCADE"),
-        nullable=False
+        nullable=False,
+        index=True,
     )
 
     department_id = Column(
         UUID(as_uuid=True),
         ForeignKey("departments.id", ondelete="SET NULL"),
         nullable=True,
-        index=True
+        index=True,
     )
 
     role_id = Column(
         UUID(as_uuid=True),
         ForeignKey("roles.id"),
-        nullable=False
+        nullable=False,
+        index=True,
     )
 
     name = Column(String, nullable=False)
-    email= Column(String, nullable=False, unique=True, index=True)
-    phone_number = Column(String, unique=True, nullable=True)
+
+    email = Column(String, nullable=False, index=True)
+
+    phone_number = Column(String, nullable=True, unique=True)
+
     hashed_password = Column(String, nullable=False)
 
+    is_active = Column(Boolean, nullable=False, default=True)
 
-    is_active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime(timezone=True),server_default=func.now(),nullable=False)
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(),nullable=False)
-# Relationships
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    __table_args__ = (
+        UniqueConstraint("company_id", "email", name="uq_users_company_email"),
+        Index("ix_users_company_id_email", "company_id", "email"),
+        Index("ix_users_company_id_department_id", "company_id", "department_id"),
+        Index("ix_users_company_id_role_id", "company_id", "role_id"),
+    )
+
     company = relationship("Company", back_populates="users")
     department = relationship("Department", back_populates="users")
     role = relationship("Role", back_populates="users")
-    requisitions= relationship("PurchaseRequisition", back_populates="requester")
-    invoices_submitted = relationship("Invoice",foreign_keys="Invoice.submitted_by_user_id",back_populates="submitted_by_user"
-)
+    requisitions = relationship("PurchaseRequisition", back_populates="requester")
+    created_purchase_orders = relationship("PurchaseOrder", back_populates="creator")
+    invoices_submitted = relationship(
+        "Invoice",
+        foreign_keys="Invoice.submitted_by_user_id",
+        back_populates="submitted_by_user",
+    )
+    approval_actions = relationship("ApprovalAction", back_populates="user")

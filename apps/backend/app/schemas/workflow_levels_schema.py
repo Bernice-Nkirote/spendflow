@@ -1,45 +1,74 @@
-from pydantic import BaseModel,ConfigDict,Field, field_validator
-from uuid import UUID
 from datetime import datetime
-from typing import Optional
 from decimal import Decimal
+from typing import Optional
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
 from .workflowlevel_role_schema import WorkflowLevelRoleRead
 
-class WorkflowLevelBase(BaseModel):
+
+class WorkflowLevelCreate(BaseModel):
+    # Workflow this level belongs to
+    workflow_id: UUID
+
+    # Position in the approval flow
     level_order: int
-    name:str
-    min_amount: Optional[Decimal]
-    max_amount: Optional[Decimal]
+
+    # Label shown to users
+    name: str
+
+    # Optional amount range for this level
+    min_amount: Optional[Decimal] = None
+    max_amount: Optional[Decimal] = None
+
+    # Department responsible for this level
     department_id: UUID
-    condition_expression: Optional[dict]
 
-    #  Validator
+    # Optional extra rule data
+    condition_expression: Optional[dict] = None
+
     @field_validator("max_amount")
-    def validate_amounts(cls, v, values):
-        min_amount = values.data.get("min_amount")
-
+    @classmethod
+    def validate_amounts(cls, v, info):
+        min_amount = info.data.get("min_amount")
         if min_amount is not None and v is not None and v < min_amount:
-            raise ValueError("max_amount must be greater than min_amount")
+            raise ValueError("max_amount must be greater than or equal to min_amount")
         return v
 
 
-class WorkflowLevelCreate(WorkflowLevelBase):
-    # For frontend to show which workflow this level belongs to, The id will be in dropdown and user will pick it
-    workflow_id: UUID 
-
 class WorkflowLevelUpdate(BaseModel):
-    level_order: Optional[int]
-    min_amount: Optional[Decimal]
-    max_amount: Optional[Decimal]
-    department_id: Optional[UUID]
-    condition_expression: Optional[dict]
+    # All fields optional for partial update
+    name: Optional[str] = None
+    level_order: Optional[int] = None
+    min_amount: Optional[Decimal] = None
+    max_amount: Optional[Decimal] = None
+    department_id: Optional[UUID] = None
+    condition_expression: Optional[dict] = None
 
-class WorkflowLevelRead(WorkflowLevelBase):
+    @field_validator("max_amount")
+    @classmethod
+    def validate_amounts(cls, v, info):
+        min_amount = info.data.get("min_amount")
+        if min_amount is not None and v is not None and v < min_amount:
+            raise ValueError("max_amount must be greater than or equal to min_amount")
+        return v
+
+
+class WorkflowLevelRead(BaseModel):
     id: UUID
     workflow_id: UUID
+    company_id: UUID
+    level_order: int
+    name: str
+    min_amount: Optional[Decimal] = None
+    max_amount: Optional[Decimal] = None
+    department_id: UUID
+    condition_expression: Optional[dict] = None
     created_at: datetime
     updated_at: datetime
 
-    roles: list["WorkflowLevelRoleRead"] = Field(default_factory=list)
-    model_config = ConfigDict(from_attributes=True)
+    # Roles allowed to act at this level
+    level_roles: list[WorkflowLevelRoleRead] = Field(default_factory=list)
 
+    model_config = ConfigDict(from_attributes=True)

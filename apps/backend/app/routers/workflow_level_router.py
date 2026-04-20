@@ -1,55 +1,63 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from typing import List
 from uuid import UUID
 
-from app.core.database import get_db
-from app.schemas.workflow_levels_schema import WorkflowLevelCreate, WorkflowLevelRead
-from app.repositories.workflow_level_repository import WorkflowLevelRepository
-from app.services.workflow_level_service import WorkflowLevelService
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
 from app.core.auth_dependancy import get_current_user
+from app.core.database import get_db
+from app.repositories.approval_workflow_repository import ApprovalWorkflowRepository
+from app.repositories.workflow_level_repository import WorkflowLevelRepository
+from app.schemas.workflow_levels_schema import WorkflowLevelCreate, WorkflowLevelRead
+from app.services.workflow_level_service import WorkflowLevelService
+
 
 router = APIRouter(prefix="/workflow-levels", tags=["Workflow Levels"])
 
-repo = WorkflowLevelRepository()
-service = WorkflowLevelService(repo=repo)
+
+def get_service(db: Session = Depends(get_db)) -> WorkflowLevelService:
+    """
+    Build service per request with all required repositories.
+    """
+    workflow_level_repo = WorkflowLevelRepository(db)
+    workflow_repo = ApprovalWorkflowRepository(db)
+    return WorkflowLevelService(
+        repo=workflow_level_repo,
+        workflow_repo=workflow_repo
+    )
+
 
 @router.post("/", response_model=WorkflowLevelRead)
 def create_level(
     level: WorkflowLevelCreate,
-    db: Session = Depends(get_db),
-    user: dict = Depends(get_current_user)
+    service: WorkflowLevelService = Depends(get_service),
+    user=Depends(get_current_user),
 ):
-    return service.create_level(
-        db,
-        level,
-        user["company_id"]
-    )
+    """
+    Create a workflow level for the current user's company.
+    """
+    return service.create_level(level, user.company_id)
+
 
 @router.get("/by-workflow/{workflow_id}", response_model=List[WorkflowLevelRead])
 def list_levels(
     workflow_id: UUID,
-    db: Session = Depends(get_db),
-    user: dict = Depends(get_current_user)
+    service: WorkflowLevelService = Depends(get_service),
+    user=Depends(get_current_user),
 ):
-    return service.list_levels(
-        db,
-        workflow_id,
-        user["company_id"]
-    )
+    """
+    List all workflow levels for a workflow belonging to the current user's company.
+    """
+    return service.list_levels(workflow_id, user.company_id)
+
 
 @router.get("/{level_id}", response_model=WorkflowLevelRead)
 def get_level(
     level_id: UUID,
-    db: Session = Depends(get_db),
-    user: dict = Depends(get_current_user)
+    service: WorkflowLevelService = Depends(get_service),
+    user=Depends(get_current_user),
 ):
-    level = service.get_level(db, level_id, user["company_id"])
-
-    if not level:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Workflow level not found"
-        )
-
-    return level
+    """
+    Get one workflow level belonging to the current user's company.
+    """
+    return service.get_level(level_id, user.company_id)

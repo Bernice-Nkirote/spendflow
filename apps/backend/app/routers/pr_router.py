@@ -1,51 +1,202 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from typing import List
 from uuid import UUID
-from app.core.database import get_db
-from app.schemas.pr import PurchaseRequisitionCreate, PurchaseRequisitionRead, PRItemCreate
-from app.repositories.pr_repository import PRRepository
-from app.services.pr_service import PRService
+
+from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy.orm import Session
+
 from app.core.auth_dependancy import get_current_user
+from app.core.database import get_db
+from app.repositories.approval_instance_repository import ApprovalInstanceRepository
+from app.repositories.approval_workflow_repository import ApprovalWorkflowRepository
+from app.repositories.pr_item_repository import PurchaseRequisitionItemRepository
+from app.repositories.pr_repository import PurchaseRequisitionRepository
+from app.repositories.workflow_level_repository import WorkflowLevelRepository
+from app.schemas.pr_item_schema import (
+    PurchaseRequisitionItemCreate,
+    PurchaseRequisitionItemRead,
+    PurchaseRequisitionItemUpdate,
+)
+from app.schemas.pr_schema import (
+    PurchaseRequisitionCreate,
+    PurchaseRequisitionRead,
+    PurchaseRequisitionUpdate,
+)
+from app.services.approval_instance_service import ApprovalInstanceService
+from app.services.pr_service import PurchaseRequisitionService
 
-router = APIRouter(prefix="/purchase-requisitions", tags=["Purchase Requisitions"])
 
-repo = PRRepository()
-service = PRService(repo=repo)
+router = APIRouter(
+    prefix="/purchase-requisitions",
+    tags=["Purchase Requisitions"],
+)
 
-@router.post("/", response_model=PurchaseRequisitionRead)
-def create_pr(
-    pr: PurchaseRequisitionCreate, 
+
+def get_purchase_requisition_service(
     db: Session = Depends(get_db),
-    user: dict = Depends(get_current_user)):
-   
-    if not pr.items:
-        raise HTTPException(status_code=400, detail="PR must contain at least one item")
-    try:
-        return service.create_pr(
-            db, 
-            pr, 
-            user["sub"], 
-            user["company_id"])
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    
-# List PR for company whose user is current user
-@router.get("/", response_model=List[PurchaseRequisitionRead])
-def list_prs(
-    db: Session = Depends(get_db), 
-    user: dict = Depends(get_current_user)):
-    return service.list_prs(db, user["company_id"])
+) -> PurchaseRequisitionService:
+    requisition_repo = PurchaseRequisitionRepository(db)
+    item_repo = PurchaseRequisitionItemRepository(db)
+    workflow_repo = ApprovalWorkflowRepository(db)
 
-# Get pr from company whose user is current user
+    approval_instance_repo = ApprovalInstanceRepository(db)
+    workflow_level_repo = WorkflowLevelRepository(db)
+    approval_instance_service = ApprovalInstanceService(
+        repo=approval_instance_repo,
+        workflow_level_repo=workflow_level_repo,
+    )
 
-@router.get("/{pr_id}",response_model=PurchaseRequisitionRead)
-def get_pr(
-    pr_id: UUID, 
-    db: Session = Depends(get_db), 
-    user: dict = Depends(get_current_user)):
-    pr = service.get_pr(db, pr_id, user["company_id"])
-    if not pr:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PR not found")
-    return pr
-    
+    return PurchaseRequisitionService(
+        requisition_repo=requisition_repo,
+        item_repo=item_repo,
+        workflow_repo=workflow_repo,
+        approval_instance_service=approval_instance_service,
+    )
+
+
+@router.post(
+    "/",
+    response_model=PurchaseRequisitionRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_purchase_requisition(
+    requisition_data: PurchaseRequisitionCreate,
+    current_user=Depends(get_current_user),
+    service: PurchaseRequisitionService = Depends(get_purchase_requisition_service),
+):
+    return service.create_purchase_requisition(
+        requisition_data=requisition_data,
+        user_id=current_user.id,
+        company_id=current_user.company_id,
+    )
+
+
+@router.get("/", response_model=list[PurchaseRequisitionRead])
+def get_all_purchase_requisitions(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1),
+    current_user=Depends(get_current_user),
+    service: PurchaseRequisitionService = Depends(get_purchase_requisition_service),
+):
+    return service.get_all_purchase_requisitions(
+        company_id=current_user.company_id,
+        skip=skip,
+        limit=limit,
+    )
+
+
+@router.get("/{requisition_id}", response_model=PurchaseRequisitionRead)
+def get_purchase_requisition(
+    requisition_id: UUID,
+    current_user=Depends(get_current_user),
+    service: PurchaseRequisitionService = Depends(get_purchase_requisition_service),
+):
+    return service.get_purchase_requisition(
+        requisition_id=requisition_id,
+        company_id=current_user.company_id,
+    )
+
+
+@router.put("/{requisition_id}", response_model=PurchaseRequisitionRead)
+def update_purchase_requisition(
+    requisition_id: UUID,
+    requisition_data: PurchaseRequisitionUpdate,
+    current_user=Depends(get_current_user),
+    service: PurchaseRequisitionService = Depends(get_purchase_requisition_service),
+):
+    return service.update_purchase_requisition(
+        requisition_id=requisition_id,
+        requisition_data=requisition_data,
+        company_id=current_user.company_id,
+    )
+
+
+@router.post(
+    "/{requisition_id}/items",
+    response_model=PurchaseRequisitionItemRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_purchase_requisition_item(
+    requisition_id: UUID,
+    item_data: PurchaseRequisitionItemCreate,
+    current_user=Depends(get_current_user),
+    service: PurchaseRequisitionService = Depends(get_purchase_requisition_service),
+):
+    return service.create_purchase_requisition_item(
+        requisition_id=requisition_id,
+        item_data=item_data,
+        company_id=current_user.company_id,
+    )
+
+
+@router.get(
+    "/{requisition_id}/items",
+    response_model=list[PurchaseRequisitionItemRead],
+)
+def get_all_purchase_requisition_items(
+    requisition_id: UUID,
+    current_user=Depends(get_current_user),
+    service: PurchaseRequisitionService = Depends(get_purchase_requisition_service),
+):
+    return service.get_all_purchase_requisition_items(
+        requisition_id=requisition_id,
+        company_id=current_user.company_id,
+    )
+
+
+@router.put(
+    "/{requisition_id}/items/{item_id}",
+    response_model=PurchaseRequisitionItemRead,
+)
+def update_purchase_requisition_item(
+    requisition_id: UUID,
+    item_id: UUID,
+    item_data: PurchaseRequisitionItemUpdate,
+    current_user=Depends(get_current_user),
+    service: PurchaseRequisitionService = Depends(get_purchase_requisition_service),
+):
+    return service.update_purchase_requisition_item(
+        requisition_id=requisition_id,
+        item_id=item_id,
+        item_data=item_data,
+        company_id=current_user.company_id,
+    )
+
+
+@router.delete(
+    "/{requisition_id}/items/{item_id}",
+    response_model=PurchaseRequisitionItemRead,
+)
+def delete_purchase_requisition_item(
+    requisition_id: UUID,
+    item_id: UUID,
+    current_user=Depends(get_current_user),
+    service: PurchaseRequisitionService = Depends(get_purchase_requisition_service),
+):
+    return service.delete_purchase_requisition_item(
+        requisition_id=requisition_id,
+        item_id=item_id,
+        company_id=current_user.company_id,
+    )
+
+
+@router.patch("/{requisition_id}/submit", response_model=PurchaseRequisitionRead)
+def submit_purchase_requisition(
+    requisition_id: UUID,
+    current_user=Depends(get_current_user),
+    service: PurchaseRequisitionService = Depends(get_purchase_requisition_service),
+):
+    return service.submit_purchase_requisition(
+        requisition_id=requisition_id,
+        company_id=current_user.company_id,
+    )
+
+
+@router.patch("/{requisition_id}/cancel", response_model=PurchaseRequisitionRead)
+def cancel_purchase_requisition(
+    requisition_id: UUID,
+    current_user=Depends(get_current_user),
+    service: PurchaseRequisitionService = Depends(get_purchase_requisition_service),
+):
+    return service.cancel_purchase_requisition(
+        requisition_id=requisition_id,
+        company_id=current_user.company_id,
+    )

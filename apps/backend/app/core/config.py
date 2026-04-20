@@ -10,6 +10,15 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
+
+    # Email config for sending emails to supplier
+    SMTP_HOST: str
+    SMTP_PORT: int
+    SMTP_USERNAME: str
+    SMTP_PASSWORD: str
+    FROM_EMAIL: str
+    SMTP_USE_TLS: bool = True
+
     class Config:
         env_file = ".env"
 

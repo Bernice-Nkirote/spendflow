@@ -17,10 +17,11 @@ from app.repositories.po_repository import PurchaseOrderRepository
 from app.services.audit_log_service import AuditLogService
 
 class PaymentService:
-    def __init__(self):
-        self.payment_repo = PaymentRepository()
-        self.invoice_repo = InvoiceRepository()
-        self.po_repo = PurchaseOrderRepository()
+    def __init__(self, db):
+        self.db = db
+        self.payment_repo = PaymentRepository(db)
+        self.invoice_repo = InvoiceRepository(db)
+        self.po_repo = PurchaseOrderRepository(db)
 
     # CREATE PAYMENT
     def create_payment(self, db: Session, data, current_user=None):

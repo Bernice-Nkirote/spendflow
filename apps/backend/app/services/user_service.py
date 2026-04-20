@@ -1,92 +1,213 @@
 import uuid
-from sqlalchemy.orm import Session
-from fastapi import HTTPException
+from uuid import UUID
 
+from fastapi import HTTPException, status
+
+from app.core.security import hash_password
 from app.models.user import User
 from app.repositories.user_repository import UserRepository
 from app.schemas.user_schema import UserCreate, UserUpdate
-from app.core.security import hash_password
 
 
 class UserService:
+    def __init__(self, repo: UserRepository):
+        self.repo = repo
 
-    def __init__(self):
-        self.repo = UserRepository()
+    def create_user(self, user_data: UserCreate, company_id: UUID) -> User:
+        name = user_data.name.strip()
+        if not name:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User name is required.",
+            )
 
-    # Create user
-    def create_user(self, db: Session, user_data: UserCreate):
+        email = user_data.email.strip().lower()
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email is required.",
+            )
 
-        existing = self.repo.get_by_email(db, user_data.email)
+        password = user_data.password.strip()
+        if not password:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Password is required.",
+            )
 
-        if existing:
-            raise HTTPException(status_code=400, detail="Email already exists")
+        phone_number = user_data.phone_number.strip() if user_data.phone_number else None
 
-        hashed_password = hash_password(user_data.password)
+        existing_user = self.repo.get_by_email(email, company_id)
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Email already exists in this company.",
+            )
+
+        if phone_number:
+            existing_phone = self.repo.get_by_phone_number(phone_number, company_id)
+            if existing_phone:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Phone number already exists in this company.",
+                )
 
         user = User(
             id=uuid.uuid4(),
-            name=user_data.name,
-            email=user_data.email,
-            phone_number=user_data.phone_number,
+            company_id=company_id,
             department_id=user_data.department_id,
             role_id=user_data.role_id,
-            company_id=user_data.company_id,
-            hashed_password=hashed_password
+            name=name,
+            email=email,
+            phone_number=phone_number,
+            hashed_password=hash_password(password),
+            is_active=True,
         )
 
-        return self.repo.create(db, user)
+        return self.repo.create(user)
 
-    # Get user
-    def get_user(self, db: Session, user_id):
-
-        user = self.repo.get_by_id(db, user_id)
-
+    def get_user(self, user_id: UUID, company_id: UUID) -> User:
+        user = self.repo.get_by_id(user_id, company_id)
         if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found.",
+            )
         return user
 
-    # Get users by company
-    def list_company_users(self, db: Session, company_id):
+    def get_all_users(
+        self,
+        company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> list[User]:
+        if skip < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Skip must be zero or greater.",
+            )
 
-        return self.repo.get_by_company(db, company_id)
+        if limit < 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Limit must be greater than zero.",
+            )
 
-    # Update user
-    def update_user(self, db: Session, user_id, user_data: UserUpdate):
+        return self.repo.get_all(company_id, skip=skip, limit=limit)
 
-        user = self.repo.get_by_id(db, user_id)
-
+    def update_user(self, user_id: UUID, user_data: UserUpdate, company_id: UUID) -> User:
+        user = self.repo.get_by_id(user_id, company_id)
         if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found.",
+            )
 
-        if user_data.name is not None:
-            user.name = user_data.name
+        update_data = user_data.model_dump(exclude_unset=True)
 
-        if user_data.email is not None:
-            user.email = user_data.email
+        if "name" in update_data:
+            normalized_name = update_data["name"].strip()
+            if not normalized_name:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="User name cannot be empty.",
+                )
+            update_data["name"] = normalized_name
 
-        if user_data.phone_number is not None:
-            user.phone_number = user_data.phone_number
+        if "email" in update_data:
+            normalized_email = update_data["email"].strip().lower()
+            if not normalized_email:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Email cannot be empty.",
+                )
 
-        if user_data.department_id is not None:
-            user.department_id = user_data.department_id
+            existing_user = self.repo.get_by_email(normalized_email, company_id)
+            if existing_user and existing_user.id != user.id:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Email already exists in this company.",
+                )
 
-        if user_data.role_id is not None:
-            user.role_id = user_data.role_id
+            update_data["email"] = normalized_email
 
-        if user_data.is_active is not None:
-            user.is_active = user_data.is_active
+        if "phone_number" in update_data:
+            phone_number = update_data["phone_number"]
+            normalized_phone = phone_number.strip() if phone_number else None
 
-        return self.repo.update(db, user)
+            if normalized_phone:
+                existing_phone = self.repo.get_by_phone_number(normalized_phone, company_id)
+                if existing_phone and existing_phone.id != user.id:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail="Phone number already exists in this company.",
+                    )
 
-    # Deactivate user
-    def deactivate_user(self, db: Session, user_id):
+            update_data["phone_number"] = normalized_phone
 
-        user = self.repo.get_by_id(db, user_id)
+        for field, value in update_data.items():
+            setattr(user, field, value)
 
+        return self.repo.update(user)
+
+    def activate_user(self, user_id: UUID, company_id: UUID) -> User:
+        user = self.repo.get_by_id(user_id, company_id)
         if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found.",
+            )
+
+        if user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User is already active.",
+            )
+
+        user.is_active = True
+        return self.repo.update(user)
+
+    def deactivate_user(self, user_id: UUID, company_id: UUID) -> User:
+        user = self.repo.get_by_id(user_id, company_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found.",
+            )
+
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User is already inactive.",
+            )
 
         user.is_active = False
+        return self.repo.update(user)
 
-        return self.repo.update(db, user)
+    def delete_user(self, user_id: UUID, company_id: UUID) -> None:
+        user = self.repo.get_by_id(user_id, company_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found.",
+            )
+
+        if self.repo.has_requisitions(user_id, company_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User cannot be deleted because they have purchase requisitions. Deactivate instead.",
+            )
+
+        if self.repo.has_approval_actions(user_id, company_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User cannot be deleted because they have approval actions. Deactivate instead.",
+            )
+
+        if self.repo.has_submitted_invoices(user_id, company_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User cannot be deleted because they have submitted invoices. Deactivate instead.",
+            )
+
+        self.repo.delete(user)

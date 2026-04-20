@@ -38,13 +38,14 @@ class Invoice(Base):
     __table_args__ = (
         CheckConstraint(
             "(submitted_by_user_id is NOT NULL AND submitted_by_supplier_id is NULL) OR"
-            "(submitted_by_user_id is NULL AND submitted_by_supplier IS NOT NULL)",
+            "(submitted_by_user_id is NULL AND submitted_by_supplier_id IS NOT NULL)",
             name="check_only_one_submitter"
         ),
     )
 
     # Relationships
     line_items = relationship("InvoiceLineItem", back_populates="invoice", cascade="all, delete-orphan")
-    payments = relationship("Payment", backref="invoice")
-    submitted_by_user = relationship("User", foreign_keys=[submitted_by_user_id], backref="invoices_submitted")
-    submitted_by_supplier = relationship("Supplier", foreign_keys=[submitted_by_supplier_id], backref="invoices_submitted")
+    payments = relationship("Payment", back_populates="invoice", cascade="all, delete-orphan")
+    submitted_by_user = relationship("User", foreign_keys=[submitted_by_user_id], back_populates="invoices_submitted")
+    submitted_by_supplier = relationship("Supplier", foreign_keys=[submitted_by_supplier_id], back_populates="invoices_submitted")
+    purchase_order = relationship("PurchaseOrder", back_populates="invoices")

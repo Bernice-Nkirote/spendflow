@@ -1,27 +1,24 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
-from uuid import UUID
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 
-# Base Schema
-class UserBase(BaseModel):
+from pydantic import BaseModel, ConfigDict, EmailStr
+
+
+class UserCreate(BaseModel):
     name: str
     email: EmailStr
     phone_number: Optional[str] = None
     department_id: Optional[UUID] = None
-
-# Input Schema
-class UserCreate(UserBase):
-    password: str
     role_id: UUID
-    company_id: UUID
+    password: str
 
-# Login schema
+
 class UserLogin(BaseModel):
     email: EmailStr
-    password:str
-    
-# Update Schema
+    password: str
+
+
 class UserUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[EmailStr] = None
@@ -30,11 +27,15 @@ class UserUpdate(BaseModel):
     role_id: Optional[UUID] = None
     is_active: Optional[bool] = None
 
-# Output Schema
-class UserRead(UserBase):
+
+class UserRead(BaseModel):
     id: UUID
     company_id: UUID
+    department_id: Optional[UUID] = None
     role_id: UUID
+    name: str
+    email: EmailStr
+    phone_number: Optional[str] = None
     is_active: bool
     created_at: datetime
     updated_at: datetime

@@ -1,76 +1,250 @@
 import uuid
-from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
+
 from app.models.workflow_level import WorkflowLevel
-from app.models.approval_workflows_table import ApprovalWorkflow
-from app.schemas.workflow_levels_schema import WorkflowLevelCreate
+from app.repositories.approval_workflow_repository import ApprovalWorkflowRepository
 from app.repositories.workflow_level_repository import WorkflowLevelRepository
+from app.schemas.workflow_levels_schema import (
+    WorkflowLevelCreate,
+    WorkflowLevelUpdate,
+)
+
 
 class WorkflowLevelService:
-    def __init__(self, repo: WorkflowLevelRepository):
+    def __init__(
+        self,
+        repo: WorkflowLevelRepository,
+        workflow_repo: ApprovalWorkflowRepository,
+    ):
         self.repo = repo
-    
+        self.workflow_repo = workflow_repo
 
-    def create_level(self, db: Session, level_data: WorkflowLevelCreate, company_id):
-       
-        # SECURITY CHECK: Ensures that the workflow belongs to user company
-        workflow = db.query(ApprovalWorkflow).filter(
-            ApprovalWorkflow.id == level_data.workflow_id,
-            ApprovalWorkflow.company_id == company_id
-        ).first()
+    def create_level(
+        self,
+        level_data: WorkflowLevelCreate,
+        company_id: uuid.UUID,
+    ) -> WorkflowLevel:
+        """
+        Create a workflow level for a workflow in the current company.
+        """
+        if not level_data.workflow_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Workflow id is required",
+            )
 
+        if not level_data.name or not level_data.name.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Workflow level name is required",
+            )
+
+        if level_data.level_order is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Level order is required",
+            )
+
+        if level_data.level_order <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Level order must be greater than zero",
+            )
+
+        if (
+            level_data.min_amount is not None
+            and level_data.max_amount is not None
+            and level_data.min_amount > level_data.max_amount
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Minimum amount cannot be greater than maximum amount",
+            )
+
+        workflow = self.workflow_repo.get_by_id(level_data.workflow_id, company_id)
         if not workflow:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Unauthorized workflow"
-            )       
-        
-        # Check whether the workflow alreay has level order
-        existing_levels = self.repo.get_all(db, level_data.workflow_id)
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Workflow not found",
+            )
 
-        for lvl in existing_levels:
-            if lvl.level_order == level_data.level_order:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Level Order already Exists in this workflow"
-                )
-        
-        # proceed to create workflow level
-        level = WorkflowLevel(
+        existing_level = self.repo.get_by_workflow_and_level_order(
             workflow_id=level_data.workflow_id,
             level_order=level_data.level_order,
-            name=level_data.name,
+            company_id=company_id,
+        )
+        if existing_level:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Level order already exists in this workflow",
+            )
+
+        level = WorkflowLevel(
+            workflow_id=level_data.workflow_id,
+            company_id=company_id,
+            level_order=level_data.level_order,
+            name=level_data.name.strip(),
             min_amount=level_data.min_amount,
             max_amount=level_data.max_amount,
             department_id=level_data.department_id,
-            condition_expression=level_data.condition_expression
+            condition_expression=level_data.condition_expression,
         )
 
-        return self.repo.create(db, level)
+        return self.repo.create(level)
 
-    def list_levels(self, db: Session, workflow_id, company_id):
-        workflow = db.query(ApprovalWorkflow).filter(
-            ApprovalWorkflow.id == workflow_id,
-            ApprovalWorkflow.company_id == company_id
-        ).first()
+    def get_level(
+        self,
+        level_id: uuid.UUID,
+        company_id: uuid.UUID,
+    ) -> WorkflowLevel:
+        """
+        Get one workflow level in the current company.
+        """
+        if not level_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Workflow level id is required",
+            )
 
+        level = self.repo.get_by_id(level_id, company_id)
+        if not level:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Workflow level not found",
+            )
+
+        return level
+
+    def get_all_levels(
+        self,
+        workflow_id: uuid.UUID,
+        company_id: uuid.UUID,
+        skip: int = 0,
+        limit: int = 100,
+    ):
+        """
+        Get all levels for a workflow in the current company.
+        """
+        if not workflow_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Workflow id is required",
+            )
+
+        if skip < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="skip cannot be negative",
+            )
+
+        if limit <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="limit must be greater than zero",
+            )
+
+        workflow = self.workflow_repo.get_by_id(workflow_id, company_id)
         if not workflow:
             raise HTTPException(
-                status_code=403,
-                detail="Unauthorized workflow"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Workflow not found",
             )
-        return self.repo.get_all(db, workflow_id)
 
-    def get_level(self, db: Session, level_id, company_id):
-        level = self.repo.get_by_id(db, level_id)
+        return self.repo.get_all(
+            workflow_id=workflow_id,
+            company_id=company_id,
+            skip=skip,
+            limit=limit,
+        )
 
-        if not level:
-            return None
-        
-        if level.workflow.company_id !=company_id:
+    def update_level(
+        self,
+        level_id: uuid.UUID,
+        level_data: WorkflowLevelUpdate,
+        company_id: uuid.UUID,
+    ) -> WorkflowLevel:
+        """
+        Update workflow level details in the current company.
+        """
+        if not level_id:
             raise HTTPException(
-                status_code=403,
-                detail="Unauthorised access"
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Workflow level id is required",
             )
-        
-        return level
+
+        level = self.repo.get_by_id(level_id, company_id)
+        if not level:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Workflow level not found",
+            )
+
+        update_data = level_data.model_dump(exclude_unset=True)
+
+        new_name = update_data.get("name")
+        if new_name is not None:
+            if not new_name.strip():
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Workflow level name cannot be empty",
+                )
+            update_data["name"] = new_name.strip()
+
+        new_level_order = update_data.get("level_order")
+        if new_level_order is not None:
+            if new_level_order <= 0:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Level order must be greater than zero",
+                )
+
+            if new_level_order != level.level_order:
+                existing_level = self.repo.get_by_workflow_and_level_order(
+                    workflow_id=level.workflow_id,
+                    level_order=new_level_order,
+                    company_id=company_id,
+                )
+                if existing_level:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Level order already exists in this workflow",
+                    )
+
+        min_amount = update_data.get("min_amount", level.min_amount)
+        max_amount = update_data.get("max_amount", level.max_amount)
+
+        if (
+            min_amount is not None
+            and max_amount is not None
+            and min_amount > max_amount
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Minimum amount cannot be greater than maximum amount",
+            )
+
+        return self.repo.update(level, update_data)
+
+    def delete_level(
+        self,
+        level_id: uuid.UUID,
+        company_id: uuid.UUID,
+    ) -> dict:
+        """
+        Permanently delete a workflow level in the current company.
+        """
+        if not level_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Workflow level id is required",
+            )
+
+        level = self.repo.get_by_id(level_id, company_id)
+        if not level:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Workflow level not found",
+            )
+
+        self.repo.delete(level)
+        return {"message": "Workflow level deleted successfully"}

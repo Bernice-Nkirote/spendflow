@@ -21,3 +21,7 @@ email-validator
 
 # Utilities
 python-dotenv
+
+# po pdf and email dependancies 
+Jinja2
+email-validator

@@ -1,43 +1,72 @@
 import uuid
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
 from typing import List
 
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.orm import Session
+
+from app.core.auth_dependancy import get_current_user
 from app.core.database import get_db
-from app.services.approval_instance_service import ApprovalInstanceService
+from app.repositories.approval_instance_repository import ApprovalInstanceRepository
+from app.repositories.workflow_level_repository import WorkflowLevelRepository
 from app.schemas.approval_instance_schema import (
     ApprovalInstanceCreate,
-    ApprovalInstanceRead
+    ApprovalInstanceRead,
 )
-from app.core.auth_dependancy import get_current_user
+from app.services.approval_instance_service import ApprovalInstanceService
 
-router = APIRouter(prefix="/approval-instances", tags=["Approval Instances"])
 
-service = ApprovalInstanceService()
+router = APIRouter(
+    prefix="/approval-instances",
+    tags=["Approval Instances"],
+)
+
+
+def get_service(db: Session = Depends(get_db)) -> ApprovalInstanceService:
+    """
+    Build ApprovalInstanceService with required repositories.
+    """
+    return ApprovalInstanceService(
+        repo=ApprovalInstanceRepository(db),
+        workflow_level_repo=WorkflowLevelRepository(db),
+    )
 
 
 @router.post("/", response_model=ApprovalInstanceRead)
 def create_instance(
     data: ApprovalInstanceCreate,
-    db: Session = Depends(get_db),
-    user: dict = Depends(get_current_user)
-
+    service: ApprovalInstanceService = Depends(get_service),
+    user=Depends(get_current_user),
 ):
-    return service.create_instance(
-        db, 
-        data,
-        user["company_id"])
+    """
+    Create an approval instance.
+    """
+    return service.create_instance(data, user.company_id)
 
 
 @router.get("/", response_model=List[ApprovalInstanceRead])
-def get_all_instances(db: Session = Depends(get_db)):
-    return service.get_all_instances(db)
+def get_all_instances(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=200),
+    service: ApprovalInstanceService = Depends(get_service),
+    user=Depends(get_current_user),
+):
+    """
+    Get all approval instances for the current company.
+    """
+    return service.get_all_instances(
+        company_id=user.company_id,
+        skip=skip,
+        limit=limit,
+    )
 
 
 @router.get("/{instance_id}", response_model=ApprovalInstanceRead)
 def get_instance(
     instance_id: uuid.UUID,
-    db: Session = Depends(get_db)
+    service: ApprovalInstanceService = Depends(get_service),
+    user=Depends(get_current_user),
 ):
-    return service.get_instance(db, instance_id)
-
+    """
+    Get one approval instance.
+    """
+    return service.get_instance(instance_id, user.company_id)

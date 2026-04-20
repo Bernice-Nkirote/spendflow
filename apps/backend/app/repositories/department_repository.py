@@ -1,20 +1,93 @@
-from sqlalchemy.orm import Session
-from app.models.department import Department
+from typing import Optional
 from uuid import UUID
 
-class DepartmentRepository:
+from sqlalchemy.orm import Session
 
-    def create(self, db: Session, department: Department):
-        db.add(department)
-        db.commit()
-        db.refresh(department)
+from app.models.department import Department
+from app.models.purchase_order import PurchaseOrder
+from app.models.purchase_requisition import PurchaseRequisition
+from app.models.user import User
+
+
+class DepartmentRepository:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def create(self, department: Department) -> Department:
+        self.db.add(department)
+        self.db.commit()
+        self.db.refresh(department)
         return department
-    
-    def get_all(self, db: Session, company_id: UUID):
-        return db.query(Department).filter_by(company_id=company_id).all()
-    
-    def get_by_id(self, db: Session, department_id: UUID, company_id: UUID):
-        return db.query(Department).filter_by(
-            id = department_id,
-            company_id=company_id
-        ).first()
+
+    def get_by_id(self, department_id: UUID, company_id: UUID) -> Optional[Department]:
+        return (
+            self.db.query(Department)
+            .filter(
+                Department.id == department_id,
+                Department.company_id == company_id,
+            )
+            .first()
+        )
+
+    def get_all(self, company_id: UUID) -> list[Department]:
+        return (
+            self.db.query(Department)
+            .filter(Department.company_id == company_id)
+            .order_by(Department.created_at.desc())
+            .all()
+        )
+
+    def get_by_name(self, name: str, company_id: UUID) -> Optional[Department]:
+        return (
+            self.db.query(Department)
+            .filter(
+                Department.name == name,
+                Department.company_id == company_id,
+            )
+            .first()
+        )
+
+    def has_users(self, department_id: UUID, company_id: UUID) -> bool:
+        return (
+            self.db.query(User)
+            .filter(
+                User.department_id == department_id,
+                User.company_id == company_id,
+            )
+            .first()
+            is not None
+        )
+
+    def has_requisitions(self, department_id: UUID, company_id: UUID) -> bool:
+        return (
+            self.db.query(PurchaseRequisition)
+            .filter(
+                PurchaseRequisition.department_id == department_id,
+                PurchaseRequisition.company_id == company_id,
+            )
+            .first()
+            is not None
+        )
+
+    def has_purchase_orders(self, department_id: UUID, company_id: UUID) -> bool:
+        return (
+            self.db.query(PurchaseOrder)
+            .filter(
+                PurchaseOrder.department_id == department_id,
+                PurchaseOrder.company_id == company_id,
+            )
+            .first()
+            is not None
+        )
+
+    def update(self, department: Department, update_data: dict) -> Department:
+        for key, value in update_data.items():
+            setattr(department, key, value)
+
+        self.db.commit()
+        self.db.refresh(department)
+        return department
+
+    def delete(self, department: Department) -> None:
+        self.db.delete(department)
+        self.db.commit()

@@ -1,55 +1,87 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
 from typing import List
 from uuid import UUID
 
-from app.schemas.approval_action_schema import ApprovalActionCreate, ApprovalActionRead
-from app.services.approval_action_service import ApprovalActionService
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.orm import Session
+
+from app.core.auth_dependancy import get_current_user
+from app.core.database import get_db
 from app.repositories.approval_action_repository import ApprovalActionRepository
 from app.repositories.approval_instance_repository import ApprovalInstanceRepository
-from app.core.database import get_db
+from app.repositories.workflow_level_repository import WorkflowLevelRepository
+from app.repositories.user_repository import UserRepository
+from app.repositories.workflow_role_repository import WorkflowLevelRoleRepository
+from app.schemas.approval_action_schema import (
+    ApprovalActionCreate,
+    ApprovalActionRead,
+)
+from app.services.approval_action_service import ApprovalActionService
+
 
 router = APIRouter(prefix="/approval-actions", tags=["Approval Actions"])
 
-# Dependency to inject service
-def get_service(db: Session = Depends(get_db)):
 
-    action_repo = ApprovalActionRepository()
-    instance_repo = ApprovalInstanceRepository()
+def get_service(db: Session = Depends(get_db)) -> ApprovalActionService:
+    """
+    Build ApprovalActionService with required repositories.
+    """
+    return ApprovalActionService(
+        action_repo=ApprovalActionRepository(db),
+        instance_repo=ApprovalInstanceRepository(db),
+        level_role_repo=WorkflowLevelRoleRepository(db),
+        workflow_level_repo=WorkflowLevelRepository(db),
+        user_repo=UserRepository(db),
+    )
 
-    return ApprovalActionService(action_repo, instance_repo)
 
 @router.post("/", response_model=ApprovalActionRead)
 def create_action(
     approval_action: ApprovalActionCreate,
-    service: ApprovalActionService = Depends(get_service)
+    service: ApprovalActionService = Depends(get_service),
+    user=Depends(get_current_user),
 ):
-    try: 
-        return service.create_action(db, approval_action)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    """
+    Create an approval action.
+    """
+    return service.create_action(approval_action, user)
+
 
 @router.get("/{action_id}", response_model=ApprovalActionRead)
 def get_action(
     action_id: UUID,
-    service: ApprovalActionService = Depends(get_service)
+    service: ApprovalActionService = Depends(get_service),
+    user=Depends(get_current_user),
 ):
-    db_action = service.get_action(action_id)
-    if not db_action:
-        raise HTTPException(status_code=404, detail="Approval Action not found")
-    return db_action
+    """
+    Get one approval action.
+    """
+    return service.get_action(action_id, user.company_id)
+
 
 @router.get("/", response_model=List[ApprovalActionRead])
-def list_actions(
-    skip: int = 0,
-    limit: int = 100,
-    service: ApprovalActionService = Depends(get_service)
+def get_all_actions(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=200),
+    service: ApprovalActionService = Depends(get_service),
+    user=Depends(get_current_user),
 ):
-    return service.list_actions(skip=skip, limit=limit)
+    """
+    Get all approval actions for the current company.
+    """
+    return service.get_all_actions(
+        company_id=user.company_id,
+        skip=skip,
+        limit=limit,
+    )
+
 
 @router.get("/instance/{instance_id}", response_model=List[ApprovalActionRead])
 def get_actions_by_instance(
     instance_id: UUID,
-    service: ApprovalActionService = Depends(get_service)
+    service: ApprovalActionService = Depends(get_service),
+    user=Depends(get_current_user),
 ):
-    return service.get_actions_by_instance(instance_id)
+    """
+    Get approval actions for one approval instance.
+    """
+    return service.get_actions_by_instance(instance_id, user.company_id)

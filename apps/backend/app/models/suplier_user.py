@@ -26,4 +26,3 @@ class SupplierUser(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(),nullable=False)
 
     supplier = relationship("Supplier", back_populates="users")
-    invoices_Submitted = relationship("Invoice", back_populates="submitted_by_supplier", foreign_keys="Invoice.submitted_by_supplier_id")
