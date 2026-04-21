@@ -31,11 +31,11 @@ class PurchaseOrderRepository:
         )
 
     def get_all(
-            self, 
-            company_id: UUID,
-            skip: int = 0,
-            limit: int = 20,
-        ) -> list[PurchaseOrder]:
+        self,
+        company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> list[PurchaseOrder]:
         return (
             self.db.query(PurchaseOrder)
             .filter(PurchaseOrder.company_id == company_id)
@@ -88,7 +88,14 @@ class PurchaseOrderRepository:
             .all()
         )
 
-    def update(self, po: PurchaseOrder) -> PurchaseOrder:
+    def update(
+        self,
+        po: PurchaseOrder,
+        update_data: dict,
+    ) -> PurchaseOrder:
+        for key, value in update_data.items():
+            setattr(po, key, value)
+
         self.db.commit()
         self.db.refresh(po)
         return po

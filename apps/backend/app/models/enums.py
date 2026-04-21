@@ -39,6 +39,10 @@ class POStatusEnum(str, enum.Enum):
     RECEIVED = "RECEIVED"
     CANCELLED = "CANCELLED"
 
+class EmailStatusEnum(str, enum.Enum):
+    SENT = "SENT"
+    FAILED = "FAILED"
+    PENDING = "PENDING"
 
 class InvoiceStateEnum(str, enum.Enum):
     PENDING = "PENDING"
@@ -88,6 +92,12 @@ pr_status_enum = ENUM(
 po_status_enum = ENUM(
     *[e.value for e in POStatusEnum],
     name="postatusenum",
+    create_type=False,
+)
+
+email_status_enum = ENUM(
+    *[e.value for e in EmailStatusEnum],
+    name="emailstatusenum",
     create_type=False,
 )
 

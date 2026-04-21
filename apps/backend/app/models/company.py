@@ -54,3 +54,4 @@ class Company(Base):
     workflows = relationship("ApprovalWorkflow", back_populates="company")
     approval_instances = relationship("ApprovalInstance", back_populates="company")
     approval_actions = relationship("ApprovalAction", back_populates="company")
+    po_email_logs = relationship("POEmailLog", back_populates="company")

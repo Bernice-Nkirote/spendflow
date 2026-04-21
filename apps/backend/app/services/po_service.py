@@ -118,8 +118,11 @@ class PurchaseOrderService:
             )
 
         items = self.po_item_repo.get_all_by_po(po_id, company_id)
-        po.total_amount = self._calculate_po_total(items)
-        return self.po_repo.update(po)
+        total_amount = self._calculate_po_total(items)
+        return self.po_repo.update(
+            po,
+            {"total_amount": total_amount},
+            )
 
     def _create_po_items(
         self,
@@ -366,19 +369,21 @@ class PurchaseOrderService:
                 detail="Only draft purchase orders can be updated",
             )
 
+        update_data = {}
+
         if po_data.supplier_id is not None:
-            po.supplier_id = po_data.supplier_id
+            update_data["supplier_id"] = po_data.supplier_id
 
         if po_data.department_id is not None:
-            po.department_id = po_data.department_id
+            update_data["department_id"] = po_data.department_id
 
         if po_data.currency is not None:
-            po.currency = self._normalize_currency(po_data.currency)
+            update_data["currency"] = self._normalize_currency(po_data.currency)
 
         if po_data.notes is not None:
-            po.notes = po_data.notes
+            update_data["notes"] = po_data.notes
 
-        updated_po = self.po_repo.update(po)
+        updated_po = self.po_repo.update(po, update_data)
 
         if po_data.items is not None:
             if not po_data.items:
@@ -559,10 +564,15 @@ class PurchaseOrderService:
             company_id=company_id,
         )
 
-        po.submitted_by = submitted_by
-        po.submitted_at = datetime.now(timezone.utc)
-        po.status = POStatusEnum.PENDING_APPROVAL
-        return self.po_repo.update(po)
+       
+        return self.po_repo.update(
+            po,
+            {
+                "submitted_by": submitted_by,
+                "submitted_at": datetime.now(timezone.utc),
+                "status": POStatusEnum.PENDING_APPROVAL,
+            },
+        )
 
     def approve_po(
         self,
@@ -577,8 +587,10 @@ class PurchaseOrderService:
                 detail="Only pending approval purchase orders can be approved",
             )
 
-        po.status = POStatusEnum.APPROVED
-        return self.po_repo.update(po)
+        return self.po_repo.update(
+            po,
+            {"status": POStatusEnum.APPROVED},
+        )
 
     def reject_po(
         self,
@@ -593,8 +605,10 @@ class PurchaseOrderService:
                 detail="Only pending approval purchase orders can be rejected",
             )
 
-        po.status = POStatusEnum.REJECTED
-        return self.po_repo.update(po)
+        return self.po_repo.update(
+            po,
+            {"status": POStatusEnum.REJECTED},
+        )
 
     def issue_po(
         self,
@@ -609,12 +623,16 @@ class PurchaseOrderService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Only approved purchase orders can be issued",
             )
-
-        po.issued_by = issued_by
-        po.issued_at = datetime.now(timezone.utc)
-        po.status = POStatusEnum.SENT
-        return self.po_repo.update(po)
-
+        
+        return self.po_repo.update(
+            po,
+            {
+                "issued_by": issued_by,
+                "issued_at": datetime.now(timezone.utc),
+                "status": POStatusEnum.SENT,
+            },
+        )
+    
     def mark_po_partially_received(
         self,
         po_id: UUID,
@@ -628,8 +646,10 @@ class PurchaseOrderService:
                 detail="Only sent or partially received purchase orders can be marked as sent or partially received",
             )
 
-        po.status = POStatusEnum.PARTIALLY_RECEIVED
-        return self.po_repo.update(po)
+        return self.po_repo.update(
+            po,
+            {"status": POStatusEnum.PARTIALLY_RECEIVED},
+        )
 
     def receive_po(
         self,
@@ -643,9 +663,11 @@ class PurchaseOrderService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Only sent or partially received purchase orders can be marked as received",
             )
-
-        po.status = POStatusEnum.RECEIVED
-        return self.po_repo.update(po)
+        
+        return self.po_repo.update(
+            po,
+            {"status": POStatusEnum.RECEIVED},
+        )
 
     def cancel_po(
         self,
@@ -664,8 +686,10 @@ class PurchaseOrderService:
                 detail="This purchase order cannot be cancelled",
             )
 
-        po.status = POStatusEnum.CANCELLED
-        return self.po_repo.update(po)
+        return self.po_repo.update(
+            po,
+            {"status": POStatusEnum.CANCELLED},
+        )
 
     def delete_po(
         self,

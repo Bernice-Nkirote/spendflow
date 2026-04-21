@@ -53,6 +53,7 @@ class Supplier(Base):
     company = relationship("Company", back_populates="suppliers")
     users = relationship("SupplierUser", back_populates="supplier")
     purchase_orders = relationship("PurchaseOrder", back_populates="supplier")
+    po_email_logs = relationship("POEmailLog", back_populates="supplier")
     invoices_submitted = relationship(
         "Invoice",
         foreign_keys="Invoice.submitted_by_supplier_id",

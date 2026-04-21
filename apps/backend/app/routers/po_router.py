@@ -1,16 +1,21 @@
+from io import BytesIO
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.core.auth_dependancy import get_current_user
+from app.core.config import settings
 from app.core.database import get_db
 from app.repositories.approval_instance_repository import ApprovalInstanceRepository
 from app.repositories.approval_workflow_repository import ApprovalWorkflowRepository
 from app.repositories.po_item_repository import PurchaseOrderItemRepository
 from app.repositories.po_repository import PurchaseOrderRepository
+from app.repositories.po_email_log_repository import POEmailLogRepository
 from app.repositories.pr_item_repository import PurchaseRequisitionItemRepository
 from app.repositories.pr_repository import PurchaseRequisitionRepository
+from app.repositories.supplier_repository import SupplierRepository
 from app.repositories.workflow_level_repository import WorkflowLevelRepository
 from app.schemas.po_items_schema import (
     PurchaseOrderItemCreate,
@@ -22,18 +27,18 @@ from app.schemas.po_schema import (
     PurchaseOrderRead,
     PurchaseOrderUpdate,
 )
+from app.schemas.po_email_log_schema import POEmailLogRead
 from app.services.approval_instance_service import ApprovalInstanceService
-from app.services.po_service import PurchaseOrderService
-
-from app.services.orchestration.po_dispatch_service import PODispatchService
 from app.services.documents.pdf_service import PDFService
 from app.services.notifications.email_service import EmailService
-from app.repositories.supplier_repository import SupplierRepository
-from app.core.config import settings
-
+from app.services.orchestration.po_dispatch_service import PODispatchService
+from app.services.orchestration.po_pdf_service import POPDFService
+from app.services.orchestration.po_email_log_service import POEmailLogService
+from app.services.po_service import PurchaseOrderService
 
 router = APIRouter(prefix="/purchase-orders", tags=["Purchase Orders"])
 
+# GET PURCHASE ORDER SERVICES
 def get_purchase_order_service(
     db: Session = Depends(get_db),
 ) -> PurchaseOrderService:
@@ -59,6 +64,22 @@ def get_purchase_order_service(
         approval_instance_service=approval_instance_service,
     )
 
+# Get PO PDF SERVICE 
+def get_po_pdf_service(
+    db: Session = Depends(get_db),
+) -> POPDFService:
+    po_service = get_purchase_order_service(db)
+    po_item_repo = PurchaseOrderItemRepository(db)
+    supplier_repo = SupplierRepository(db)
+    pdf_service = PDFService()
+
+    return POPDFService(
+        po_service=po_service,
+        po_item_repo=po_item_repo,
+        supplier_repo=supplier_repo,
+        pdf_service=pdf_service,
+    )
+
 # DISPATCH SERVICE FOR SENDING EMAIL TO SUPPLIER
 def get_po_dispatch_service(
     db: Session = Depends(get_db),
@@ -69,6 +90,8 @@ def get_po_dispatch_service(
 
     po_item_repo = PurchaseOrderItemRepository(db)
     supplier_repo = SupplierRepository(db)
+    po_email_log_repo = POEmailLogRepository(db)
+
 
     pdf_service = PDFService()
 
@@ -87,9 +110,23 @@ def get_po_dispatch_service(
         supplier_repo=supplier_repo,
         pdf_service=pdf_service,
         email_service=email_service,
+        po_email_log_repo=po_email_log_repo,
+
     )
 
+# DEPENDENCY FOR EMAIL LOG SERVICE
+def get_po_email_log_service(
+    db: Session = Depends(get_db),
+) -> POEmailLogService:
+    po_service = get_purchase_order_service(db)
+    po_email_log_repo = POEmailLogRepository(db)
 
+    return POEmailLogService(
+        po_service=po_service,
+        po_email_log_repo=po_email_log_repo,
+    )
+
+# PURCHASE ORDER ROUTES
 @router.post(
     "/",
     response_model=PurchaseOrderRead,
@@ -105,7 +142,6 @@ def create_purchase_order(
         company_id=current_user.company_id,
         created_by=current_user.id,
     )
-
 
 @router.post(
     "/from-requisition/{requisition_id}",
@@ -151,6 +187,25 @@ def get_purchase_order(
         company_id=current_user.company_id,
     )
 
+# Router to download PO PDF 
+@router.get("/{po_id}/pdf")
+def download_purchase_order_pdf(
+    po_id: UUID,
+    current_user=Depends(get_current_user),
+    service: POPDFService = Depends(get_po_pdf_service),
+):
+    pdf_bytes, filename = service.generate_po_pdf(
+        po_id=po_id,
+        company_id=current_user.company_id,
+    )
+
+    return StreamingResponse(
+        BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}",
+        },
+    )
 
 @router.put("/{po_id}", response_model=PurchaseOrderRead)
 def update_purchase_order(
@@ -166,6 +221,7 @@ def update_purchase_order(
     )
 
 
+# PURCHASE ORDER ITEMS ROUTES
 @router.post(
     "/{po_id}/items",
     response_model=PurchaseOrderItemRead,
@@ -182,6 +238,7 @@ def create_purchase_order_item(
         item_data=item_data,
         company_id=current_user.company_id,
     )
+
 
 
 @router.get(
@@ -234,6 +291,7 @@ def delete_purchase_order_item(
         company_id=current_user.company_id,
     )
 
+# GENERAL PO ROUTER HANDLING
 
 @router.patch("/{po_id}/submit", response_model=PurchaseOrderRead)
 def submit_purchase_order(
@@ -276,12 +334,24 @@ def reject_purchase_order(
 def send_purchase_order(
     po_id: UUID,
     current_user=Depends(get_current_user),
-    service: PurchaseOrderService = Depends(get_purchase_order_service),
+    service: PODispatchService = Depends(get_po_dispatch_service),
 ):
     return service.send_po_to_supplier(
         po_id=po_id,
         company_id=current_user.company_id,
         issued_by=current_user.id,
+    )
+
+@router.patch("/{po_id}/resend", response_model=PurchaseOrderRead)
+def resend_purchase_order(
+    po_id: UUID,
+    current_user=Depends(get_current_user),
+    service: PODispatchService = Depends(get_po_dispatch_service),
+):
+    return service.resend_po_to_supplier(
+        po_id=po_id,
+        company_id=current_user.company_id,
+        resent_by=current_user.id,
     )
 
 
@@ -328,6 +398,22 @@ def delete_purchase_order(
     service: PurchaseOrderService = Depends(get_purchase_order_service),
 ):
     return service.delete_po(
+        po_id=po_id,
+        company_id=current_user.company_id,
+    )
+
+
+# EMAIL LOG ENDPOINTS
+@router.get(
+    "/{po_id}/email-logs",
+    response_model=list[POEmailLogRead],
+)
+def get_purchase_order_email_logs(
+    po_id: UUID,
+    current_user=Depends(get_current_user),
+    service: POEmailLogService = Depends(get_po_email_log_service),
+):
+    return service.get_all_logs_for_po(
         po_id=po_id,
         company_id=current_user.company_id,
     )

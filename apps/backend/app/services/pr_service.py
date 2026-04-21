@@ -494,7 +494,10 @@ class PurchaseRequisitionService:
             requisition,
             {"status": PRStatusEnum.PENDING_APPROVAL},
         )
-        updated_requisition.items = items
+        updated_requisition.items = self.item_repo.get_by_requisition_id(
+            requisition.id,
+            company_id,
+        )
         return updated_requisition
 
     def cancel_purchase_requisition(

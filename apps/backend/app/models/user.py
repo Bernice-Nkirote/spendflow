@@ -69,6 +69,11 @@ class User(Base):
     role = relationship("Role", back_populates="users")
     requisitions = relationship("PurchaseRequisition", back_populates="requester")
     created_purchase_orders = relationship("PurchaseOrder", back_populates="creator")
+    sent_po_email_logs = relationship(
+    "POEmailLog",
+    foreign_keys="POEmailLog.sent_by",
+    back_populates="sender",
+)
     invoices_submitted = relationship(
         "Invoice",
         foreign_keys="Invoice.submitted_by_user_id",

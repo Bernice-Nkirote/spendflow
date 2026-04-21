@@ -142,7 +142,15 @@ class PurchaseOrder(Base):
         back_populates="purchase_orders",
     )
 
+
     supplier = relationship("Supplier", back_populates="purchase_orders")
+
+    email_logs = relationship(
+    "POEmailLog",
+    back_populates="purchase_order",
+    cascade="all, delete-orphan",
+    )
+    
     department = relationship("Department", back_populates="purchase_orders")
 
     items = relationship(

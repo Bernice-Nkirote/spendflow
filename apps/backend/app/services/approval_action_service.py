@@ -1,10 +1,19 @@
 from uuid import UUID
+
 from fastapi import HTTPException, status
 
 from app.models.approval_action import ApprovalAction
-from app.models.enums import ActionType, ApprovalStatus
+from app.models.enums import (
+    ActionType,
+    ApprovalStatus,
+    EntityTypeEnum,
+    POStatusEnum,
+    PRStatusEnum,
+)
 from app.repositories.approval_action_repository import ApprovalActionRepository
 from app.repositories.approval_instance_repository import ApprovalInstanceRepository
+from app.repositories.po_repository import PurchaseOrderRepository
+from app.repositories.pr_repository import PurchaseRequisitionRepository
 from app.repositories.workflow_level_repository import WorkflowLevelRepository
 from app.repositories.workflow_role_repository import WorkflowLevelRoleRepository
 from app.schemas.approval_action_schema import ApprovalActionCreate
@@ -17,25 +26,23 @@ class ApprovalActionService:
         instance_repo: ApprovalInstanceRepository,
         level_role_repo: WorkflowLevelRoleRepository,
         workflow_level_repo: WorkflowLevelRepository,
-        user_role_repo,
+        pr_repo: PurchaseRequisitionRepository,
+        po_repo: PurchaseOrderRepository,
     ):
         self.action_repo = action_repo
         self.instance_repo = instance_repo
         self.level_role_repo = level_role_repo
         self.workflow_level_repo = workflow_level_repo
-        self.user_role_repo = user_role_repo
+        self.pr_repo = pr_repo
+        self.po_repo = po_repo
 
     def create_action(
         self,
         data: ApprovalActionCreate,
         current_user,
     ) -> ApprovalAction:
-        """
-        Create an approval action and apply workflow progression.
-        """
         company_id = current_user.company_id
 
-        # 1. Validate input
         if not data.instance_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -54,7 +61,6 @@ class ApprovalActionService:
                 detail="Comment is required when rejecting",
             )
 
-        # 2. Fetch data via repository
         instance = self.instance_repo.get_by_id(data.instance_id, company_id)
         if not instance:
             raise HTTPException(
@@ -69,20 +75,6 @@ class ApprovalActionService:
                 detail="Workflow level not found",
             )
 
-        # 3. Validate ownership
-        if instance.company_id != company_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You are not allowed to act on this approval instance",
-            )
-
-        if level.company_id != company_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You are not allowed to use this workflow level",
-            )
-
-        # 4. Apply business rules
         if instance.status != ApprovalStatus.PENDING:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -110,16 +102,13 @@ class ApprovalActionService:
                 detail="No roles are assigned to this workflow level",
             )
 
-        user_roles = self.user_role_repo.get_by_user(current_user.id, company_id)
-        user_role_ids = {user_role.role_id for user_role in user_roles}
-
-        if not user_role_ids:
+        if current_user.role_id is None:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="User has no roles assigned in this company",
+                detail="User has no role assigned",
             )
 
-        if not user_role_ids.intersection(allowed_role_ids):
+        if current_user.role_id not in allowed_role_ids:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="User is not allowed to act on this workflow level",
@@ -137,7 +126,6 @@ class ApprovalActionService:
                 detail="User has already acted on this workflow level",
             )
 
-        # 5. Persist action
         action = ApprovalAction(
             company_id=company_id,
             instance_id=data.instance_id,
@@ -146,13 +134,12 @@ class ApprovalActionService:
             action=data.action,
             comment=data.comment,
         )
+
         created_action = self.action_repo.create(action)
 
-        # 6. Apply workflow progression
-        self._apply_workflow_logic(
+        self._apply_workflow_progression(
             instance=instance,
             current_level=level,
-            action_type=data.action,
             company_id=company_id,
         )
 
@@ -163,9 +150,6 @@ class ApprovalActionService:
         action_id: UUID,
         company_id: UUID,
     ) -> ApprovalAction:
-        """
-        Get one approval action in the current company.
-        """
         if not action_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -179,12 +163,6 @@ class ApprovalActionService:
                 detail="Approval action not found",
             )
 
-        if action.company_id != company_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You are not allowed to access this approval action",
-            )
-
         return action
 
     def get_all_actions(
@@ -193,9 +171,6 @@ class ApprovalActionService:
         skip: int = 0,
         limit: int = 100,
     ):
-        """
-        Get all approval actions in the current company.
-        """
         if skip < 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -208,16 +183,17 @@ class ApprovalActionService:
                 detail="limit must be greater than zero",
             )
 
-        return self.action_repo.get_all(company_id=company_id, skip=skip, limit=limit)
+        return self.action_repo.get_all(
+            company_id=company_id,
+            skip=skip,
+            limit=limit,
+        )
 
     def get_actions_by_instance(
         self,
         instance_id: UUID,
         company_id: UUID,
     ):
-        """
-        Get all actions for one approval instance in the current company.
-        """
         if not instance_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -231,26 +207,20 @@ class ApprovalActionService:
                 detail="Approval instance not found",
             )
 
-        if instance.company_id != company_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You are not allowed to access this approval instance",
-            )
-
         return self.action_repo.get_by_instance(instance_id, company_id)
 
-    def _apply_workflow_logic(
+    def _apply_workflow_progression(
         self,
         instance,
         current_level,
-        action_type: ActionType,
         company_id: UUID,
     ) -> None:
-        """
-        Apply workflow rules after creating an approval action.
-        """
-        # Rejection ends the workflow immediately
-        if action_type == ActionType.REJECTED:
+        actions = self.action_repo.get_by_instance(instance.id, company_id)
+        current_level_actions = [
+            action for action in actions if action.level_id == current_level.id
+        ]
+
+        if any(action.action == ActionType.REJECTED for action in current_level_actions):
             self.instance_repo.update(
                 instance,
                 {
@@ -258,42 +228,27 @@ class ApprovalActionService:
                     "current_level_id": None,
                 },
             )
+            self._sync_entity_status(
+                instance=instance,
+                company_id=company_id,
+                approved=False,
+            )
             return
 
-        if action_type != ActionType.APPROVED:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Unsupported approval action",
-            )
-
-        # Get required roles for this level
-        level_roles = self.level_role_repo.get_by_level(current_level.id, company_id)
-        required_role_ids = {level_role.role_id for level_role in level_roles}
-
-        if not required_role_ids:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No roles are assigned to this workflow level",
-            )
-
-        # Get actions already taken on this instance
-        actions = self.action_repo.get_by_instance(instance.id, company_id)
+        required_role_ids = {
+            level_role.role_id
+            for level_role in self.level_role_repo.get_by_level(current_level.id, company_id)
+        }
 
         approved_role_ids = set()
-
-        for action in actions:
-            if action.level_id != current_level.id:
-                continue
-
+        for action in current_level_actions:
             if action.action != ActionType.APPROVED:
                 continue
 
-            acting_user_roles = self.user_role_repo.get_by_user(action.user_id, company_id)
-            for user_role in acting_user_roles:
-                if user_role.role_id in required_role_ids:
-                    approved_role_ids.add(user_role.role_id)
+            action_user_role_id = getattr(action.user, "role_id", None)
+            if action_user_role_id in required_role_ids:
+                approved_role_ids.add(action_user_role_id)
 
-        # Stay on current level until all required roles have approved
         if not required_role_ids.issubset(approved_role_ids):
             return
 
@@ -306,9 +261,7 @@ class ApprovalActionService:
         if next_level:
             self.instance_repo.update(
                 instance,
-                {
-                    "current_level_id": next_level.id,
-                },
+                {"current_level_id": next_level.id},
             )
             return
 
@@ -318,4 +271,52 @@ class ApprovalActionService:
                 "status": ApprovalStatus.APPROVED,
                 "current_level_id": None,
             },
+        )
+        self._sync_entity_status(
+            instance=instance,
+            company_id=company_id,
+            approved=True,
+        )
+
+    def _sync_entity_status(
+        self,
+        instance,
+        company_id: UUID,
+        approved: bool,
+    ) -> None:
+        if instance.entity_type == EntityTypeEnum.PR:
+            requisition = self.pr_repo.get_by_id(instance.entity_id, company_id)
+            if not requisition:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Purchase requisition not found for approval sync",
+                )
+
+            self.pr_repo.update(
+                requisition,
+                {
+                    "status": PRStatusEnum.APPROVED if approved else PRStatusEnum.REJECTED,
+                },
+            )
+            return
+
+        if instance.entity_type == EntityTypeEnum.PO:
+            po = self.po_repo.get_by_id(instance.entity_id, company_id)
+            if not po:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Purchase order not found for approval sync",
+                )
+
+            self.po_repo.update(
+                po,
+                {
+                    "status": POStatusEnum.APPROVED if approved else POStatusEnum.REJECTED,
+                },
+            )
+            return
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unsupported entity type for approval status sync",
         )
