@@ -12,7 +12,7 @@ class POEmailLogRepository:
 
     def create(self, email_log: POEmailLog) -> POEmailLog:
         self.db.add(email_log)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(email_log)
         return email_log
 

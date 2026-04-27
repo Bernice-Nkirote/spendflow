@@ -1,4 +1,5 @@
 import uuid
+
 from fastapi import HTTPException, status
 
 from app.models.approval_workflows_table import ApprovalWorkflow
@@ -18,9 +19,6 @@ class ApprovalWorkflowService:
         workflow_data: ApprovalWorkflowCreate,
         company_id: uuid.UUID,
     ) -> ApprovalWorkflow:
-        """
-        Create a new workflow for the current company.
-        """
         if not workflow_data.name or not workflow_data.name.strip():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -38,7 +36,7 @@ class ApprovalWorkflowService:
         existing_workflow = self.repo.get_by_name(workflow_name, company_id)
         if existing_workflow:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=status.HTTP_409_CONFLICT,
                 detail="Workflow with this name already exists",
             )
 
@@ -49,16 +47,17 @@ class ApprovalWorkflowService:
             is_active=True,
         )
 
-        return self.repo.create(workflow)
+        created_workflow = self.repo.create(workflow)
+        self.repo.db.commit()
+        self.repo.db.refresh(created_workflow)
+
+        return created_workflow
 
     def get_workflow(
         self,
         workflow_id: uuid.UUID,
         company_id: uuid.UUID,
     ) -> ApprovalWorkflow:
-        """
-        Get one workflow in the current company.
-        """
         if not workflow_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -79,20 +78,17 @@ class ApprovalWorkflowService:
         company_id: uuid.UUID,
         skip: int = 0,
         limit: int = 100,
-    ):
-        """
-        Get all workflows in the current company.
-        """
+    ) -> list[ApprovalWorkflow]:
         if skip < 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="skip cannot be negative",
+                detail="Skip cannot be negative",
             )
 
         if limit <= 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="limit must be greater than zero",
+                detail="Limit must be greater than zero",
             )
 
         return self.repo.get_all(company_id, skip=skip, limit=limit)
@@ -103,66 +99,42 @@ class ApprovalWorkflowService:
         workflow_data: ApprovalWorkflowUpdate,
         company_id: uuid.UUID,
     ) -> ApprovalWorkflow:
-        """
-        Update workflow details in the current company.
-        """
-        if not workflow_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Workflow id is required",
-            )
-
-        workflow = self.repo.get_by_id(workflow_id, company_id)
-        if not workflow:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Workflow not found",
-            )
+        workflow = self.get_workflow(workflow_id, company_id)
 
         update_data = workflow_data.model_dump(exclude_unset=True)
 
-        new_name = update_data.get("name")
-        if new_name is not None:
-            if not new_name.strip():
+        if "name" in update_data:
+            normalized_name = update_data["name"].strip()
+            if not normalized_name:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Workflow name cannot be empty",
                 )
 
-            normalized_name = new_name.strip()
-
-            if normalized_name != workflow.name:
-                existing_workflow = self.repo.get_by_name(normalized_name, company_id)
-                if existing_workflow:
-                    raise HTTPException(
-                        status_code=status.HTTP_400_BAD_REQUEST,
-                        detail="Workflow with this name already exists",
-                    )
+            existing_workflow = self.repo.get_by_name(normalized_name, company_id)
+            if existing_workflow and existing_workflow.id != workflow.id:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Workflow with this name already exists",
+                )
 
             update_data["name"] = normalized_name
 
-        return self.repo.update(workflow, update_data)
+        for field, value in update_data.items():
+            setattr(workflow, field, value)
+
+        updated_workflow = self.repo.update(workflow)
+        self.repo.db.commit()
+        self.repo.db.refresh(updated_workflow)
+
+        return updated_workflow
 
     def deactivate_workflow(
         self,
         workflow_id: uuid.UUID,
         company_id: uuid.UUID,
     ) -> ApprovalWorkflow:
-        """
-        Deactivate a workflow in the current company.
-        """
-        if not workflow_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Workflow id is required",
-            )
-
-        workflow = self.repo.get_by_id(workflow_id, company_id)
-        if not workflow:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Workflow not found",
-            )
+        workflow = self.get_workflow(workflow_id, company_id)
 
         if not workflow.is_active:
             raise HTTPException(
@@ -170,28 +142,20 @@ class ApprovalWorkflowService:
                 detail="Workflow is already inactive",
             )
 
-        return self.repo.update(workflow, {"is_active": False})
+        workflow.is_active = False
+
+        updated_workflow = self.repo.update(workflow)
+        self.repo.db.commit()
+        self.repo.db.refresh(updated_workflow)
+
+        return updated_workflow
 
     def activate_workflow(
         self,
         workflow_id: uuid.UUID,
         company_id: uuid.UUID,
     ) -> ApprovalWorkflow:
-        """
-        Activate a workflow in the current company.
-        """
-        if not workflow_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Workflow id is required",
-            )
-
-        workflow = self.repo.get_by_id(workflow_id, company_id)
-        if not workflow:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Workflow not found",
-            )
+        workflow = self.get_workflow(workflow_id, company_id)
 
         if workflow.is_active:
             raise HTTPException(
@@ -199,28 +163,22 @@ class ApprovalWorkflowService:
                 detail="Workflow is already active",
             )
 
-        return self.repo.update(workflow, {"is_active": True})
+        workflow.is_active = True
+
+        updated_workflow = self.repo.update(workflow)
+        self.repo.db.commit()
+        self.repo.db.refresh(updated_workflow)
+
+        return updated_workflow
 
     def delete_workflow(
         self,
         workflow_id: uuid.UUID,
         company_id: uuid.UUID,
     ) -> dict:
-        """
-        Permanently delete a workflow in the current company.
-        """
-        if not workflow_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Workflow id is required",
-            )
-
-        workflow = self.repo.get_by_id(workflow_id, company_id)
-        if not workflow:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Workflow not found",
-            )
+        workflow = self.get_workflow(workflow_id, company_id)
 
         self.repo.delete(workflow)
+        self.repo.db.commit()
+
         return {"message": "Workflow deleted successfully"}

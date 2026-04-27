@@ -3,14 +3,18 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
-from app.core.auth_dependancy import get_current_user
+from app.core.auth_dependancy import get_current_admin_user
 from app.core.database import get_db
 from app.repositories.department_repository import DepartmentRepository
 from app.schemas.department_schema import DepartmentCreate, DepartmentRead, DepartmentUpdate
 from app.services.department_service import DepartmentService
 
 
-router = APIRouter(prefix="/departments", tags=["Departments"])
+router = APIRouter(
+    prefix="/departments",
+    tags=["Departments"],
+    dependencies=[Depends(get_current_admin_user)],
+)
 
 
 def get_department_service(db: Session = Depends(get_db)) -> DepartmentService:
@@ -21,16 +25,16 @@ def get_department_service(db: Session = Depends(get_db)) -> DepartmentService:
 @router.post("/", response_model=DepartmentRead, status_code=status.HTTP_201_CREATED)
 def create_department(
     department_data: DepartmentCreate,
-    current_user=Depends(get_current_user),
     service: DepartmentService = Depends(get_department_service),
+    current_user=Depends(get_current_admin_user),
 ):
     return service.create_department(department_data, current_user.company_id)
 
 
 @router.get("/", response_model=list[DepartmentRead])
 def get_all_departments(
-    current_user=Depends(get_current_user),
     service: DepartmentService = Depends(get_department_service),
+    current_user=Depends(get_current_admin_user),
 ):
     return service.get_all_departments(current_user.company_id)
 
@@ -38,8 +42,8 @@ def get_all_departments(
 @router.get("/{department_id}", response_model=DepartmentRead)
 def get_department(
     department_id: UUID,
-    current_user=Depends(get_current_user),
     service: DepartmentService = Depends(get_department_service),
+    current_user=Depends(get_current_admin_user),
 ):
     return service.get_department(department_id, current_user.company_id)
 
@@ -48,8 +52,8 @@ def get_department(
 def update_department(
     department_id: UUID,
     department_data: DepartmentUpdate,
-    current_user=Depends(get_current_user),
     service: DepartmentService = Depends(get_department_service),
+    current_user=Depends(get_current_admin_user),
 ):
     return service.update_department(department_id, department_data, current_user.company_id)
 
@@ -57,8 +61,8 @@ def update_department(
 @router.patch("/{department_id}/activate", response_model=DepartmentRead)
 def activate_department(
     department_id: UUID,
-    current_user=Depends(get_current_user),
     service: DepartmentService = Depends(get_department_service),
+    current_user=Depends(get_current_admin_user),
 ):
     return service.activate_department(department_id, current_user.company_id)
 
@@ -66,8 +70,8 @@ def activate_department(
 @router.patch("/{department_id}/deactivate", response_model=DepartmentRead)
 def deactivate_department(
     department_id: UUID,
-    current_user=Depends(get_current_user),
     service: DepartmentService = Depends(get_department_service),
+    current_user=Depends(get_current_admin_user),
 ):
     return service.deactivate_department(department_id, current_user.company_id)
 
@@ -75,8 +79,8 @@ def deactivate_department(
 @router.delete("/{department_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_department(
     department_id: UUID,
-    current_user=Depends(get_current_user),
     service: DepartmentService = Depends(get_department_service),
+    current_user=Depends(get_current_admin_user),
 ):
     service.delete_department(department_id, current_user.company_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

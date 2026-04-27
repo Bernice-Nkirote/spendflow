@@ -1,56 +1,87 @@
-from pydantic import BaseModel, ConfigDict
-from typing import Optional, List
-from uuid import UUID
-from decimal import Decimal
 from datetime import datetime
-from pydantic import field_validator
+from decimal import Decimal
+from typing import List, Optional
+from uuid import UUID
 
-   # This part needs review 
+from pydantic import BaseModel, ConfigDict, field_validator
 
-# INVOICES
+from app.models.enums import InvoiceStatusEnum
+from app.schemas.invoice_line_item_schema import (
+    InvoiceLineItemCreate,
+    InvoiceLineItemRead,
+)
+
+
 class InvoiceCreate(BaseModel):
+    purchase_order_id: Optional[UUID] = None
+    supplier_id: UUID
     invoice_number: str
-    purchase_order_id: UUID
-    supplier_id: Optional[UUID] = None #Only needed if company creates invoice
     line_items: List[InvoiceLineItemCreate]
 
-class InvoiceRead(InvoiceCreate):
+    @field_validator("invoice_number")
+    @classmethod
+    def validate_invoice_number(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Invoice number is required")
+        return value
+
+    @field_validator("line_items")
+    @classmethod
+    def validate_line_items(
+        cls,
+        value: List[InvoiceLineItemCreate],
+    ) -> List[InvoiceLineItemCreate]:
+        if not value:
+            raise ValueError("At least one invoice line item is required")
+        return value
+
+
+class InvoiceUpdate(BaseModel):
+    purchase_order_id: Optional[UUID] = None
+    supplier_id: Optional[UUID] = None
+    invoice_number: Optional[str] = None
+    line_items: Optional[List[InvoiceLineItemCreate]] = None
+
+    @field_validator("invoice_number")
+    @classmethod
+    def validate_invoice_number(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        value = value.strip()
+        if not value:
+            raise ValueError("Invoice number cannot be empty")
+        return value
+
+    @field_validator("line_items")
+    @classmethod
+    def validate_line_items(
+        cls,
+        value: Optional[List[InvoiceLineItemCreate]],
+    ) -> Optional[List[InvoiceLineItemCreate]]:
+        if value is None:
+            return value
+        if not value:
+            raise ValueError("Line items cannot be empty")
+        return value
+
+
+class InvoiceRead(BaseModel):
     id: UUID
-    purchase_order_id: UUID
     company_id: UUID
+    purchase_order_id: Optional[UUID]
     supplier_id: UUID
 
     submitted_by_user_id: Optional[UUID]
-    submitted_by_supplier_id: Optional[UUID]
+    submitted_by_supplier_user_id: Optional[UUID]
 
     invoice_number: str
     total_amount: Decimal
-    status: str
+    status: InvoiceStatusEnum
 
     created_at: datetime
     updated_at: datetime
 
     line_items: List[InvoiceLineItemRead]
-
-# Invoice Line Item
-class InvoiceLineItemCreate(BaseModel):
-    purchase_order_item_id: UUID
-    description: str
-    invoiced_quantity: Decimal
-    unit_price: Decimal
-
-    @field_validator("invoiced_quantity", "unit_price")
-    def must_be_positive(cls, v):
-        if v <= 0:
-            raise ValueError("Must be greater than 0")
-        return v
-
-class InvoiceLineItemRead(BaseModel):
-    id: UUID
-    purchase_order_item_id: UUID
-    description: str
-    invoiced_quantity: Decimal
-    unit_price: Decimal
-    total_price: Decimal
 
     model_config = ConfigDict(from_attributes=True)

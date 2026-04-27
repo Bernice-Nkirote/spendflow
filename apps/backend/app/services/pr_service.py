@@ -4,16 +4,17 @@ from uuid import UUID
 
 from fastapi import HTTPException, status
 
-from app.models.enums import EntityTypeEnum, PRStatusEnum
+from app.models.approval_instance import ApprovalInstance
+from app.models.enums import ApprovalStatus, EntityTypeEnum, PRStatusEnum
 from app.models.purchase_requisition import PurchaseRequisition
 from app.models.purchase_requisition_item import PurchaseRequisitionItem
 from app.repositories.approval_workflow_repository import ApprovalWorkflowRepository
 from app.repositories.pr_item_repository import PurchaseRequisitionItemRepository
 from app.repositories.pr_repository import PurchaseRequisitionRepository
-from app.schemas.approval_instance_schema import ApprovalInstanceCreate
 from app.schemas.pr_schema import PurchaseRequisitionCreate, PurchaseRequisitionUpdate
 from app.services.approval_instance_service import ApprovalInstanceService
-
+from app.services.permission_service import PermissionService
+from app.services.audit_log_service import AuditLogService
 
 class PurchaseRequisitionService:
     def __init__(
@@ -22,11 +23,15 @@ class PurchaseRequisitionService:
         item_repo: PurchaseRequisitionItemRepository,
         workflow_repo: ApprovalWorkflowRepository,
         approval_instance_service: ApprovalInstanceService,
+        permission_service: PermissionService,
+        audit_log_service: AuditLogService,
     ):
         self.requisition_repo = requisition_repo
         self.item_repo = item_repo
         self.workflow_repo = workflow_repo
         self.approval_instance_service = approval_instance_service
+        self.permission_service = permission_service
+        self.audit_log_service = audit_log_service
 
     def _normalize_currency(self, currency: str | None) -> str:
         if not currency:
@@ -41,7 +46,9 @@ class PurchaseRequisitionService:
     def _normalize_optional_text(self, value: str | None) -> str | None:
         if value is None:
             return None
-        return value.strip()
+
+        normalized_value = value.strip()
+        return normalized_value or None
 
     def _validate_item_values(
         self,
@@ -107,36 +114,27 @@ class PurchaseRequisitionService:
 
     def _recalculate_requisition_total(
         self,
-        requisition_id: UUID,
+        requisition: PurchaseRequisition,
         company_id: UUID,
     ) -> PurchaseRequisition:
-        requisition = self.requisition_repo.get_by_id(requisition_id, company_id)
-        if not requisition:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Purchase requisition not found.",
-            )
-
-        items = self.item_repo.get_by_requisition_id(requisition_id, company_id)
+        items = self.item_repo.get_by_requisition_id(requisition.id, company_id)
 
         total_amount = Decimal("0.00")
         for item in items:
             if item.line_total is not None:
                 total_amount += item.line_total
 
-        total_amount = total_amount.quantize(
+        requisition.total_amount = total_amount.quantize(
             Decimal("0.01"),
             rounding=ROUND_HALF_UP,
         )
 
-        updated_requisition = self.requisition_repo.update(
-            requisition,
-            {"total_amount": total_amount},
-        )
+        updated_requisition = self.requisition_repo.update(requisition)
         updated_requisition.items = items
+
         return updated_requisition
 
-    def _get_draft_requisition(
+    def _get_purchase_requisition(
         self,
         requisition_id: UUID,
         company_id: UUID,
@@ -147,6 +145,15 @@ class PurchaseRequisitionService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Purchase requisition not found.",
             )
+
+        return requisition
+
+    def _get_draft_requisition(
+        self,
+        requisition_id: UUID,
+        company_id: UUID,
+    ) -> PurchaseRequisition:
+        requisition = self._get_purchase_requisition(requisition_id, company_id)
 
         if requisition.status != PRStatusEnum.DRAFT:
             raise HTTPException(
@@ -156,12 +163,31 @@ class PurchaseRequisitionService:
 
         return requisition
 
+    def _generate_pr_number(self, company_id: UUID) -> str:
+        while True:
+            candidate = f"PR-{uuid.uuid4().hex[:8].upper()}"
+            existing = self.requisition_repo.get_by_pr_number(candidate, company_id)
+
+            if not existing:
+                return candidate
+
     def create_purchase_requisition(
         self,
         requisition_data: PurchaseRequisitionCreate,
         user_id: UUID,
+        role_id: UUID,
         company_id: UUID,
     ) -> PurchaseRequisition:
+        # Permission check
+        if not self.permission_service.role_has_permission(
+            role_id=role_id,
+            permission_name="pr.create",
+            company_id=company_id,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to create purchase requisitions", 
+            )
         title = requisition_data.title.strip()
         if not title:
             raise HTTPException(
@@ -228,8 +254,26 @@ class PurchaseRequisitionService:
             item.requisition_id = created_requisition.id
 
         created_items = self.item_repo.create_many(items_to_create)
-        created_requisition.items = created_items
 
+        # AUDIT LOG SERVICE
+        self.audit_log_service.log_action(
+            company_id=company_id,
+            entity_type="PR",
+            entity_id=created_requisition.id,
+            action="PR_CREATED",
+            actor_user_id=user_id,
+            description=f"Purchase requisition {created_requisition.pr_number} created",
+            new_values_json={
+                "title": created_requisition.title,
+                "total_amount": str(created_requisition.total_amount),
+                "currency": created_requisition.currency,
+            },
+        )
+
+        self.requisition_repo.db.commit()
+        self.requisition_repo.db.refresh(created_requisition)
+        
+        created_requisition.items = created_items
         return created_requisition
 
     def get_purchase_requisition(
@@ -237,17 +281,13 @@ class PurchaseRequisitionService:
         requisition_id: UUID,
         company_id: UUID,
     ) -> PurchaseRequisition:
-        requisition = self.requisition_repo.get_by_id(requisition_id, company_id)
-        if not requisition:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Purchase requisition not found.",
-            )
+        requisition = self._get_purchase_requisition(requisition_id, company_id)
 
         requisition.items = self.item_repo.get_by_requisition_id(
             requisition.id,
             company_id,
         )
+
         return requisition
 
     def get_all_purchase_requisitions(
@@ -270,24 +310,78 @@ class PurchaseRequisitionService:
 
         return self.requisition_repo.get_all(company_id, skip=skip, limit=limit)
 
+    def get_all_purchase_requisitions_by_status(
+        self,
+        pr_status: PRStatusEnum,
+        company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> list[PurchaseRequisition]:
+        if skip < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Skip must be zero or greater.",
+            )
+
+        if limit < 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Limit must be greater than zero.",
+            )
+
+        return self.requisition_repo.get_by_status(
+            status=pr_status,
+            company_id=company_id,
+            skip=skip,
+            limit=limit,
+        )
+
+    def get_all_purchase_requisitions_by_department(
+        self,
+        department_id: UUID,
+        company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> list[PurchaseRequisition]:
+        if not department_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Department id is required.",
+            )
+
+        if skip < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Skip must be zero or greater.",
+            )
+
+        if limit < 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Limit must be greater than zero.",
+            )
+
+        return self.requisition_repo.get_by_department(
+            department_id=department_id,
+            company_id=company_id,
+            skip=skip,
+            limit=limit,
+        )
+
     def update_purchase_requisition(
         self,
         requisition_id: UUID,
         requisition_data: PurchaseRequisitionUpdate,
         company_id: UUID,
+        user_id: UUID,
     ) -> PurchaseRequisition:
-        requisition = self.requisition_repo.get_by_id(requisition_id, company_id)
-        if not requisition:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Purchase requisition not found.",
-            )
+        requisition = self._get_draft_requisition(requisition_id, company_id)
 
-        if requisition.status != PRStatusEnum.DRAFT:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Only draft purchase requisitions can be updated.",
-            )
+        old_values = {
+            "title": requisition.title,
+            "description": requisition.description,
+            "currency": requisition.currency,
+        }
 
         update_data = requisition_data.model_dump(exclude_unset=True)
 
@@ -298,6 +392,7 @@ class PurchaseRequisitionService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Purchase requisition title cannot be empty.",
                 )
+
             update_data["title"] = normalized_title
 
         if "description" in update_data:
@@ -308,11 +403,30 @@ class PurchaseRequisitionService:
         if "currency" in update_data:
             update_data["currency"] = self._normalize_currency(update_data["currency"])
 
-        updated_requisition = self.requisition_repo.update(requisition, update_data)
+        for field, value in update_data.items():
+            setattr(requisition, field, value)
+
+        updated_requisition = self.requisition_repo.update(requisition)
+        # AUDIT LOG SERVICE
+        self.audit_log_service.log_action(
+            company_id=company_id,
+            entity_type="PR",
+            entity_id=requisition.id,
+            action="PR_UPDATED",
+            actor_user_id=user_id,
+            description=f"Purchase requisition {requisition.pr_number} updated",
+            old_values_json=old_values,
+            new_values_json=update_data,
+        )
+        
+        self.requisition_repo.db.commit()
+        self.requisition_repo.db.refresh(updated_requisition)
+        
         updated_requisition.items = self.item_repo.get_by_requisition_id(
             requisition.id,
             company_id,
         )
+
         return updated_requisition
 
     def create_purchase_requisition_item(
@@ -341,7 +455,11 @@ class PurchaseRequisitionService:
         )
 
         created_item = self.item_repo.create(item)
-        self._recalculate_requisition_total(requisition.id, company_id)
+        self._recalculate_requisition_total(requisition, company_id)
+
+        self.item_repo.db.commit()
+        self.item_repo.db.refresh(created_item)
+
         return created_item
 
     def get_all_purchase_requisition_items(
@@ -349,12 +467,7 @@ class PurchaseRequisitionService:
         requisition_id: UUID,
         company_id: UUID,
     ) -> list[PurchaseRequisitionItem]:
-        requisition = self.requisition_repo.get_by_id(requisition_id, company_id)
-        if not requisition:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Purchase requisition not found.",
-            )
+        requisition = self._get_purchase_requisition(requisition_id, company_id)
 
         return self.item_repo.get_by_requisition_id(requisition.id, company_id)
 
@@ -380,10 +493,26 @@ class PurchaseRequisitionService:
                 detail="Item does not belong to this purchase requisition.",
             )
 
-        item_name = item_data.item_name if item_data.item_name is not None else item.item_name
-        description = item_data.description if item_data.description is not None else item.description
-        quantity = Decimal(item_data.quantity) if item_data.quantity is not None else item.quantity
-        unit_price = Decimal(item_data.unit_price) if item_data.unit_price is not None else item.unit_price
+        item_name = (
+            item_data.item_name
+            if item_data.item_name is not None
+            else item.item_name
+        )
+        description = (
+            item_data.description
+            if item_data.description is not None
+            else item.description
+        )
+        quantity = (
+            Decimal(item_data.quantity)
+            if item_data.quantity is not None
+            else item.quantity
+        )
+        unit_price = (
+            Decimal(item_data.unit_price)
+            if item_data.unit_price is not None
+            else item.unit_price
+        )
 
         self._validate_item_values(
             item_name=str(item_name),
@@ -398,17 +527,12 @@ class PurchaseRequisitionService:
         item.unit_price = unit_price
         item.line_total = self._calculate_line_total(quantity, unit_price)
 
-        updated_item = self.item_repo.update(
-            item,
-            {
-                "item_name": item.item_name,
-                "description": item.description,
-                "quantity": item.quantity,
-                "unit_price": item.unit_price,
-                "line_total": item.line_total,
-            },
-        )
-        self._recalculate_requisition_total(requisition.id, company_id)
+        updated_item = self.item_repo.update(item)
+        self._recalculate_requisition_total(requisition, company_id)
+
+        self.item_repo.db.commit()
+        self.item_repo.db.refresh(updated_item)
+
         return updated_item
 
     def delete_purchase_requisition_item(
@@ -443,20 +567,29 @@ class PurchaseRequisitionService:
             )
 
         self.item_repo.delete(item)
-        self._recalculate_requisition_total(requisition.id, company_id)
+        self._recalculate_requisition_total(requisition, company_id)
+
+        self.item_repo.db.commit()
+
         return item
 
     def submit_purchase_requisition(
         self,
         requisition_id: UUID,
+        role_id: UUID,
         company_id: UUID,
+        user_id: UUID,
     ) -> PurchaseRequisition:
-        requisition = self.requisition_repo.get_by_id(requisition_id, company_id)
-        if not requisition:
+        if not self.permission_service.role_has_permission(
+            role_id=role_id,
+            permission_name="pr.submit",
+            company_id=company_id,
+        ):
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Purchase requisition not found.",
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to submit purchase requisitions",
             )
+        requisition = self._get_purchase_requisition(requisition_id, company_id)
 
         if requisition.status != PRStatusEnum.DRAFT:
             raise HTTPException(
@@ -481,36 +614,81 @@ class PurchaseRequisitionService:
                 detail="No active approval workflow configured for purchase requisitions.",
             )
 
-        self.approval_instance_service.create_instance(
-            ApprovalInstanceCreate(
-                workflow_id=workflow.id,
-                entity_id=requisition.id,
-                entity_type=EntityTypeEnum.PR,
-            ),
+        first_level = self.approval_instance_service.workflow_level_repo.get_first_level(
+            workflow_id=workflow.id,
             company_id=company_id,
         )
+        if not first_level:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Workflow has no levels configured or does not exist in this company.",
+            )
 
-        updated_requisition = self.requisition_repo.update(
-            requisition,
-            {"status": PRStatusEnum.PENDING_APPROVAL},
+        existing_pending = self.approval_instance_service.repo.get_pending_by_entity(
+            entity_id=requisition.id,
+            entity_type=EntityTypeEnum.PR,
+            company_id=company_id,
         )
-        updated_requisition.items = self.item_repo.get_by_requisition_id(
-            requisition.id,
-            company_id,
+        if existing_pending:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A pending approval instance already exists for this requisition.",
+            )
+
+        approval_instance = ApprovalInstance(
+            company_id=company_id,
+            workflow_id=workflow.id,
+            entity_id=requisition.id,
+            entity_type=EntityTypeEnum.PR,
+            current_level_id=first_level.id,
+            status=ApprovalStatus.PENDING,
         )
+
+        self.approval_instance_service.repo.create(approval_instance)
+
+        requisition.status = PRStatusEnum.PENDING_APPROVAL
+
+        updated_requisition = self.requisition_repo.update(requisition)
+        # AUDIT LOG CHECK
+        self.audit_log_service.log_action(
+            company_id=company_id,
+            entity_type="PR",
+            entity_id=requisition.id,
+            action="PR_SUBMITTED",
+            actor_user_id=user_id,
+            description=f"Purchase requisition {requisition.pr_number} submitted for approval",
+            old_values_json={
+                "status": PRStatusEnum.DRAFT.value,
+            },
+            new_values_json={
+                "status": PRStatusEnum.PENDING_APPROVAL.value,
+            },
+        )
+
+        self.requisition_repo.db.commit()
+        self.requisition_repo.db.refresh(updated_requisition)
+
+        updated_requisition.items = items
         return updated_requisition
 
     def cancel_purchase_requisition(
         self,
         requisition_id: UUID,
+        role_id: UUID,
         company_id: UUID,
+        user_id: UUID,
     ) -> PurchaseRequisition:
-        requisition = self.requisition_repo.get_by_id(requisition_id, company_id)
-        if not requisition:
+        if not self.permission_service.role_has_permission(
+            role_id=role_id,
+            permission_name="pr.cancel",
+            company_id=company_id,
+        ):
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Purchase requisition not found.",
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to cancel purchase requisitions",
             )
+        
+        requisition = self._get_purchase_requisition(requisition_id, company_id)
 
         if requisition.status in {
             PRStatusEnum.CANCELLED,
@@ -521,47 +699,91 @@ class PurchaseRequisitionService:
                 detail="Purchase requisition cannot be cancelled in its current state.",
             )
 
-        updated_requisition = self.requisition_repo.update(
-            requisition,
-            {"status": PRStatusEnum.CANCELLED},
+        old_status = requisition.status
+        requisition.status = PRStatusEnum.CANCELLED
+
+        updated_requisition = self.requisition_repo.update(requisition)
+        
+        self.audit_log_service.log_action(
+            company_id=company_id,
+            entity_type="PR",
+            entity_id=requisition.id,
+            action="PR_CANCELLED",
+            actor_user_id=user_id,
+            description=f"Purchase requisition {requisition.pr_number} cancelled",
+            old_values_json={
+            "status": old_status.value,
+        },
+            new_values_json={
+                "status": PRStatusEnum.CANCELLED.value,
+            },
         )
+        
+        self.requisition_repo.db.commit()
+        self.requisition_repo.db.refresh(updated_requisition)
+
         updated_requisition.items = self.item_repo.get_by_requisition_id(
             requisition.id,
             company_id,
         )
+
         return updated_requisition
+    
+    # ---------------------
+    # ALREADY HANDLED IN PO SERVICE 
+    # ---------------------
 
-    def mark_purchase_requisition_converted_to_po(
-        self,
-        requisition_id: UUID,
-        company_id: UUID,
-    ) -> PurchaseRequisition:
-        requisition = self.requisition_repo.get_by_id(requisition_id, company_id)
-        if not requisition:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Purchase requisition not found.",
-            )
+    # def mark_purchase_requisition_converted_to_po(
+    #     self,
+    #     requisition_id: UUID,
+    #     role_id: UUID,
+    #     company_id: UUID,
+    #     user_id: UUID,
+    # ) -> PurchaseRequisition:
+    #     if not self.permission_service.role_has_permission(
+    #         role_id=role_id,
+    #         permission_name="pr.convert_to_po",
+    #         company_id=company_id,
+    #     ):
+    #         raise HTTPException(
+    #             status_code=status.HTTP_403_FORBIDDEN,
+    #             detail="You do not have permission to convert requisitions to purchase orders",
+    #         )
+        
+    #     requisition = self._get_purchase_requisition(requisition_id, company_id)
 
-        if requisition.status != PRStatusEnum.APPROVED:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Only approved purchase requisitions can be marked as converted to PO.",
-            )
+    #     if requisition.status != PRStatusEnum.APPROVED:
+    #         raise HTTPException(
+    #             status_code=status.HTTP_400_BAD_REQUEST,
+    #             detail="Only approved purchase requisitions can be marked as converted to PO.",
+    #         )
 
-        updated_requisition = self.requisition_repo.update(
-            requisition,
-            {"status": PRStatusEnum.CONVERTED_TO_PO},
-        )
-        updated_requisition.items = self.item_repo.get_by_requisition_id(
-            requisition.id,
-            company_id,
-        )
-        return updated_requisition
+    #     old_status = requisition.status
+    #     requisition.status = PRStatusEnum.CONVERTED_TO_PO
 
-    def _generate_pr_number(self, company_id: UUID) -> str:
-        while True:
-            candidate = f"PR-{uuid.uuid4().hex[:8].upper()}"
-            existing = self.requisition_repo.get_by_pr_number(candidate, company_id)
-            if not existing:
-                return candidate
+    #     updated_requisition = self.requisition_repo.update(requisition)
+    #     # AUDIT LOG CHECK
+    #     self.audit_log_service.log_action(
+    #         company_id=company_id,
+    #         entity_type="PR",
+    #         entity_id=requisition.id,
+    #         action="PR_CONVERTED_TO_PO",
+    #         actor_user_id=user_id,
+    #         description=f"Purchase requisition {requisition.pr_number} converted to purchase order",
+    #         old_values_json={
+    #             "status": old_status.value,
+    #         },
+    #         new_values_json={
+    #             "status": PRStatusEnum.CONVERTED_TO_PO.value,
+    #         },
+    #     )
+        
+    #     self.requisition_repo.db.commit()
+    #     self.requisition_repo.db.refresh(updated_requisition)
+
+    #     updated_requisition.items = self.item_repo.get_by_requisition_id(
+    #         requisition.id,
+    #         company_id,
+    #     )
+
+    #     return updated_requisition

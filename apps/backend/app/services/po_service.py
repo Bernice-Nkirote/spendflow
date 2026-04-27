@@ -4,7 +4,8 @@ from uuid import UUID, uuid4
 
 from fastapi import HTTPException, status
 
-from app.models.enums import EntityTypeEnum, POStatusEnum, PRStatusEnum
+from app.models.approval_instance import ApprovalInstance
+from app.models.enums import ApprovalStatus, EntityTypeEnum, POStatusEnum, PRStatusEnum
 from app.models.purchase_order import PurchaseOrder
 from app.models.purchase_order_item import PurchaseOrderItem
 from app.repositories.approval_workflow_repository import ApprovalWorkflowRepository
@@ -12,10 +13,9 @@ from app.repositories.po_item_repository import PurchaseOrderItemRepository
 from app.repositories.po_repository import PurchaseOrderRepository
 from app.repositories.pr_item_repository import PurchaseRequisitionItemRepository
 from app.repositories.pr_repository import PurchaseRequisitionRepository
-from app.schemas.approval_instance_schema import ApprovalInstanceCreate
 from app.services.approval_instance_service import ApprovalInstanceService
-
-
+from app.services.permission_service import PermissionService
+from app.services.audit_log_service import AuditLogService
 class PurchaseOrderService:
     def __init__(
         self,
@@ -25,6 +25,9 @@ class PurchaseOrderService:
         pr_item_repo: PurchaseRequisitionItemRepository,
         workflow_repo: ApprovalWorkflowRepository,
         approval_instance_service: ApprovalInstanceService,
+        permission_service : PermissionService,
+        audit_log_service: AuditLogService,
+        
     ):
         self.po_repo = po_repo
         self.po_item_repo = po_item_repo
@@ -32,13 +35,16 @@ class PurchaseOrderService:
         self.pr_item_repo = pr_item_repo
         self.workflow_repo = workflow_repo
         self.approval_instance_service = approval_instance_service
-
+        self.permission_service = permission_service
+        self.audit_log_service = audit_log_service
     def _normalize_currency(self, currency: str | None) -> str:
         if not currency:
             return "KES"
+
         normalized = currency.strip().upper()
         if not normalized:
             return "KES"
+
         return normalized
 
     def _generate_po_number(self, company_id: UUID) -> str:
@@ -99,31 +105,28 @@ class PurchaseOrderService:
     ) -> Decimal:
         return quantity * unit_price
 
-    def _calculate_po_total(self, items) -> Decimal:
+    def _calculate_po_total(self, items: list[PurchaseOrderItem]) -> Decimal:
         total = Decimal("0.00")
+
         for item in items:
             total += item.total_price
+
         return total
 
     def _recalculate_po_total(
         self,
-        po_id: UUID,
+        po: PurchaseOrder,
         company_id: UUID,
     ) -> PurchaseOrder:
-        po = self.po_repo.get_by_id(po_id, company_id)
-        if not po:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Purchase order not found",
-            )
+        items = self.po_item_repo.get_all_by_po(po.id, company_id)
+        po.total_amount = self._calculate_po_total(items)
 
-        items = self.po_item_repo.get_all_by_po(po_id, company_id)
-        total_amount = self._calculate_po_total(items)
-        return self.po_repo.update(
-            po,
-            {"total_amount": total_amount},
-            )
+        updated_po = self.po_repo.update(po)
+        updated_po.items = items
 
+        return updated_po
+
+# Create many PO items in one operation, internal
     def _create_po_items(
         self,
         po_id: UUID,
@@ -146,6 +149,7 @@ class PurchaseOrderService:
                 unit_price=unit_price,
                 total_price=total_price,
             )
+
             self.po_item_repo.create(item)
 
     def _replace_po_items(
@@ -155,6 +159,7 @@ class PurchaseOrderService:
         items_data,
     ) -> None:
         existing_items = self.po_item_repo.get_all_by_po(po_id, company_id)
+
         for item in existing_items:
             self.po_item_repo.delete(item)
 
@@ -209,12 +214,38 @@ class PurchaseOrderService:
             unit_price_decimal,
         )
 
+    def get_po(
+        self,
+        po_id: UUID,
+        company_id: UUID,
+    ) -> PurchaseOrder:
+        po = self.po_repo.get_by_id(po_id, company_id)
+        if not po:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Purchase order not found",
+            )
+
+        return po
+
     def create_po(
         self,
         po_data,
         company_id: UUID,
         created_by: UUID,
+        role_id: UUID,
     ) -> PurchaseOrder:
+        # Permission Check
+        if not self.permission_service.role_has_permission(
+            role_id=role_id,
+            permission_name="po.create",
+            company_id=company_id,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to create purchase orders",
+            )
+        
         if not po_data.supplier_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -241,7 +272,29 @@ class PurchaseOrderService:
 
         created_po = self.po_repo.create(po)
         self._create_po_items(created_po.id, company_id, po_data.items)
-        return self._recalculate_po_total(created_po.id, company_id)
+
+        updated_po = self._recalculate_po_total(created_po, company_id)
+        # AUDIT LOG
+        self.audit_log_service.log_action(
+            company_id=company_id,
+            entity_type="PO",
+            entity_id=updated_po.id,
+            action="PO_CREATED",
+            actor_user_id=created_by,
+            description=f"Purchase order {updated_po.po_number} created",
+            new_values_json={
+                "po_number": updated_po.po_number,
+                "supplier_id":str(updated_po.supplier_id),
+                "total_amount": str(updated_po.total_amount),
+                "currency":updated_po.currency,
+                "status": updated_po.status.value,
+            },
+        )
+
+        self.po_repo.db.commit()
+        self.po_repo.db.refresh(updated_po)
+
+        return updated_po
 
     def create_po_from_pr(
         self,
@@ -249,7 +302,19 @@ class PurchaseOrderService:
         po_data,
         company_id: UUID,
         created_by: UUID,
+        role_id: UUID,
     ) -> PurchaseOrder:
+        # Permission check 
+        if not self.permission_service.role_has_permission(
+            role_id=role_id,
+            permission_name="po.create",
+            company_id=company_id,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to create purchase orders",
+            )
+        
         if not po_data.supplier_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -318,27 +383,52 @@ class PurchaseOrderService:
                 unit_price=unit_price,
                 total_price=self._calculate_item_total(quantity, unit_price),
             )
+
             self.po_item_repo.create(item)
 
-        self.pr_repo.update(
-            requisition,
-            {"status": PRStatusEnum.CONVERTED_TO_PO},
+        requisition.status = PRStatusEnum.CONVERTED_TO_PO
+        self.pr_repo.update(requisition)
+
+        updated_po = self._recalculate_po_total(created_po, company_id)
+
+        # AUDIT CHECK FOR CONVERTING PR TO PO
+        self.audit_log_service.log_action(
+            company_id=company_id,
+            entity_type="PR",
+            entity_id=requisition.id,
+            action="PR_CONVERTED_TO_PO",
+            actor_user_id=created_by,
+            description=f"Purchase requisition {requisition.pr_number} converted to PO {created_po.po_number}",
+            old_values_json={
+                "status": PRStatusEnum.APPROVED.value,
+            },
+            new_values_json={
+                "status": PRStatusEnum.CONVERTED_TO_PO.value,
+                "po_id": str(created_po.id),
+                "po_number": created_po.po_number,
+            },
         )
+        # AUDIT CHECK FOR CREATING PO
+        self.audit_log_service.log_action(
+            company_id=company_id,
+            entity_type="PO",
+            entity_id=updated_po.id,
+            action="PO_CREATED",
+            actor_user_id=created_by,
+            description=f"Purchase order {updated_po.po_number} created from PR {requisition.pr_number}",
+            new_values_json={
+                "po_number": updated_po.po_number,
+                "purchase_requisition_id": str(requisition.id),
+                "supplier_id": str(updated_po.supplier_id),
+                "total_amount": str(updated_po.total_amount),
+                "currency": updated_po.currency,
+                "status": updated_po.status.value,
+            },
+        )
+        self.po_repo.db.commit()
+        self.po_repo.db.refresh(updated_po)
 
-        return self._recalculate_po_total(created_po.id, company_id)
-
-    def get_po(
-        self,
-        po_id: UUID,
-        company_id: UUID,
-    ) -> PurchaseOrder:
-        po = self.po_repo.get_by_id(po_id, company_id)
-        if not po:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Purchase order not found",
-            )
-        return po
+        return updated_po
 
     def get_all_pos(
         self,
@@ -346,22 +436,94 @@ class PurchaseOrderService:
         skip: int = 0,
         limit: int = 20,
     ) -> list[PurchaseOrder]:
+        if skip < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Skip must be zero or greater",
+            )
+
+        if limit < 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Limit must be greater than zero",
+            )
+
         return self.po_repo.get_all(company_id, skip, limit)
+
+    def get_all_pos_by_supplier(
+        self,
+        supplier_id: UUID,
+        company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> list[PurchaseOrder]:
+        if not supplier_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Supplier id is required",
+            )
+
+        if skip < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Skip must be zero or greater",
+            )
+
+        if limit < 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Limit must be greater than zero",
+            )
+
+        return self.po_repo.get_by_supplier(
+            supplier_id=supplier_id,
+            company_id=company_id,
+            skip=skip,
+            limit=limit,
+        )
 
     def get_all_pos_by_status(
         self,
         po_status: POStatusEnum,
         company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
     ) -> list[PurchaseOrder]:
-        return self.po_repo.get_by_status(po_status, company_id)
+        if skip < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Skip must be zero or greater",
+            )
+
+        if limit < 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Limit must be greater than zero",
+            )
+
+        return self.po_repo.get_by_status(
+            status=po_status,
+            company_id=company_id,
+            skip=skip,
+            limit=limit,
+        )
 
     def update_po(
         self,
         po_id: UUID,
         po_data,
         company_id: UUID,
+        user_id: UUID,
     ) -> PurchaseOrder:
         po = self.get_po(po_id, company_id)
+
+        old_values = {
+            "supplier_id": str(po.supplier_id) if po.supplier_id else None,
+            "department_id": str(po.department_id) if po.department_id else None,
+            "currency": po.currency,
+            "notes": po.notes,
+            "total_amount": str(po.total_amount),
+        }
 
         if po.status != POStatusEnum.DRAFT:
             raise HTTPException(
@@ -369,21 +531,19 @@ class PurchaseOrderService:
                 detail="Only draft purchase orders can be updated",
             )
 
-        update_data = {}
-
         if po_data.supplier_id is not None:
-            update_data["supplier_id"] = po_data.supplier_id
+            po.supplier_id = po_data.supplier_id
 
         if po_data.department_id is not None:
-            update_data["department_id"] = po_data.department_id
+            po.department_id = po_data.department_id
 
         if po_data.currency is not None:
-            update_data["currency"] = self._normalize_currency(po_data.currency)
+            po.currency = self._normalize_currency(po_data.currency)
 
         if po_data.notes is not None:
-            update_data["notes"] = po_data.notes
+            po.notes = po_data.notes
 
-        updated_po = self.po_repo.update(po, update_data)
+        updated_po = self.po_repo.update(po)
 
         if po_data.items is not None:
             if not po_data.items:
@@ -391,8 +551,31 @@ class PurchaseOrderService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Purchase order must have at least one item",
                 )
+
             self._replace_po_items(updated_po.id, company_id, po_data.items)
-            return self._recalculate_po_total(updated_po.id, company_id)
+            updated_po = self._recalculate_po_total(updated_po, company_id)
+        
+        # AUDITC CHECK LOGS
+        self.audit_log_service.log_action(
+            company_id=company_id,
+            entity_type="PO",
+            entity_id=updated_po.id,
+            action="PO_UPDATED",
+            actor_user_id=user_id,
+            description=f"Purchase order {updated_po.po_number} updated",
+            old_values_json=old_values,
+            new_values_json={
+                "supplier_id": str(updated_po.supplier_id) if updated_po.supplier_id else None,
+                "department_id": str(updated_po.department_id) if updated_po.department_id else None,
+                "currency": updated_po.currency,
+                "notes": updated_po.notes,
+                "total_amount": str(updated_po.total_amount),
+                "items_updated": po_data.items is not None,
+            },
+        )
+
+        self.po_repo.db.commit()
+        self.po_repo.db.refresh(updated_po)
 
         return updated_po
 
@@ -426,7 +609,11 @@ class PurchaseOrderService:
         )
 
         created_item = self.po_item_repo.create(item)
-        self._recalculate_po_total(po.id, company_id)
+        self._recalculate_po_total(po, company_id)
+
+        self.po_item_repo.db.commit()
+        self.po_item_repo.db.refresh(created_item)
+
         return created_item
 
     def get_all_po_items(
@@ -435,6 +622,7 @@ class PurchaseOrderService:
         company_id: UUID,
     ) -> list[PurchaseOrderItem]:
         self.get_po(po_id, company_id)
+
         return self.po_item_repo.get_all_by_po(po_id, company_id)
 
     def update_po_item(
@@ -465,10 +653,26 @@ class PurchaseOrderService:
                 detail="Item does not belong to this purchase order",
             )
 
-        item_name = item_data.item_name if item_data.item_name is not None else item.item_name
-        description = item_data.description if item_data.description is not None else item.description
-        quantity = Decimal(item_data.quantity) if item_data.quantity is not None else item.quantity
-        unit_price = Decimal(item_data.unit_price) if item_data.unit_price is not None else item.unit_price
+        item_name = (
+            item_data.item_name
+            if item_data.item_name is not None
+            else item.item_name
+        )
+        description = (
+            item_data.description
+            if item_data.description is not None
+            else item.description
+        )
+        quantity = (
+            Decimal(item_data.quantity)
+            if item_data.quantity is not None
+            else item.quantity
+        )
+        unit_price = (
+            Decimal(item_data.unit_price)
+            if item_data.unit_price is not None
+            else item.unit_price
+        )
 
         self._validate_item_values(
             item_name=str(item_name),
@@ -483,7 +687,11 @@ class PurchaseOrderService:
         item.total_price = self._calculate_item_total(quantity, unit_price)
 
         updated_item = self.po_item_repo.update(item)
-        self._recalculate_po_total(po.id, company_id)
+        self._recalculate_po_total(po, company_id)
+
+        self.po_item_repo.db.commit()
+        self.po_item_repo.db.refresh(updated_item)
+
         return updated_item
 
     def delete_po_item(
@@ -521,7 +729,10 @@ class PurchaseOrderService:
             )
 
         self.po_item_repo.delete(item)
-        self._recalculate_po_total(po.id, company_id)
+        self._recalculate_po_total(po, company_id)
+
+        self.po_item_repo.db.commit()
+
         return item
 
     def submit_po(
@@ -529,7 +740,19 @@ class PurchaseOrderService:
         po_id: UUID,
         company_id: UUID,
         submitted_by: UUID,
+        role_id: UUID,
     ) -> PurchaseOrder:
+        # Permission check
+        if not self.permission_service.role_has_permission(
+            role_id=role_id,
+            permission_name="po.submit",
+            company_id=company_id,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to submit purchase orders",
+            )
+        
         po = self.get_po(po_id, company_id)
 
         if po.status != POStatusEnum.DRAFT:
@@ -555,24 +778,64 @@ class PurchaseOrderService:
                 detail="No active approval workflow configured for purchase orders",
             )
 
-        self.approval_instance_service.create_instance(
-            ApprovalInstanceCreate(
-                workflow_id=workflow.id,
-                entity_id=po.id,
-                entity_type=EntityTypeEnum.PO,
-            ),
+        first_level = self.approval_instance_service.workflow_level_repo.get_first_level(
+            workflow_id=workflow.id,
             company_id=company_id,
         )
+        if not first_level:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Workflow has no levels configured or does not exist in this company",
+            )
 
-       
-        return self.po_repo.update(
-            po,
-            {
-                "submitted_by": submitted_by,
-                "submitted_at": datetime.now(timezone.utc),
-                "status": POStatusEnum.PENDING_APPROVAL,
+        existing_pending = self.approval_instance_service.repo.get_pending_by_entity(
+            entity_id=po.id,
+            entity_type=EntityTypeEnum.PO,
+            company_id=company_id,
+        )
+        if existing_pending:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A pending approval instance already exists for this purchase order",
+            )
+
+        approval_instance = ApprovalInstance(
+            company_id=company_id,
+            workflow_id=workflow.id,
+            entity_id=po.id,
+            entity_type=EntityTypeEnum.PO,
+            current_level_id=first_level.id,
+            status=ApprovalStatus.PENDING,
+        )
+
+        self.approval_instance_service.repo.create(approval_instance)
+
+        po.submitted_by = submitted_by
+        po.submitted_at = datetime.now(timezone.utc)
+        po.status = POStatusEnum.PENDING_APPROVAL
+
+        updated_po = self.po_repo.update(po)
+
+        # AUDIT CHECK FOR SUBMIT PO
+        self.audit_log_service.log_action(
+            company_id=company_id,
+            entity_type="PO",
+            entity_id=po.id,
+            action="PO_SUBMITTED",
+            actor_user_id=submitted_by,
+            description=f"Purchase order {po.po_number} submitted for approval",
+            old_values_json={
+                "status": POStatusEnum.DRAFT.value,
+            },
+            new_values_json={
+                "status": POStatusEnum.PENDING_APPROVAL.value,
             },
         )
+        
+        self.po_repo.db.commit()
+        self.po_repo.db.refresh(updated_po)
+
+        return updated_po
 
     def approve_po(
         self,
@@ -587,10 +850,13 @@ class PurchaseOrderService:
                 detail="Only pending approval purchase orders can be approved",
             )
 
-        return self.po_repo.update(
-            po,
-            {"status": POStatusEnum.APPROVED},
-        )
+        po.status = POStatusEnum.APPROVED
+
+        updated_po = self.po_repo.update(po)
+        self.po_repo.db.commit()
+        self.po_repo.db.refresh(updated_po)
+
+        return updated_po
 
     def reject_po(
         self,
@@ -605,17 +871,31 @@ class PurchaseOrderService:
                 detail="Only pending approval purchase orders can be rejected",
             )
 
-        return self.po_repo.update(
-            po,
-            {"status": POStatusEnum.REJECTED},
-        )
+        po.status = POStatusEnum.REJECTED
+
+        updated_po = self.po_repo.update(po)
+        self.po_repo.db.commit()
+        self.po_repo.db.refresh(updated_po)
+
+        return updated_po
 
     def issue_po(
         self,
         po_id: UUID,
         company_id: UUID,
         issued_by: UUID,
+        role_id: UUID,
     ) -> PurchaseOrder:
+        # Permission check
+        if not self.permission_service.role_has_permission(
+            role_id=role_id,
+            permission_name="po.dispatch",
+            company_id=company_id,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to dispatch purchase orders",
+            )
         po = self.get_po(po_id, company_id)
 
         if po.status != POStatusEnum.APPROVED:
@@ -623,16 +903,36 @@ class PurchaseOrderService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Only approved purchase orders can be issued",
             )
+
+        po.issued_by = issued_by
+        po.issued_at = datetime.now(timezone.utc)
+        po.status = POStatusEnum.SENT
+
+        updated_po = self.po_repo.update(po)
         
-        return self.po_repo.update(
-            po,
-            {
-                "issued_by": issued_by,
-                "issued_at": datetime.now(timezone.utc),
-                "status": POStatusEnum.SENT,
+        # AUDIT CHECK LOG
+        self.audit_log_service.log_action(
+            company_id=company_id,
+            entity_type="PO",
+            entity_id=po.id,
+            action="PO_ISSUED",
+            actor_user_id=issued_by,
+            description=f"Purchase order {po.po_number} issued",
+            old_values_json={
+                "status": POStatusEnum.APPROVED.value,
+            },
+            new_values_json={
+                "status": POStatusEnum.SENT.value,
+                "issued_by": str(issued_by),
+                "issued_at": po.issued_at.isoformat() if po.issued_at else None,
             },
         )
-    
+
+        self.po_repo.db.commit()
+        self.po_repo.db.refresh(updated_po)
+
+        return updated_po
+
     def mark_po_partially_received(
         self,
         po_id: UUID,
@@ -643,13 +943,16 @@ class PurchaseOrderService:
         if po.status not in {POStatusEnum.SENT, POStatusEnum.PARTIALLY_RECEIVED}:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Only sent or partially received purchase orders can be marked as sent or partially received",
+                detail="Only sent or partially received purchase orders can be marked as partially received",
             )
 
-        return self.po_repo.update(
-            po,
-            {"status": POStatusEnum.PARTIALLY_RECEIVED},
-        )
+        po.status = POStatusEnum.PARTIALLY_RECEIVED
+
+        updated_po = self.po_repo.update(po)
+        self.po_repo.db.commit()
+        self.po_repo.db.refresh(updated_po)
+
+        return updated_po
 
     def receive_po(
         self,
@@ -663,17 +966,33 @@ class PurchaseOrderService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Only sent or partially received purchase orders can be marked as received",
             )
-        
-        return self.po_repo.update(
-            po,
-            {"status": POStatusEnum.RECEIVED},
-        )
+
+        po.status = POStatusEnum.RECEIVED
+
+        updated_po = self.po_repo.update(po)
+        self.po_repo.db.commit()
+        self.po_repo.db.refresh(updated_po)
+
+        return updated_po
 
     def cancel_po(
         self,
         po_id: UUID,
         company_id: UUID,
+        role_id: UUID,
+        user_id: UUID,
     ) -> PurchaseOrder:
+        # permission check
+        if not self.permission_service.role_has_permission(
+            role_id=role_id,
+            permission_name="po.cancel",
+            company_id=company_id,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to cancel purchase orders",
+            )
+        
         po = self.get_po(po_id, company_id)
 
         if po.status not in {
@@ -686,10 +1005,31 @@ class PurchaseOrderService:
                 detail="This purchase order cannot be cancelled",
             )
 
-        return self.po_repo.update(
-            po,
-            {"status": POStatusEnum.CANCELLED},
+        old_status = po.status
+        po.status = POStatusEnum.CANCELLED
+
+        updated_po = self.po_repo.update(po)
+
+        # AUDIT LOG CHECK
+        self.audit_log_service.log_action(
+            company_id=company_id,
+            entity_type="PO",
+            entity_id=po.id,
+            action="PO_CANCELLED",
+            actor_user_id=user_id,
+            description=f"Purchase order {po.po_number} cancelled",
+            old_values_json={
+                "status": old_status.value,
+            },
+            new_values_json={
+                "status": POStatusEnum.CANCELLED.value,
+            },
         )
+        
+        self.po_repo.db.commit()
+        self.po_repo.db.refresh(updated_po)
+
+        return updated_po
 
     def delete_po(
         self,
@@ -705,4 +1045,6 @@ class PurchaseOrderService:
             )
 
         self.po_repo.delete(po)
+        self.po_repo.db.commit()
+
         return po

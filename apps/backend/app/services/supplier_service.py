@@ -15,42 +15,21 @@ class SupplierService:
     def create_supplier(self, supplier_data: SupplierCreate, company_id: UUID) -> Supplier:
         name = supplier_data.name.strip()
         if not name:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Supplier name is required.",
-            )
+            raise HTTPException(status_code=400, detail="Supplier name is required.")
 
         email = supplier_data.email.strip().lower() if supplier_data.email else None
         phone = supplier_data.phone.strip() if supplier_data.phone else None
         address = supplier_data.address.strip() if supplier_data.address else None
-        contact_person = (
-            supplier_data.contact_person.strip()
-            if supplier_data.contact_person
-            else None
-        )
+        contact_person = supplier_data.contact_person.strip() if supplier_data.contact_person else None
 
-        existing_supplier = self.repo.get_by_name(name, company_id)
-        if existing_supplier:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Supplier with this name already exists.",
-            )
+        if self.repo.get_by_name(name, company_id):
+            raise HTTPException(status_code=409, detail="Supplier with this name already exists.")
 
-        if email:
-            existing_email = self.repo.get_by_email(email, company_id)
-            if existing_email:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="Supplier with this email already exists.",
-                )
+        if email and self.repo.get_by_email(email, company_id):
+            raise HTTPException(status_code=409, detail="Supplier with this email already exists.")
 
-        if phone:
-            existing_phone = self.repo.get_by_phone(phone, company_id)
-            if existing_phone:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="Supplier with this phone number already exists.",
-                )
+        if phone and self.repo.get_by_phone(phone, company_id):
+            raise HTTPException(status_code=409, detail="Supplier with this phone number already exists.")
 
         supplier = Supplier(
             id=uuid.uuid4(),
@@ -63,34 +42,23 @@ class SupplierService:
             is_active=True,
         )
 
-        return self.repo.create(supplier)
+        created_supplier = self.repo.create(supplier)
+        self.repo.db.commit()
+        self.repo.db.refresh(created_supplier)
+
+        return created_supplier
 
     def get_supplier(self, supplier_id: UUID, company_id: UUID) -> Supplier:
         supplier = self.repo.get_by_id(supplier_id, company_id)
         if not supplier:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Supplier not found.",
-            )
+            raise HTTPException(status_code=404, detail="Supplier not found.")
         return supplier
 
-    def get_all_suppliers(
-        self,
-        company_id: UUID,
-        skip: int = 0,
-        limit: int = 20,
-    ) -> list[Supplier]:
+    def get_all_suppliers(self, company_id: UUID, skip: int = 0, limit: int = 20) -> list[Supplier]:
         if skip < 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Skip must be zero or greater.",
-            )
-
+            raise HTTPException(status_code=400, detail="Skip must be zero or greater.")
         if limit < 1:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Limit must be greater than zero.",
-            )
+            raise HTTPException(status_code=400, detail="Limit must be greater than zero.")
 
         return self.repo.get_all(company_id, skip=skip, limit=limit)
 
@@ -100,31 +68,20 @@ class SupplierService:
         supplier_data: SupplierUpdate,
         company_id: UUID,
     ) -> Supplier:
-        supplier = self.repo.get_by_id(supplier_id, company_id)
-        if not supplier:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Supplier not found.",
-            )
+        supplier = self.get_supplier(supplier_id, company_id)
 
         update_data = supplier_data.model_dump(exclude_unset=True)
 
         if "name" in update_data:
-            normalized_name = update_data["name"].strip()
-            if not normalized_name:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Supplier name cannot be empty.",
-                )
+            name = update_data["name"].strip()
+            if not name:
+                raise HTTPException(status_code=400, detail="Supplier name cannot be empty.")
 
-            existing_supplier = self.repo.get_by_name(normalized_name, company_id)
+            existing_supplier = self.repo.get_by_name(name, company_id)
             if existing_supplier and existing_supplier.id != supplier.id:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="Supplier with this name already exists.",
-                )
+                raise HTTPException(status_code=409, detail="Supplier with this name already exists.")
 
-            update_data["name"] = normalized_name
+            update_data["name"] = name
 
         if "email" in update_data:
             email = update_data["email"]
@@ -133,10 +90,7 @@ class SupplierService:
             if normalized_email:
                 existing_email = self.repo.get_by_email(normalized_email, company_id)
                 if existing_email and existing_email.id != supplier.id:
-                    raise HTTPException(
-                        status_code=status.HTTP_409_CONFLICT,
-                        detail="Supplier with this email already exists.",
-                    )
+                    raise HTTPException(status_code=409, detail="Supplier with this email already exists.")
 
             update_data["email"] = normalized_email
 
@@ -147,71 +101,69 @@ class SupplierService:
             if normalized_phone:
                 existing_phone = self.repo.get_by_phone(normalized_phone, company_id)
                 if existing_phone and existing_phone.id != supplier.id:
-                    raise HTTPException(
-                        status_code=status.HTTP_409_CONFLICT,
-                        detail="Supplier with this phone number already exists.",
-                    )
+                    raise HTTPException(status_code=409, detail="Supplier with this phone number already exists.")
 
             update_data["phone"] = normalized_phone
 
-        if "address" in update_data and update_data["address"] is not None:
-            update_data["address"] = update_data["address"].strip()
+        if "address" in update_data:
+            address = update_data["address"]
+            update_data["address"] = address.strip() if address else None
 
-        if "contact_person" in update_data and update_data["contact_person"] is not None:
-            update_data["contact_person"] = update_data["contact_person"].strip()
+        if "contact_person" in update_data:
+            contact_person = update_data["contact_person"]
+            update_data["contact_person"] = contact_person.strip() if contact_person else None
 
-        return self.repo.update(supplier, update_data)
+        for field, value in update_data.items():
+            setattr(supplier, field, value)
+
+        updated_supplier = self.repo.update(supplier)
+        self.repo.db.commit()
+        self.repo.db.refresh(updated_supplier)
+
+        return updated_supplier
 
     def activate_supplier(self, supplier_id: UUID, company_id: UUID) -> Supplier:
-        supplier = self.repo.get_by_id(supplier_id, company_id)
-        if not supplier:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Supplier not found.",
-            )
+        supplier = self.get_supplier(supplier_id, company_id)
 
         if supplier.is_active:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Supplier is already active.",
-            )
+            raise HTTPException(status_code=400, detail="Supplier is already active.")
 
-        return self.repo.update(supplier, {"is_active": True})
+        supplier.is_active = True
+
+        updated_supplier = self.repo.update(supplier)
+        self.repo.db.commit()
+        self.repo.db.refresh(updated_supplier)
+
+        return updated_supplier
 
     def deactivate_supplier(self, supplier_id: UUID, company_id: UUID) -> Supplier:
-        supplier = self.repo.get_by_id(supplier_id, company_id)
-        if not supplier:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Supplier not found.",
-            )
+        supplier = self.get_supplier(supplier_id, company_id)
 
         if not supplier.is_active:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Supplier is already inactive.",
-            )
+            raise HTTPException(status_code=400, detail="Supplier is already inactive.")
 
-        return self.repo.update(supplier, {"is_active": False})
+        supplier.is_active = False
+
+        updated_supplier = self.repo.update(supplier)
+        self.repo.db.commit()
+        self.repo.db.refresh(updated_supplier)
+
+        return updated_supplier
 
     def delete_supplier(self, supplier_id: UUID, company_id: UUID) -> None:
-        supplier = self.repo.get_by_id(supplier_id, company_id)
-        if not supplier:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Supplier not found.",
-            )
+        supplier = self.get_supplier(supplier_id, company_id)
 
         if self.repo.has_invoices(supplier_id, company_id):
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=400,
                 detail="Supplier cannot be deleted because it has invoices. Deactivate instead.",
             )
 
         if self.repo.has_purchase_orders(supplier_id, company_id):
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
+                status_code=400,
                 detail="Supplier cannot be deleted because it has purchase orders. Deactivate instead.",
             )
 
         self.repo.delete(supplier)
+        self.repo.db.commit()

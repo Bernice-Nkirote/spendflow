@@ -1,4 +1,5 @@
 import uuid
+
 from fastapi import HTTPException, status
 
 from app.models.approval_instance import ApprovalInstance
@@ -22,9 +23,6 @@ class ApprovalInstanceService:
         data: ApprovalInstanceCreate,
         company_id: uuid.UUID,
     ) -> ApprovalInstance:
-        """
-        Start a new approval workflow instance for an entity.
-        """
         if not data.workflow_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -43,37 +41,25 @@ class ApprovalInstanceService:
                 detail="Entity type is required",
             )
 
-        existing = self.repo.get_by_entity(
+        existing_pending = self.repo.get_pending_by_entity(
             entity_id=data.entity_id,
             entity_type=data.entity_type,
             company_id=company_id,
         )
-        if existing:
+        if existing_pending:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Approval instance already exists for this entity",
+                status_code=status.HTTP_409_CONFLICT,
+                detail="A pending approval instance already exists for this entity",
             )
 
         first_level = self.workflow_level_repo.get_first_level(
-            data.workflow_id,
-            company_id,
+            workflow_id=data.workflow_id,
+            company_id=company_id,
         )
         if not first_level:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Workflow has no levels configured or does not exist in this company",
-            )
-
-        if first_level.company_id != company_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You are not allowed to use this workflow",
-            )
-
-        if first_level.workflow_id != data.workflow_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid workflow level configuration",
             )
 
         instance = ApprovalInstance(
@@ -85,16 +71,17 @@ class ApprovalInstanceService:
             status=ApprovalStatus.PENDING,
         )
 
-        return self.repo.create(instance)
+        created_instance = self.repo.create(instance)
+        self.repo.db.commit()
+        self.repo.db.refresh(created_instance)
+
+        return created_instance
 
     def get_instance(
         self,
         instance_id: uuid.UUID,
         company_id: uuid.UUID,
     ) -> ApprovalInstance:
-        """
-        Get one approval instance in the current company.
-        """
         if not instance_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -108,12 +95,6 @@ class ApprovalInstanceService:
                 detail="Approval instance not found",
             )
 
-        if instance.company_id != company_id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="You are not allowed to access this approval instance",
-            )
-
         return instance
 
     def get_all_instances(
@@ -121,20 +102,33 @@ class ApprovalInstanceService:
         company_id: uuid.UUID,
         skip: int = 0,
         limit: int = 100,
-    ):
-        """
-        Get all approval instances in the current company.
-        """
+    ) -> list[ApprovalInstance]:
         if skip < 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="skip cannot be negative",
+                detail="Skip cannot be negative",
             )
 
         if limit <= 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="limit must be greater than zero",
+                detail="Limit must be greater than zero",
             )
 
         return self.repo.get_all(company_id, skip=skip, limit=limit)
+
+    def update_instance_status(
+        self,
+        instance_id: uuid.UUID,
+        status_value: ApprovalStatus,
+        company_id: uuid.UUID,
+    ) -> ApprovalInstance:
+        instance = self.get_instance(instance_id, company_id)
+
+        instance.status = status_value
+
+        updated_instance = self.repo.update(instance)
+        self.repo.db.commit()
+        self.repo.db.refresh(updated_instance)
+
+        return updated_instance

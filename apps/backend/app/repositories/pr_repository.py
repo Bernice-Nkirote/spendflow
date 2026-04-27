@@ -13,11 +13,15 @@ class PurchaseRequisitionRepository:
 
     def create(self, requisition: PurchaseRequisition) -> PurchaseRequisition:
         self.db.add(requisition)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(requisition)
         return requisition
 
-    def get_by_id(self, requisition_id: UUID, company_id: UUID) -> Optional[PurchaseRequisition]:
+    def get_by_id(
+        self,
+        requisition_id: UUID,
+        company_id: UUID,
+    ) -> Optional[PurchaseRequisition]:
         return (
             self.db.query(PurchaseRequisition)
             .filter(
@@ -42,7 +46,11 @@ class PurchaseRequisitionRepository:
             .all()
         )
 
-    def get_by_pr_number(self, pr_number: str, company_id: UUID) -> Optional[PurchaseRequisition]:
+    def get_by_pr_number(
+        self,
+        pr_number: str,
+        company_id: UUID,
+    ) -> Optional[PurchaseRequisition]:
         return (
             self.db.query(PurchaseRequisition)
             .filter(
@@ -71,18 +79,30 @@ class PurchaseRequisitionRepository:
             .all()
         )
 
-    def update(
+    def get_by_department(
         self,
-        requisition: PurchaseRequisition,
-        update_data: dict,
-    ) -> PurchaseRequisition:
-        for key, value in update_data.items():
-            setattr(requisition, key, value)
+        department_id: UUID,
+        company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> list[PurchaseRequisition]:
+        return (
+            self.db.query(PurchaseRequisition)
+            .filter(
+                PurchaseRequisition.department_id == department_id,
+                PurchaseRequisition.company_id == company_id,
+            )
+            .order_by(PurchaseRequisition.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
-        self.db.commit()
+    def update(self, requisition: PurchaseRequisition) -> PurchaseRequisition:
+        self.db.flush()
         self.db.refresh(requisition)
         return requisition
 
     def delete(self, requisition: PurchaseRequisition) -> None:
         self.db.delete(requisition)
-        self.db.commit()
+        self.db.flush()

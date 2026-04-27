@@ -5,11 +5,16 @@ from sqlalchemy.orm import Session
 
 from app.core.auth_dependancy import get_current_user
 from app.core.database import get_db
+from app.models.enums import PRStatusEnum
 from app.repositories.approval_instance_repository import ApprovalInstanceRepository
 from app.repositories.approval_workflow_repository import ApprovalWorkflowRepository
 from app.repositories.pr_item_repository import PurchaseRequisitionItemRepository
 from app.repositories.pr_repository import PurchaseRequisitionRepository
 from app.repositories.workflow_level_repository import WorkflowLevelRepository
+from app.repositories.permission_repository import PermissionRepository
+from app.repositories.role_permission_repository import RolePermissionRepository
+from app.repositories.role_repository import RoleRepository
+from app.repositories.audit_log_repository import AuditLogRepository
 from app.schemas.pr_item_schema import (
     PurchaseRequisitionItemCreate,
     PurchaseRequisitionItemRead,
@@ -22,7 +27,8 @@ from app.schemas.pr_schema import (
 )
 from app.services.approval_instance_service import ApprovalInstanceService
 from app.services.pr_service import PurchaseRequisitionService
-
+from app.services.permission_service import PermissionService
+from app.services.audit_log_service import AuditLogService
 
 router = APIRouter(
     prefix="/purchase-requisitions",
@@ -44,11 +50,22 @@ def get_purchase_requisition_service(
         workflow_level_repo=workflow_level_repo,
     )
 
+    permission_service = PermissionService(
+        permission_repo=PermissionRepository(db),
+        role_permission_repo=RolePermissionRepository(db),
+        role_repo=RoleRepository(db),
+    )
+    audit_log_service = AuditLogService(
+        repo=AuditLogRepository(db)
+    )
+
     return PurchaseRequisitionService(
         requisition_repo=requisition_repo,
         item_repo=item_repo,
         workflow_repo=workflow_repo,
         approval_instance_service=approval_instance_service,
+        permission_service=permission_service,
+        audit_log_service=audit_log_service,
     )
 
 
@@ -65,6 +82,7 @@ def create_purchase_requisition(
     return service.create_purchase_requisition(
         requisition_data=requisition_data,
         user_id=current_user.id,
+        role_id=current_user.role_id,
         company_id=current_user.company_id,
     )
 
@@ -77,6 +95,39 @@ def get_all_purchase_requisitions(
     service: PurchaseRequisitionService = Depends(get_purchase_requisition_service),
 ):
     return service.get_all_purchase_requisitions(
+        company_id=current_user.company_id,
+        skip=skip,
+        limit=limit,
+    )
+
+
+
+@router.get("/status/{status}", response_model=list[PurchaseRequisitionRead])
+def get_purchase_requisitions_by_status(
+    status: PRStatusEnum,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1),
+    current_user=Depends(get_current_user),
+    service: PurchaseRequisitionService = Depends(get_purchase_requisition_service),
+):
+    return service.get_all_purchase_requisitions_by_status(
+        pr_status=status,
+        company_id=current_user.company_id,
+        skip=skip,
+        limit=limit,
+    )
+
+
+@router.get("/department/{department_id}", response_model=list[PurchaseRequisitionRead])
+def get_purchase_requisitions_by_department(
+    department_id: UUID,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1),
+    current_user=Depends(get_current_user),
+    service: PurchaseRequisitionService = Depends(get_purchase_requisition_service),
+):
+    return service.get_all_purchase_requisitions_by_department(
+        department_id=department_id,
         company_id=current_user.company_id,
         skip=skip,
         limit=limit,
@@ -106,6 +157,7 @@ def update_purchase_requisition(
         requisition_id=requisition_id,
         requisition_data=requisition_data,
         company_id=current_user.company_id,
+        user_id=current_user.id,
     )
 
 
@@ -186,7 +238,9 @@ def submit_purchase_requisition(
 ):
     return service.submit_purchase_requisition(
         requisition_id=requisition_id,
+        role_id=current_user.role_id,
         company_id=current_user.company_id,
+        user_id=current_user.id,
     )
 
 
@@ -198,5 +252,7 @@ def cancel_purchase_requisition(
 ):
     return service.cancel_purchase_requisition(
         requisition_id=requisition_id,
+        role_id=current_user.role_id,
         company_id=current_user.company_id,
+        user_id=current_user.id,
     )

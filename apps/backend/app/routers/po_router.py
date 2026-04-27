@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.auth_dependancy import get_current_user
 from app.core.config import settings
 from app.core.database import get_db
+from app.models.enums import POStatusEnum
 from app.repositories.approval_instance_repository import ApprovalInstanceRepository
 from app.repositories.approval_workflow_repository import ApprovalWorkflowRepository
 from app.repositories.po_item_repository import PurchaseOrderItemRepository
@@ -17,6 +18,10 @@ from app.repositories.pr_item_repository import PurchaseRequisitionItemRepositor
 from app.repositories.pr_repository import PurchaseRequisitionRepository
 from app.repositories.supplier_repository import SupplierRepository
 from app.repositories.workflow_level_repository import WorkflowLevelRepository
+from app.repositories.permission_repository import PermissionRepository
+from app.repositories.role_permission_repository import RolePermissionRepository
+from app.repositories.role_repository import RoleRepository
+from app.repositories.audit_log_repository import AuditLogRepository
 from app.schemas.po_items_schema import (
     PurchaseOrderItemCreate,
     PurchaseOrderItemRead,
@@ -35,6 +40,8 @@ from app.services.orchestration.po_dispatch_service import PODispatchService
 from app.services.orchestration.po_pdf_service import POPDFService
 from app.services.orchestration.po_email_log_service import POEmailLogService
 from app.services.po_service import PurchaseOrderService
+from app.services.permission_service import PermissionService
+from app.services.audit_log_service import AuditLogService
 
 router = APIRouter(prefix="/purchase-orders", tags=["Purchase Orders"])
 
@@ -55,6 +62,16 @@ def get_purchase_order_service(
         workflow_level_repo=workflow_level_repo,
     )
 
+    permission_service = PermissionService(
+        permission_repo=PermissionRepository(db),
+        role_permission_repo=RolePermissionRepository(db),
+        role_repo=RoleRepository(db),
+    )
+
+    audit_log_service = AuditLogService(
+        repo=AuditLogRepository(db),
+    )
+
     return PurchaseOrderService(
         po_repo=po_repo,
         po_item_repo=po_item_repo,
@@ -62,6 +79,8 @@ def get_purchase_order_service(
         pr_item_repo=pr_item_repo,
         workflow_repo=workflow_repo,
         approval_instance_service=approval_instance_service,
+        permission_service=permission_service,
+        audit_log_service=audit_log_service,
     )
 
 # Get PO PDF SERVICE 
@@ -141,6 +160,7 @@ def create_purchase_order(
         po_data=po_data,
         company_id=current_user.company_id,
         created_by=current_user.id,
+        role_id=current_user.role_id,
     )
 
 @router.post(
@@ -159,6 +179,7 @@ def create_purchase_order_from_requisition(
         po_data=po_data,
         company_id=current_user.company_id,
         created_by=current_user.id,
+        role_id=current_user.role_id,
     )
 
 
@@ -170,6 +191,38 @@ def get_all_purchase_orders(
     service: PurchaseOrderService = Depends(get_purchase_order_service),
 ):
     return service.get_all_pos(
+        company_id=current_user.company_id,
+        skip=skip,
+        limit=limit,
+    )
+
+
+@router.get("/status/{status}", response_model=list[PurchaseOrderRead])
+def get_purchase_orders_by_status(
+    status: POStatusEnum,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1),
+    current_user=Depends(get_current_user),
+    service: PurchaseOrderService = Depends(get_purchase_order_service),
+):
+    return service.get_all_pos_by_status(
+        po_status=status,
+        company_id=current_user.company_id,
+        skip=skip,
+        limit=limit,
+    )
+
+
+@router.get("/supplier/{supplier_id}", response_model=list[PurchaseOrderRead])
+def get_purchase_orders_by_supplier(
+    supplier_id: UUID,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1),
+    current_user=Depends(get_current_user),
+    service: PurchaseOrderService = Depends(get_purchase_order_service),
+):
+    return service.get_all_pos_by_supplier(
+        supplier_id=supplier_id,
         company_id=current_user.company_id,
         skip=skip,
         limit=limit,
@@ -218,6 +271,7 @@ def update_purchase_order(
         po_id=po_id,
         po_data=po_data,
         company_id=current_user.company_id,
+        user_id=current_user.id,
     )
 
 
@@ -303,6 +357,7 @@ def submit_purchase_order(
         po_id=po_id,
         company_id=current_user.company_id,
         submitted_by=current_user.id,
+        role_id=current_user.role_id,
     )
 
 
@@ -388,6 +443,8 @@ def cancel_purchase_order(
     return service.cancel_po(
         po_id=po_id,
         company_id=current_user.company_id,
+        role_id=current_user.role_id,
+        user_id=current_user.id,
     )
 
 

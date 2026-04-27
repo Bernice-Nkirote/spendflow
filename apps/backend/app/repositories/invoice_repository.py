@@ -1,39 +1,122 @@
-from sqlalchemy.orm import Session
-from app.models.invoice import Invoice
-from app.models.invoice_line_item import InvoiceLineItem
-from typing import List, Optional
 from uuid import UUID
 
-# Invoice Repository
+from sqlalchemy.orm import Session
+
+from app.models.enums import InvoiceStatusEnum
+from app.models.invoice import Invoice
+
+
 class InvoiceRepository:
     def __init__(self, db: Session):
         self.db = db
 
     def create(self, invoice: Invoice) -> Invoice:
         self.db.add(invoice)
-        # Flush so each commit in service layer can happen once per transaction
         self.db.flush()
+        self.db.refresh(invoice)
         return invoice
 
-    def get(self, invoice_id: UUID) -> Optional[Invoice]:
-        return self.db.query(Invoice).filter(Invoice.id == invoice_id).first()
+    def get_by_id(
+        self,
+        invoice_id: UUID,
+        company_id: UUID,
+    ) -> Invoice | None:
+        return (
+            self.db.query(Invoice)
+            .filter(
+                Invoice.id == invoice_id,
+                Invoice.company_id == company_id,
+            )
+            .first()
+        )
 
-    def list_by_po(self, po_id: UUID) -> List[Invoice]:
-        return self.db.query(Invoice).filter(Invoice.purchase_order_id == po_id).all()
+    def get_all(
+        self,
+        company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> list[Invoice]:
+        return (
+            self.db.query(Invoice)
+            .filter(Invoice.company_id == company_id)
+            .order_by(Invoice.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
-    def list_by_supplier(self, supplier_id: UUID) -> List[Invoice]:
-        return self.db.query(Invoice).filter(Invoice.supplier_id == supplier_id).all()
+    def get_by_invoice_number(
+        self,
+        invoice_number: str,
+        company_id: UUID,
+    ) -> Invoice | None:
+        return (
+            self.db.query(Invoice)
+            .filter(
+                Invoice.invoice_number == invoice_number,
+                Invoice.company_id == company_id,
+            )
+            .first()
+        )
 
-# Invoice Line repository
-class InvoiceLineItemRepository:
-    def __init__(self, db: Session):
-        self.db = db
+    def get_by_purchase_order_id(
+        self,
+        purchase_order_id: UUID,
+        company_id: UUID,
+    ) -> list[Invoice]:
+        return (
+            self.db.query(Invoice)
+            .filter(
+                Invoice.purchase_order_id == purchase_order_id,
+                Invoice.company_id == company_id,
+            )
+            .order_by(Invoice.created_at.desc())
+            .all()
+        )
 
-    def create(self, line_item: InvoiceLineItem) -> InvoiceLineItem:
-        self.db.add(line_item)
-        # Flush here will help to link to the invoice by giving ID's to line item before commit happens in service layer
+    def get_by_status(
+        self,
+        status: InvoiceStatusEnum,
+        company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> list[Invoice]:
+        return (
+            self.db.query(Invoice)
+            .filter(
+                Invoice.status == status,
+                Invoice.company_id == company_id,
+            )
+            .order_by(Invoice.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+
+    def get_by_supplier(
+        self,
+        supplier_id: UUID,
+        company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> list[Invoice]:
+        return (
+            self.db.query(Invoice)
+            .filter(
+                Invoice.supplier_id == supplier_id,
+                Invoice.company_id == company_id,
+            )
+            .order_by(Invoice.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+
+    def update(self, invoice: Invoice) -> Invoice:
         self.db.flush()
-        return line_item
+        self.db.refresh(invoice)
+        return invoice
 
-    def list_by_invoice(self, invoice_id: UUID) -> List[InvoiceLineItem]:
-        return self.db.query(InvoiceLineItem).filter(InvoiceLineItem.invoice_id == invoice_id).all()
+    def delete(self, invoice: Invoice) -> None:
+        self.db.delete(invoice)
+        self.db.flush()

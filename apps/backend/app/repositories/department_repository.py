@@ -15,7 +15,7 @@ class DepartmentRepository:
 
     def create(self, department: Department) -> Department:
         self.db.add(department)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(department)
         return department
 
@@ -80,14 +80,11 @@ class DepartmentRepository:
             is not None
         )
 
-    def update(self, department: Department, update_data: dict) -> Department:
-        for key, value in update_data.items():
-            setattr(department, key, value)
-
-        self.db.commit()
+    def update(self, department: Department) -> Department:
+        self.db.flush()
         self.db.refresh(department)
         return department
 
     def delete(self, department: Department) -> None:
         self.db.delete(department)
-        self.db.commit()
+        self.db.flush()

@@ -29,7 +29,7 @@ class User(Base):
 
     role_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("roles.id"),
+        ForeignKey("roles.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
     )
@@ -38,7 +38,7 @@ class User(Base):
 
     email = Column(String, nullable=False, index=True)
 
-    phone_number = Column(String, nullable=True, unique=True)
+    phone_number = Column(String, nullable=True)
 
     hashed_password = Column(String, nullable=False)
 
@@ -68,7 +68,11 @@ class User(Base):
     department = relationship("Department", back_populates="users")
     role = relationship("Role", back_populates="users")
     requisitions = relationship("PurchaseRequisition", back_populates="requester")
-    created_purchase_orders = relationship("PurchaseOrder", back_populates="creator")
+    created_purchase_orders = relationship(
+    "PurchaseOrder",
+    foreign_keys="PurchaseOrder.created_by",
+    back_populates="creator",
+)
     sent_po_email_logs = relationship(
     "POEmailLog",
     foreign_keys="POEmailLog.sent_by",
@@ -79,4 +83,9 @@ class User(Base):
         foreign_keys="Invoice.submitted_by_user_id",
         back_populates="submitted_by_user",
     )
+    payments_created = relationship(
+    "Payment",
+    foreign_keys="Payment.created_by",
+    back_populates="created_by_user",
+)
     approval_actions = relationship("ApprovalAction", back_populates="user")

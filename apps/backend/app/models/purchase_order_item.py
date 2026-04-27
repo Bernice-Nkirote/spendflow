@@ -56,3 +56,7 @@ class PurchaseOrderItem(Base):
     )
     company = relationship("Company", back_populates="purchase_order_items")
     purchase_order = relationship("PurchaseOrder", back_populates="items")
+    invoice_line_items = relationship(
+    "InvoiceLineItem",
+    back_populates="purchase_order_item",
+)

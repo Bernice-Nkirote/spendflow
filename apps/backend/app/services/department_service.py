@@ -12,7 +12,11 @@ class DepartmentService:
     def __init__(self, repo: DepartmentRepository):
         self.repo = repo
 
-    def create_department(self, department_data: DepartmentCreate, company_id: UUID) -> Department:
+    def create_department(
+        self,
+        department_data: DepartmentCreate,
+        company_id: UUID,
+    ) -> Department:
         name = department_data.name.strip()
         if not name:
             raise HTTPException(
@@ -34,7 +38,11 @@ class DepartmentService:
             is_active=department_data.is_active,
         )
 
-        return self.repo.create(department)
+        created_department = self.repo.create(department)
+        self.repo.db.commit()
+        self.repo.db.refresh(created_department)
+
+        return created_department
 
     def get_department(self, department_id: UUID, company_id: UUID) -> Department:
         department = self.repo.get_by_id(department_id, company_id)
@@ -43,6 +51,7 @@ class DepartmentService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Department not found.",
             )
+
         return department
 
     def get_all_departments(self, company_id: UUID) -> list[Department]:
@@ -54,12 +63,7 @@ class DepartmentService:
         department_data: DepartmentUpdate,
         company_id: UUID,
     ) -> Department:
-        department = self.repo.get_by_id(department_id, company_id)
-        if not department:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Department not found.",
-            )
+        department = self.get_department(department_id, company_id)
 
         update_data = department_data.model_dump(exclude_unset=True)
 
@@ -80,15 +84,17 @@ class DepartmentService:
 
             update_data["name"] = normalized_name
 
-        return self.repo.update(department, update_data)
+        for field, value in update_data.items():
+            setattr(department, field, value)
+
+        updated_department = self.repo.update(department)
+        self.repo.db.commit()
+        self.repo.db.refresh(updated_department)
+
+        return updated_department
 
     def activate_department(self, department_id: UUID, company_id: UUID) -> Department:
-        department = self.repo.get_by_id(department_id, company_id)
-        if not department:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Department not found.",
-            )
+        department = self.get_department(department_id, company_id)
 
         if department.is_active:
             raise HTTPException(
@@ -96,15 +102,16 @@ class DepartmentService:
                 detail="Department is already active.",
             )
 
-        return self.repo.update(department, {"is_active": True})
+        department.is_active = True
+
+        updated_department = self.repo.update(department)
+        self.repo.db.commit()
+        self.repo.db.refresh(updated_department)
+
+        return updated_department
 
     def deactivate_department(self, department_id: UUID, company_id: UUID) -> Department:
-        department = self.repo.get_by_id(department_id, company_id)
-        if not department:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Department not found.",
-            )
+        department = self.get_department(department_id, company_id)
 
         if not department.is_active:
             raise HTTPException(
@@ -112,32 +119,34 @@ class DepartmentService:
                 detail="Department is already inactive.",
             )
 
-        return self.repo.update(department, {"is_active": False})
-    
+        department.is_active = False
+
+        updated_department = self.repo.update(department)
+        self.repo.db.commit()
+        self.repo.db.refresh(updated_department)
+
+        return updated_department
+
     def delete_department(self, department_id: UUID, company_id: UUID) -> None:
-        department = self.repo.get_by_id(department_id, company_id)
-        if not department:
-            raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Department not found.",
-        )
+        department = self.get_department(department_id, company_id)
 
         if self.repo.has_users(department_id, company_id):
             raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Department cannot be deleted because it has users. Deactivate instead.",
-        )
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Department cannot be deleted because it has users. Deactivate instead.",
+            )
 
         if self.repo.has_requisitions(department_id, company_id):
             raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Department cannot be deleted because it has purchase requisitions. Deactivate instead.",
-        )
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Department cannot be deleted because it has purchase requisitions. Deactivate instead.",
+            )
 
         if self.repo.has_purchase_orders(department_id, company_id):
             raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Department cannot be deleted because it has purchase orders. Deactivate instead.",
-        )
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Department cannot be deleted because it has purchase orders. Deactivate instead.",
+            )
 
         self.repo.delete(department)
+        self.repo.db.commit()

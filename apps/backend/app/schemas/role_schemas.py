@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict
 class RoleCreate(BaseModel):
     name: str
     description: Optional[str] = None
-    is_active: bool
+    is_active: bool = True
 
 
 class RoleUpdate(BaseModel):

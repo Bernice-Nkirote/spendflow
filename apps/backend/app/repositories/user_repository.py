@@ -15,7 +15,7 @@ class UserRepository:
 
     def create(self, user: User) -> User:
         self.db.add(user)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(user)
         return user
 
@@ -102,10 +102,10 @@ class UserRepository:
         )
 
     def update(self, user: User) -> User:
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(user)
         return user
 
     def delete(self, user: User) -> None:
         self.db.delete(user)
-        self.db.commit()
+        self.db.flush()

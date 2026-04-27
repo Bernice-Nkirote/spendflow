@@ -55,3 +55,14 @@ class Company(Base):
     approval_instances = relationship("ApprovalInstance", back_populates="company")
     approval_actions = relationship("ApprovalAction", back_populates="company")
     po_email_logs = relationship("POEmailLog", back_populates="company")
+    # Invoices
+    invoices = relationship("Invoice", back_populates="company")
+    invoice_line_items = relationship(
+    "InvoiceLineItem",
+    back_populates="company",
+)
+    # payments
+    payments = relationship("Payment", back_populates="company")
+    permissions = relationship("Permission", back_populates="company")
+
+    role_permissions = relationship("RolePermission", back_populates="company") 

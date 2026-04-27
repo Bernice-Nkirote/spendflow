@@ -63,8 +63,10 @@ class UserService:
             hashed_password=hash_password(password),
             is_active=True,
         )
-
-        return self.repo.create(user)
+        created_user = self.repo.create(user)
+        self.repo.db.commit()
+        self.repo.db.refresh(created_user)
+        return created_user
 
     def get_user(self, user_id: UUID, company_id: UUID) -> User:
         user = self.repo.get_by_id(user_id, company_id)
@@ -148,7 +150,11 @@ class UserService:
         for field, value in update_data.items():
             setattr(user, field, value)
 
-        return self.repo.update(user)
+        updated_user = self.repo.update(user)
+        self.repo.db.commit()
+        self.repo.db.refresh(updated_user)
+
+        return updated_user
 
     def activate_user(self, user_id: UUID, company_id: UUID) -> User:
         user = self.repo.get_by_id(user_id, company_id)
@@ -165,7 +171,12 @@ class UserService:
             )
 
         user.is_active = True
-        return self.repo.update(user)
+        
+        updated_user = self.repo.update(user)
+        self.repo.db.commit()
+        self.repo.db.refresh(updated_user)
+
+        return updated_user
 
     def deactivate_user(self, user_id: UUID, company_id: UUID) -> User:
         user = self.repo.get_by_id(user_id, company_id)
@@ -182,8 +193,12 @@ class UserService:
             )
 
         user.is_active = False
-        return self.repo.update(user)
+        updated_user = self.repo.update(user)
+        self.repo.db.commit()
+        self.repo.db.refresh(updated_user)
 
+        return updated_user
+    
     def delete_user(self, user_id: UUID, company_id: UUID) -> None:
         user = self.repo.get_by_id(user_id, company_id)
         if not user:
@@ -211,3 +226,4 @@ class UserService:
             )
 
         self.repo.delete(user)
+        self.repo.db.commit()

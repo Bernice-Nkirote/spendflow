@@ -12,18 +12,27 @@ class PurchaseRequisitionItemRepository:
 
     def create(self, item: PurchaseRequisitionItem) -> PurchaseRequisitionItem:
         self.db.add(item)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(item)
         return item
 
-    def create_many(self, items: list[PurchaseRequisitionItem]) -> list[PurchaseRequisitionItem]:
+    def create_many(
+        self,
+        items: list[PurchaseRequisitionItem],
+    ) -> list[PurchaseRequisitionItem]:
         self.db.add_all(items)
-        self.db.commit()
+        self.db.flush()
+
         for item in items:
             self.db.refresh(item)
+
         return items
 
-    def get_by_id(self, item_id: UUID, company_id: UUID) -> Optional[PurchaseRequisitionItem]:
+    def get_by_id(
+        self,
+        item_id: UUID,
+        company_id: UUID,
+    ) -> Optional[PurchaseRequisitionItem]:
         return (
             self.db.query(PurchaseRequisitionItem)
             .filter(
@@ -51,15 +60,11 @@ class PurchaseRequisitionItemRepository:
     def update(
         self,
         item: PurchaseRequisitionItem,
-        update_data: dict,
     ) -> PurchaseRequisitionItem:
-        for key, value in update_data.items():
-            setattr(item, key, value)
-
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(item)
         return item
 
     def delete(self, item: PurchaseRequisitionItem) -> None:
         self.db.delete(item)
-        self.db.commit()
+        self.db.flush()

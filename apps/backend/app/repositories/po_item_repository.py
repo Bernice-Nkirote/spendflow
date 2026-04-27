@@ -11,7 +11,7 @@ class PurchaseOrderItemRepository:
 
     def create(self, item: PurchaseOrderItem) -> PurchaseOrderItem:
         self.db.add(item)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(item)
         return item
 
@@ -40,14 +40,15 @@ class PurchaseOrderItemRepository:
                 PurchaseOrderItem.purchase_order_id == purchase_order_id,
                 PurchaseOrderItem.company_id == company_id,
             )
+            .order_by(PurchaseOrderItem.created_at.asc())
             .all()
         )
 
     def update(self, item: PurchaseOrderItem) -> PurchaseOrderItem:
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(item)
         return item
 
     def delete(self, item: PurchaseOrderItem) -> None:
         self.db.delete(item)
-        self.db.commit()
+        self.db.flush()

@@ -12,7 +12,7 @@ class PurchaseOrderRepository:
 
     def create(self, po: PurchaseOrder) -> PurchaseOrder:
         self.db.add(po)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(po)
         return po
 
@@ -77,6 +77,8 @@ class PurchaseOrderRepository:
         self,
         status: POStatusEnum,
         company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
     ) -> list[PurchaseOrder]:
         return (
             self.db.query(PurchaseOrder)
@@ -85,21 +87,35 @@ class PurchaseOrderRepository:
                 PurchaseOrder.company_id == company_id,
             )
             .order_by(PurchaseOrder.created_at.desc())
+            .offset(skip)
+            .limit(limit)
             .all()
         )
 
-    def update(
+    def get_by_supplier(
         self,
-        po: PurchaseOrder,
-        update_data: dict,
-    ) -> PurchaseOrder:
-        for key, value in update_data.items():
-            setattr(po, key, value)
+        supplier_id: UUID,
+        company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> list[PurchaseOrder]:
+        return (
+            self.db.query(PurchaseOrder)
+            .filter(
+                PurchaseOrder.supplier_id == supplier_id,
+                PurchaseOrder.company_id == company_id,
+            )
+            .order_by(PurchaseOrder.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
-        self.db.commit()
+    def update(self, po: PurchaseOrder) -> PurchaseOrder:
+        self.db.flush()
         self.db.refresh(po)
         return po
 
     def delete(self, po: PurchaseOrder) -> None:
         self.db.delete(po)
-        self.db.commit()
+        self.db.flush()

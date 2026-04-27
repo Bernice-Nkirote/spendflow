@@ -1,68 +1,62 @@
 from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import ALGORITHM, SECRET_KEY
+from app.models.company import Company
+from app.models.role import Role
 from app.models.suplier_user import SupplierUser
 from app.models.user import User
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
+bearer_scheme = HTTPBearer()
 
+# =========================
+# USER AUTH
+# =========================
 def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     db: Session = Depends(get_db),
-):
+) -> User:
+    token = credentials.credentials
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 
-        user_id = payload.get("sub")
+        actor_id = payload.get("sub")
         actor_type = payload.get("type")
         company_id = payload.get("company_id")
 
-        if user_id is None:
+        if actor_id is None or actor_type != "USER" or company_id is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token.",
+                detail="Invalid authentication credentials.",
             )
 
-        if actor_type != "USER":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not a user token.",
-            )
-
-        user = db.query(User).filter(User.id == UUID(user_id)).first()
+        user = db.query(User).filter(User.id == UUID(actor_id)).first()
 
         if not user:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found.",
-            )
-        # check whether the company id in token and company id for user's company match or not.
-        if company_id is None:
-            raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token: missing company context.",
-            )
-        
-        try:
-            token_company_id = UUID(company_id)
-        except ValueError:
-            raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token company format.",
+                detail="Invalid authentication credentials.",
             )
 
-        if user.company_id != token_company_id:
+        if user.company_id != UUID(company_id):
             raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token company context.",
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication credentials.",
+            )
+
+        company = db.query(Company).filter(Company.id == user.company_id).first()
+
+        if not company or not company.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Company is inactive.",
             )
 
         if not user.is_active:
@@ -73,48 +67,69 @@ def get_current_user(
 
         return user
 
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token payload.",
-        )
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication.",
+            detail="Invalid authentication credentials.",
         )
 
 
-def get_current_supplier(
-    token: str = Depends(oauth2_scheme),
+# =========================
+# ADMIN AUTH
+# =========================
+def get_current_admin_user(
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-):
+) -> User:
+    role = db.query(Role).filter(
+        Role.id == current_user.role_id,
+        Role.company_id == current_user.company_id,
+    ).first()
+
+    if not role or not role.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User role invalid or inactive.",
+        )
+
+    if role.name.strip().lower() != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required.",
+        )
+
+    return current_user
+
+
+# =========================
+# SUPPLIER AUTH
+# =========================
+def get_current_supplier(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: Session = Depends(get_db),
+) -> SupplierUser:
+    token = credentials.credentials
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
 
         actor_id = payload.get("sub")
         actor_type = payload.get("type")
+        supplier_id = payload.get("supplier_id")
 
-        if actor_id is None:
+        if actor_id is None or actor_type != "SUPPLIER" or supplier_id is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token.",
-            )
-
-        if actor_type != "SUPPLIER":
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not a supplier token.",
+                detail="Invalid authentication credentials.",
             )
 
         supplier_user = db.query(SupplierUser).filter(
             SupplierUser.id == UUID(actor_id)
         ).first()
 
-        if not supplier_user:
+        if not supplier_user or supplier_user.supplier_id != UUID(supplier_id):
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Supplier user not found.",
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication credentials.",
             )
 
         if not supplier_user.is_active:
@@ -125,13 +140,8 @@ def get_current_supplier(
 
         return supplier_user
 
-    except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token payload.",
-        )
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication.",
+            detail="Invalid authentication credentials.",
         )

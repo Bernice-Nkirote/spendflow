@@ -44,12 +44,14 @@ class EmailStatusEnum(str, enum.Enum):
     FAILED = "FAILED"
     PENDING = "PENDING"
 
-class InvoiceStateEnum(str, enum.Enum):
-    PENDING = "PENDING"
-    PAID = "PAID"
+class InvoiceStatusEnum(str, enum.Enum):
+    DRAFT = "DRAFT"
+    PENDING_APPROVAL = "PENDING_APPROVAL"
     APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
     SENT = "SENT"
     PARTIALLY_PAID = "PARTIALLY_PAID"
+    PAID = "PAID"
     CANCELLED = "CANCELLED"
 
 
@@ -57,6 +59,7 @@ class PaymentStatusEnum(str, enum.Enum):
     PENDING = "PENDING"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
+    REJECTED = "REJECTED"
 
 
 class PaymentMethodEnum(str, enum.Enum):
@@ -102,7 +105,7 @@ email_status_enum = ENUM(
 )
 
 invoice_status_enum = ENUM(
-    *[e.value for e in InvoiceStateEnum],
+    *[e.value for e in InvoiceStatusEnum],
     name="invoicestatusenum",
     create_type=False,
 )

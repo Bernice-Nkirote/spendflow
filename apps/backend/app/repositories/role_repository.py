@@ -10,21 +10,9 @@ class RoleRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def create(
-        self,
-        company_id: UUID,
-        name: str,
-        description: Optional[str],
-        is_active: bool,
-    ) -> Role:
-        role = Role(
-            company_id=company_id,
-            name=name,
-            description=description,
-            is_active=is_active,
-        )
+    def create(self, role: Role) -> Role:
         self.db.add(role)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(role)
         return role
 
@@ -55,15 +43,12 @@ class RoleRepository:
             )
             .first()
         )
-
-    def update(self, role: Role, update_data: dict) -> Role:
-        for key, value in update_data.items():
-            setattr(role, key, value)
-
-        self.db.commit()
+    
+    def update(self, role: Role) -> Role:
+        self.db.flush()
         self.db.refresh(role)
         return role
 
     def delete(self, role: Role) -> None:
         self.db.delete(role)
-        self.db.commit()
+        self.db.flush()

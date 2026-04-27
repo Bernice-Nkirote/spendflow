@@ -15,7 +15,7 @@ class Role(Base):
 
     company_id = Column(
         UUID(as_uuid=True),
-        ForeignKey("companies.id"),
+        ForeignKey("companies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -46,3 +46,8 @@ class Role(Base):
     company = relationship("Company", back_populates="roles")
     users = relationship("User", back_populates="role")
     level_roles = relationship("WorkflowLevelRole", back_populates="role")
+    role_permissions = relationship(
+    "RolePermission",
+    back_populates="role",
+    cascade="all, delete-orphan",
+)

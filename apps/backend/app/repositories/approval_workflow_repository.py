@@ -1,5 +1,5 @@
+from typing import Optional
 from uuid import UUID
-from typing import List, Optional
 
 from sqlalchemy.orm import Session
 
@@ -13,7 +13,7 @@ class ApprovalWorkflowRepository:
 
     def create(self, workflow: ApprovalWorkflow) -> ApprovalWorkflow:
         self.db.add(workflow)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(workflow)
         return workflow
 
@@ -22,7 +22,7 @@ class ApprovalWorkflowRepository:
         company_id: UUID,
         skip: int = 0,
         limit: int = 100,
-    ) -> List[ApprovalWorkflow]:
+    ) -> list[ApprovalWorkflow]:
         return (
             self.db.query(ApprovalWorkflow)
             .filter(ApprovalWorkflow.company_id == company_id)
@@ -76,18 +76,11 @@ class ApprovalWorkflowRepository:
             .first()
         )
 
-    def update(
-        self,
-        db_obj: ApprovalWorkflow,
-        update_data: dict,
-    ) -> ApprovalWorkflow:
-        for key, value in update_data.items():
-            setattr(db_obj, key, value)
+    def update(self, workflow: ApprovalWorkflow) -> ApprovalWorkflow:
+        self.db.flush()
+        self.db.refresh(workflow)
+        return workflow
 
-        self.db.commit()
-        self.db.refresh(db_obj)
-        return db_obj
-
-    def delete(self, db_obj: ApprovalWorkflow) -> None:
-        self.db.delete(db_obj)
-        self.db.commit()
+    def delete(self, workflow: ApprovalWorkflow) -> None:
+        self.db.delete(workflow)
+        self.db.flush()

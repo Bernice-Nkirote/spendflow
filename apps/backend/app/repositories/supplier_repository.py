@@ -14,7 +14,7 @@ class SupplierRepository:
 
     def create(self, supplier: Supplier) -> Supplier:
         self.db.add(supplier)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(supplier)
         return supplier
 
@@ -28,12 +28,7 @@ class SupplierRepository:
             .first()
         )
 
-    def get_all(
-        self,
-        company_id: UUID,
-        skip: int = 0,
-        limit: int = 20,
-    ) -> list[Supplier]:
+    def get_all(self, company_id: UUID, skip: int = 0, limit: int = 20) -> list[Supplier]:
         return (
             self.db.query(Supplier)
             .filter(Supplier.company_id == company_id)
@@ -46,40 +41,28 @@ class SupplierRepository:
     def get_by_name(self, name: str, company_id: UUID) -> Optional[Supplier]:
         return (
             self.db.query(Supplier)
-            .filter(
-                Supplier.name == name,
-                Supplier.company_id == company_id,
-            )
+            .filter(Supplier.name == name, Supplier.company_id == company_id)
             .first()
         )
 
     def get_by_email(self, email: str, company_id: UUID) -> Optional[Supplier]:
         return (
             self.db.query(Supplier)
-            .filter(
-                Supplier.email == email,
-                Supplier.company_id == company_id,
-            )
+            .filter(Supplier.email == email, Supplier.company_id == company_id)
             .first()
         )
 
     def get_by_phone(self, phone: str, company_id: UUID) -> Optional[Supplier]:
         return (
             self.db.query(Supplier)
-            .filter(
-                Supplier.phone == phone,
-                Supplier.company_id == company_id,
-            )
+            .filter(Supplier.phone == phone, Supplier.company_id == company_id)
             .first()
         )
 
     def has_invoices(self, supplier_id: UUID, company_id: UUID) -> bool:
         return (
             self.db.query(Invoice)
-            .filter(
-                Invoice.supplier_id == supplier_id,
-                Invoice.company_id == company_id,
-            )
+            .filter(Invoice.supplier_id == supplier_id, Invoice.company_id == company_id)
             .first()
             is not None
         )
@@ -95,14 +78,11 @@ class SupplierRepository:
             is not None
         )
 
-    def update(self, supplier: Supplier, update_data: dict) -> Supplier:
-        for key, value in update_data.items():
-            setattr(supplier, key, value)
-
-        self.db.commit()
+    def update(self, supplier: Supplier) -> Supplier:
+        self.db.flush()
         self.db.refresh(supplier)
         return supplier
 
     def delete(self, supplier: Supplier) -> None:
         self.db.delete(supplier)
-        self.db.commit()
+        self.db.flush()

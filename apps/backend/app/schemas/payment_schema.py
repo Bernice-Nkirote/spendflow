@@ -1,26 +1,59 @@
-# PAYMENT
-from pydantic import BaseModel, ConfigDict, Field
-from typing import Annotated
-from uuid import UUID
-from decimal import Decimal
 from datetime import datetime
+from decimal import Decimal
+from typing import Optional
+from uuid import UUID
 
-from app.models.enums import PaymentStatusEnum, PaymentMethodEnum
+from pydantic import BaseModel, ConfigDict, field_validator
+
+from app.models.enums import PaymentMethodEnum, PaymentStatusEnum
 from app.schemas.common import AmountType
+
 
 class PaymentCreate(BaseModel):
     invoice_id: UUID
-    amount: AmountType    
+    amount: AmountType
     payment_method: PaymentMethodEnum
-    reference:str | None=None
+    reference: Optional[str] = None
 
-class PaymentResponse(BaseModel):
+    @field_validator("reference")
+    @classmethod
+    def validate_reference(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+
+        value = value.strip()
+        if not value:
+            return None
+        return value
+
+
+class PaymentUpdate(BaseModel):
+    amount: Optional[AmountType] = None
+    payment_method: Optional[PaymentMethodEnum] = None
+    reference: Optional[str] = None
+
+    @field_validator("reference")
+    @classmethod
+    def validate_reference(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+
+        value = value.strip()
+        if not value:
+            return None
+        return value
+
+
+class PaymentRead(BaseModel):
     id: UUID
+    company_id: UUID
     invoice_id: UUID
+    created_by: Optional[UUID]
     amount: Decimal
     payment_method: PaymentMethodEnum
     status: PaymentStatusEnum
-    reference: str | None
+    reference: Optional[str]
     paid_at: datetime
+    created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

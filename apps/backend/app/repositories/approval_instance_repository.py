@@ -1,37 +1,32 @@
 import uuid
-from typing import Optional, List
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from app.models.approval_instance import ApprovalInstance
-from app.models.enums import EntityTypeEnum
+from app.models.enums import ApprovalStatus, EntityTypeEnum
+
 
 class ApprovalInstanceRepository:
     def __init__(self, db: Session):
         self.db = db
 
-    def create(self, obj: ApprovalInstance) -> ApprovalInstance:
-        """
-        Create a new approval instance.
-        """
-        self.db.add(obj)
-        self.db.commit()
-        self.db.refresh(obj)
-        return obj
+    def create(self, instance: ApprovalInstance) -> ApprovalInstance:
+        self.db.add(instance)
+        self.db.flush()
+        self.db.refresh(instance)
+        return instance
 
     def get_by_id(
         self,
-        obj_id: uuid.UUID,
-        company_id: uuid.UUID
+        instance_id: uuid.UUID,
+        company_id: uuid.UUID,
     ) -> Optional[ApprovalInstance]:
-    
-        # Fetch a single approval instance by ID within a company.
-        
         return (
             self.db.query(ApprovalInstance)
             .filter(
-                ApprovalInstance.id == obj_id,
-                ApprovalInstance.company_id == company_id
+                ApprovalInstance.id == instance_id,
+                ApprovalInstance.company_id == company_id,
             )
             .first()
         )
@@ -40,12 +35,8 @@ class ApprovalInstanceRepository:
         self,
         company_id: uuid.UUID,
         skip: int = 0,
-        limit: int = 100
-    ) -> List[ApprovalInstance]:
-        """
-        Return all approval instances for a company.
-        Ordered by most recent first for better UX.
-        """
+        limit: int = 100,
+    ) -> list[ApprovalInstance]:
         return (
             self.db.query(ApprovalInstance)
             .filter(ApprovalInstance.company_id == company_id)
@@ -59,33 +50,36 @@ class ApprovalInstanceRepository:
         self,
         entity_id: uuid.UUID,
         entity_type: EntityTypeEnum,
-        company_id: uuid.UUID
+        company_id: uuid.UUID,
     ) -> Optional[ApprovalInstance]:
-        """
-        Fetch approval instance tied to a specific business entity (PR, PO, etc).
-        """
         return (
             self.db.query(ApprovalInstance)
             .filter(
                 ApprovalInstance.entity_id == entity_id,
                 ApprovalInstance.entity_type == entity_type,
-                ApprovalInstance.company_id == company_id
+                ApprovalInstance.company_id == company_id,
             )
             .first()
         )
 
-    def update(
+    def get_pending_by_entity(
         self,
-        db_obj: ApprovalInstance,
-        update_data: dict
-    ) -> ApprovalInstance:
-        """
-        Apply updates to an approval instance.
-        Used for status changes and level progression.
-        """
-        for key, value in update_data.items():
-            setattr(db_obj, key, value)
+        entity_id: uuid.UUID,
+        entity_type: EntityTypeEnum,
+        company_id: uuid.UUID,
+    ) -> Optional[ApprovalInstance]:
+        return (
+            self.db.query(ApprovalInstance)
+            .filter(
+                ApprovalInstance.entity_id == entity_id,
+                ApprovalInstance.entity_type == entity_type,
+                ApprovalInstance.company_id == company_id,
+                ApprovalInstance.status == ApprovalStatus.PENDING,
+            )
+            .first()
+        )
 
-        self.db.commit()
-        self.db.refresh(db_obj)
-        return db_obj
+    def update(self, instance: ApprovalInstance) -> ApprovalInstance:
+        self.db.flush()
+        self.db.refresh(instance)
+        return instance
