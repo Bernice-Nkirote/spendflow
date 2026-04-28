@@ -6,13 +6,27 @@ from sqlalchemy.orm import Session
 from app.models.invoice import Invoice
 from app.models.payments import Payment
 from app.models.supplier import Supplier
+from app.models.department import Department
+from app.models.purchase_requisition import PurchaseRequisition
+from app.models.purchase_requisition_item import PurchaseRequisitionItem
+from app.models.purchase_order import PurchaseOrder
+from app.models.purchase_order_item import PurchaseOrderItem
 from app.schemas.reports.payment_report_schema import PaymentReportFilter
-
-
+from app.schemas.reports.invoice_report_schema import InvoiceReportFilter
+from app.schemas.reports.outstanding_invoice_report_schema import OutstandingInvoiceReportFilter
+from app.schemas.reports.supplier_spend_report_schema import SupplierSpendReportFilter
+from app.schemas.reports.pr_report_schema import PRReportFilter
+from app.schemas.reports.po_report_schema import POReportFilter
+from app.schemas.reports.supplier_lead_time_report_schema import (
+    SupplierLeadTimeReportFilter,
+)
 class ReportRepository:
     def __init__(self, db: Session):
         self.db = db
-
+        
+    # --------------------
+    # PAYMENT REPOSITORY
+    # --------------------
     def get_payment_report_rows(
         self,
         company_id: UUID,
@@ -99,5 +113,702 @@ class ReportRepository:
 
         if filters.max_amount is not None:
             query = query.filter(Payment.amount <= filters.max_amount)
+
+        return query
+    
+    # -----------------------
+    # INVOICE REPOSITORY
+    # -----------------------
+    def get_invoice_report_rows(
+        self,
+        company_id: UUID,
+        filters: InvoiceReportFilter,
+    ):
+        query = (
+            self.db.query(
+                Invoice.id.label("invoice_id"),
+                Invoice.invoice_number.label("invoice_number"),
+                Invoice.supplier_id.label("supplier_id"),
+                Supplier.name.label("supplier_name"),
+                Invoice.purchase_order_id.label("purchase_order_id"),
+                Invoice.total_amount.label("total_amount"),
+                Invoice.status.label("status"),
+                Invoice.created_at.label("created_at"),
+            )
+            .join(Supplier, Invoice.supplier_id == Supplier.id)
+            .filter(
+                Invoice.company_id == company_id,
+                Supplier.company_id == company_id,
+            )
+        )
+
+        query = self._apply_invoice_filters(query, filters)
+
+        return (
+            query.order_by(Invoice.created_at.desc())
+            .offset(filters.skip)
+            .limit(filters.limit)
+            .all()
+        )
+
+
+    def count_invoice_report_rows(
+        self,
+        company_id: UUID,
+        filters: InvoiceReportFilter,
+    ) -> int:
+        query = (
+            self.db.query(func.count(Invoice.id))
+            .join(Supplier, Invoice.supplier_id == Supplier.id)
+            .filter(
+                Invoice.company_id == company_id,
+                Supplier.company_id == company_id,
+            )
+        )
+
+        query = self._apply_invoice_filters(query, filters)
+
+        return query.scalar() or 0
+
+
+    def _apply_invoice_filters(
+        self,
+        query,
+        filters: InvoiceReportFilter,
+    ):
+        if filters.status:
+            query = query.filter(Invoice.status == filters.status)
+
+        if filters.supplier_id:
+            query = query.filter(Invoice.supplier_id == filters.supplier_id)
+
+        if filters.purchase_order_id:
+            query = query.filter(Invoice.purchase_order_id == filters.purchase_order_id)
+
+        if filters.date_from:
+            query = query.filter(Invoice.created_at >= filters.date_from)
+
+        if filters.date_to:
+            query = query.filter(Invoice.created_at <= filters.date_to)
+
+        if filters.min_amount is not None:
+            query = query.filter(Invoice.total_amount >= filters.min_amount)
+
+        if filters.max_amount is not None:
+            query = query.filter(Invoice.total_amount <= filters.max_amount)
+
+        return query
+    
+    # -------------------------
+    # OUTSTANDING INVOICE REPORT
+    # --------------------------
+    def get_outstanding_invoice_report_rows(
+        self,
+        company_id: UUID,
+        filters: OutstandingInvoiceReportFilter,
+    ):
+        amount_paid = func.coalesce(func.sum(Payment.amount), 0)
+        outstanding_amount = Invoice.total_amount - amount_paid
+
+        query = (
+            self.db.query(
+                Invoice.id.label("invoice_id"),
+                Invoice.invoice_number.label("invoice_number"),
+                Invoice.supplier_id.label("supplier_id"),
+                Supplier.name.label("supplier_name"),
+                Invoice.purchase_order_id.label("purchase_order_id"),
+                Invoice.total_amount.label("total_amount"),
+                amount_paid.label("amount_paid"),
+                outstanding_amount.label("outstanding_amount"),
+                Invoice.status.label("status"),
+                Invoice.created_at.label("created_at"),
+            )
+            .join(Supplier, Invoice.supplier_id == Supplier.id)
+            .outerjoin(
+                Payment,
+                (Payment.invoice_id == Invoice.id)
+                & (Payment.company_id == company_id),
+            )
+            .filter(
+                Invoice.company_id == company_id,
+                Supplier.company_id == company_id,
+            )
+            .group_by(
+                Invoice.id,
+                Invoice.invoice_number,
+                Invoice.supplier_id,
+                Supplier.name,
+                Invoice.purchase_order_id,
+                Invoice.total_amount,
+                Invoice.status,
+                Invoice.created_at,
+            )
+            .having(outstanding_amount > 0)
+        )
+
+        query = self._apply_outstanding_invoice_filters(
+            query=query,
+            filters=filters,
+            outstanding_amount=outstanding_amount,
+        )
+
+        return (
+            query.order_by(Invoice.created_at.desc())
+            .offset(filters.skip)
+            .limit(filters.limit)
+            .all()
+        )
+
+
+    def count_outstanding_invoice_report_rows(
+        self,
+        company_id: UUID,
+        filters: OutstandingInvoiceReportFilter,
+    ) -> int:
+        amount_paid = func.coalesce(func.sum(Payment.amount), 0)
+        outstanding_amount = Invoice.total_amount - amount_paid
+
+        subquery = (
+            self.db.query(
+                Invoice.id.label("invoice_id"),
+            )
+            .join(Supplier, Invoice.supplier_id == Supplier.id)
+            .outerjoin(
+                Payment,
+                (Payment.invoice_id == Invoice.id)
+                & (Payment.company_id == company_id),
+            )
+            .filter(
+                Invoice.company_id == company_id,
+                Supplier.company_id == company_id,
+            )
+            .group_by(
+                Invoice.id,
+                Invoice.total_amount,
+            )
+            .having(outstanding_amount > 0)
+        )
+
+        subquery = self._apply_outstanding_invoice_filters(
+        query=subquery,
+        filters=filters,
+        outstanding_amount=outstanding_amount,
+    ).subquery()
+
+        return self.db.query(func.count()).select_from(subquery).scalar() or 0
+
+
+    def _apply_outstanding_invoice_filters(           
+        self,
+        query,
+        filters: OutstandingInvoiceReportFilter,
+        outstanding_amount,
+    ):
+        if filters.supplier_id:
+            query = query.filter(Invoice.supplier_id == filters.supplier_id)
+
+        if filters.purchase_order_id:
+            query = query.filter(Invoice.purchase_order_id == filters.purchase_order_id)
+
+        if filters.date_from:
+            query = query.filter(Invoice.created_at >= filters.date_from)
+
+        if filters.date_to:
+            query = query.filter(Invoice.created_at <= filters.date_to)
+
+        if filters.min_outstanding_amount is not None:
+            query = query.having(outstanding_amount >= filters.min_outstanding_amount)
+
+        if filters.max_outstanding_amount is not None:
+            query = query.having(outstanding_amount <= filters.max_outstanding_amount)
+
+        return query 
+    
+    # ----------------------
+    # SUPPLIER SPEND REPORT
+    # ---------------------
+
+    def get_supplier_spend_report_rows(
+        self,
+        company_id: UUID,
+        filters: SupplierSpendReportFilter,
+    ):
+        total_invoice_amount = func.coalesce(func.sum(Invoice.total_amount), 0)
+        total_paid_amount = func.coalesce(func.sum(Payment.amount), 0)
+        outstanding_amount = total_invoice_amount - total_paid_amount
+        invoice_count = func.count(func.distinct(Invoice.id))
+        payment_count = func.count(func.distinct(Payment.id))
+
+        query = (
+            self.db.query(
+                Supplier.id.label("supplier_id"),
+                Supplier.name.label("supplier_name"),
+                total_invoice_amount.label("total_invoice_amount"),
+                total_paid_amount.label("total_paid_amount"),
+                outstanding_amount.label("outstanding_amount"),
+                invoice_count.label("invoice_count"),
+                payment_count.label("payment_count"),
+            )
+            .join(Invoice, Invoice.supplier_id == Supplier.id)
+            .outerjoin(
+                Payment,
+                (Payment.invoice_id == Invoice.id)
+                & (Payment.company_id == company_id),
+            )
+            .filter(
+                Supplier.company_id == company_id,
+                Invoice.company_id == company_id,
+            )
+            .group_by(
+                Supplier.id,
+                Supplier.name,
+            )
+        )
+
+        query = self._apply_supplier_spend_filters(
+            query=query,
+            filters=filters,
+            total_invoice_amount=total_invoice_amount,
+            total_paid_amount=total_paid_amount,
+        )
+
+        return (
+            query.order_by(total_invoice_amount.desc())
+            .offset(filters.skip)
+            .limit(filters.limit)
+            .all()
+        )
+
+
+    def count_supplier_spend_report_rows(
+        self,
+        company_id: UUID,
+        filters: SupplierSpendReportFilter,
+    ) -> int:
+        total_invoice_amount = func.coalesce(func.sum(Invoice.total_amount), 0)
+        total_paid_amount = func.coalesce(func.sum(Payment.amount), 0)
+
+        subquery = (
+            self.db.query(Supplier.id.label("supplier_id"))
+            .join(Invoice, Invoice.supplier_id == Supplier.id)
+            .outerjoin(
+                Payment,
+                (Payment.invoice_id == Invoice.id)
+                & (Payment.company_id == company_id),
+            )
+            .filter(
+                Supplier.company_id == company_id,
+                Invoice.company_id == company_id,
+            )
+            .group_by(Supplier.id)
+        )
+
+        subquery = self._apply_supplier_spend_filters(
+            query=subquery,
+            filters=filters,
+            total_invoice_amount=total_invoice_amount,
+            total_paid_amount=total_paid_amount,
+        ).subquery()
+
+        return self.db.query(func.count()).select_from(subquery).scalar() or 0
+
+
+    def _apply_supplier_spend_filters(
+        self,
+        query,
+        filters: SupplierSpendReportFilter,
+        total_invoice_amount,
+        total_paid_amount,
+    ):
+        if filters.supplier_id:
+            query = query.filter(Supplier.id == filters.supplier_id)
+
+        if filters.date_from:
+            query = query.filter(Invoice.created_at >= filters.date_from)
+
+        if filters.date_to:
+            query = query.filter(Invoice.created_at <= filters.date_to)
+
+        if filters.min_total_invoice_amount is not None:
+            query = query.having(total_invoice_amount >= filters.min_total_invoice_amount)
+
+        if filters.max_total_invoice_amount is not None:
+            query = query.having(total_invoice_amount <= filters.max_total_invoice_amount)
+
+        if filters.min_total_paid_amount is not None:
+            query = query.having(total_paid_amount >= filters.min_total_paid_amount)
+
+        if filters.max_total_paid_amount is not None:
+            query = query.having(total_paid_amount <= filters.max_total_paid_amount)
+
+        return query
+    
+    # ----------------------
+    # PR REPO REPORT
+    # ---------------------
+
+    def get_pr_report_rows(
+        self,
+        company_id: UUID,
+        filters: PRReportFilter,
+    ):
+        item_count = func.count(PurchaseRequisitionItem.id)
+
+        query = (
+            self.db.query(
+                PurchaseRequisition.id.label("pr_id"),
+                PurchaseRequisition.pr_number.label("pr_number"),
+                PurchaseRequisition.title.label("title"),
+                PurchaseRequisition.department_id.label("department_id"),
+                Department.name.label("department_name"),
+                PurchaseRequisition.requested_by.label("requested_by"),
+                PurchaseRequisition.total_amount.label("total_amount"),
+                PurchaseRequisition.currency.label("currency"),
+                PurchaseRequisition.status.label("status"),
+                item_count.label("item_count"),
+                PurchaseRequisition.created_at.label("created_at"),
+            )
+            .outerjoin(
+                Department,
+                (PurchaseRequisition.department_id == Department.id)
+                & (Department.company_id == company_id),
+            )
+            .outerjoin(
+                PurchaseRequisitionItem,
+                (PurchaseRequisitionItem.requisition_id == PurchaseRequisition.id)
+                & (PurchaseRequisitionItem.company_id == company_id),
+            )
+            .filter(
+                PurchaseRequisition.company_id == company_id,
+                PurchaseRequisition.is_active == True,
+            )
+            .group_by(
+                PurchaseRequisition.id,
+                PurchaseRequisition.pr_number,
+                PurchaseRequisition.title,
+                PurchaseRequisition.department_id,
+                Department.name,
+                PurchaseRequisition.requested_by,
+                PurchaseRequisition.total_amount,
+                PurchaseRequisition.currency,
+                PurchaseRequisition.status,
+                PurchaseRequisition.created_at,
+            )
+        )
+
+        query = self._apply_pr_filters(query, filters)
+
+        return (
+            query.order_by(PurchaseRequisition.created_at.desc())
+            .offset(filters.skip)
+            .limit(filters.limit)
+            .all()
+        )
+
+
+    def count_pr_report_rows(
+        self,
+        company_id: UUID,
+        filters: PRReportFilter,
+    ) -> int:
+        query = (
+            self.db.query(PurchaseRequisition.id)
+            .outerjoin(
+                Department,
+                (PurchaseRequisition.department_id == Department.id)
+                & (Department.company_id == company_id),
+            )
+            .filter(
+                PurchaseRequisition.company_id == company_id,
+                PurchaseRequisition.is_active == True,
+            )
+        )
+
+        query = self._apply_pr_filters(query, filters)
+
+        subquery = query.subquery()
+
+        return self.db.query(func.count()).select_from(subquery).scalar() or 0
+
+
+    def _apply_pr_filters(
+        self,
+        query,
+        filters: PRReportFilter,
+    ):
+        if filters.status:
+            query = query.filter(PurchaseRequisition.status == filters.status)
+
+        if filters.department_id:
+            query = query.filter(PurchaseRequisition.department_id == filters.department_id)
+
+        if filters.requested_by:
+            query = query.filter(PurchaseRequisition.requested_by == filters.requested_by)
+
+        if filters.date_from:
+            query = query.filter(PurchaseRequisition.created_at >= filters.date_from)
+
+        if filters.date_to:
+            query = query.filter(PurchaseRequisition.created_at <= filters.date_to)
+
+        if filters.min_amount is not None:
+            query = query.filter(PurchaseRequisition.total_amount >= filters.min_amount)
+
+        if filters.max_amount is not None:
+            query = query.filter(PurchaseRequisition.total_amount <= filters.max_amount)
+
+        return query
+    
+    # ----------------------
+    # PO REPO REPORT
+    # ---------------------
+
+    def get_po_report_rows(
+        self,
+        company_id: UUID,
+        filters: POReportFilter,
+    ):
+        item_count = func.count(PurchaseOrderItem.id)
+
+        query = (
+            self.db.query(
+                PurchaseOrder.id.label("po_id"),
+                PurchaseOrder.po_number.label("po_number"),
+                PurchaseOrder.supplier_id.label("supplier_id"),
+                Supplier.name.label("supplier_name"),
+                PurchaseOrder.department_id.label("department_id"),
+                Department.name.label("department_name"),
+                PurchaseOrder.purchase_requisition_id.label("purchase_requisition_id"),
+                PurchaseOrder.total_amount.label("total_amount"),
+                PurchaseOrder.currency.label("currency"),
+                PurchaseOrder.status.label("status"),
+                item_count.label("item_count"),
+                PurchaseOrder.created_by.label("created_by"),
+                PurchaseOrder.submitted_by.label("submitted_by"),
+                PurchaseOrder.issued_by.label("issued_by"),
+                PurchaseOrder.created_at.label("created_at"),
+                PurchaseOrder.submitted_at.label("submitted_at"),
+                PurchaseOrder.issued_at.label("issued_at"),
+            )
+            .join(
+                Supplier,
+                (PurchaseOrder.supplier_id == Supplier.id)
+                & (Supplier.company_id == company_id),
+            )
+            .outerjoin(
+                Department,
+                (PurchaseOrder.department_id == Department.id)
+                & (Department.company_id == company_id),
+            )
+            .outerjoin(
+                PurchaseOrderItem,
+                (PurchaseOrderItem.purchase_order_id == PurchaseOrder.id)
+                & (PurchaseOrderItem.company_id == company_id),
+            )
+            .filter(PurchaseOrder.company_id == company_id)
+            .group_by(
+                PurchaseOrder.id,
+                PurchaseOrder.po_number,
+                PurchaseOrder.supplier_id,
+                Supplier.name,
+                PurchaseOrder.department_id,
+                Department.name,
+                PurchaseOrder.purchase_requisition_id,
+                PurchaseOrder.total_amount,
+                PurchaseOrder.currency,
+                PurchaseOrder.status,
+                PurchaseOrder.created_by,
+                PurchaseOrder.submitted_by,
+                PurchaseOrder.issued_by,
+                PurchaseOrder.created_at,
+                PurchaseOrder.submitted_at,
+                PurchaseOrder.issued_at,
+            )
+        )
+
+        query = self._apply_po_filters(query, filters)
+
+        return (
+            query.order_by(PurchaseOrder.created_at.desc())
+            .offset(filters.skip)
+            .limit(filters.limit)
+            .all()
+        )
+
+
+    def count_po_report_rows(
+        self,
+        company_id: UUID,
+        filters: POReportFilter,
+    ) -> int:
+        query = (
+            self.db.query(PurchaseOrder.id)
+            .join(
+                Supplier,
+                (PurchaseOrder.supplier_id == Supplier.id)
+                & (Supplier.company_id == company_id),
+            )
+            .outerjoin(
+                Department,
+                (PurchaseOrder.department_id == Department.id)
+                & (Department.company_id == company_id),
+            )
+            .filter(PurchaseOrder.company_id == company_id)
+        )
+
+        query = self._apply_po_filters(query, filters)
+
+        subquery = query.subquery()
+
+        return self.db.query(func.count()).select_from(subquery).scalar() or 0
+
+
+    def _apply_po_filters(
+        self,
+        query,
+        filters: POReportFilter,
+    ):
+        if filters.status:
+            query = query.filter(PurchaseOrder.status == filters.status)
+
+        if filters.supplier_id:
+            query = query.filter(PurchaseOrder.supplier_id == filters.supplier_id)
+
+        if filters.department_id:
+            query = query.filter(PurchaseOrder.department_id == filters.department_id)
+
+        if filters.purchase_requisition_id:
+            query = query.filter(
+                PurchaseOrder.purchase_requisition_id == filters.purchase_requisition_id
+            )
+
+        if filters.date_from:
+            query = query.filter(PurchaseOrder.created_at >= filters.date_from)
+
+        if filters.date_to:
+            query = query.filter(PurchaseOrder.created_at <= filters.date_to)
+
+        if filters.min_amount is not None:
+            query = query.filter(PurchaseOrder.total_amount >= filters.min_amount)
+
+        if filters.max_amount is not None:
+            query = query.filter(PurchaseOrder.total_amount <= filters.max_amount)
+
+        return query
+    
+    # ----------------------
+    # SUPPLIER LEAD TIME REPO
+    # ------------------------
+
+    def get_supplier_lead_time_report_rows(
+        self,
+        company_id: UUID,
+        filters: SupplierLeadTimeReportFilter,
+    ):
+        lead_time_days = (
+            func.extract("epoch", Invoice.created_at - PurchaseOrder.issued_at) / 86400
+        )
+
+        query = (
+            self.db.query(
+                PurchaseOrder.id.label("po_id"),
+                PurchaseOrder.po_number.label("po_number"),
+                PurchaseOrder.supplier_id.label("supplier_id"),
+                Supplier.name.label("supplier_name"),
+                Invoice.id.label("invoice_id"),
+                Invoice.invoice_number.label("invoice_number"),
+                PurchaseOrder.issued_at.label("issued_at"),
+                Invoice.created_at.label("invoice_created_at"),
+                lead_time_days.label("lead_time_days"),
+            )
+            .join(
+                Supplier,
+                (PurchaseOrder.supplier_id == Supplier.id)
+                & (Supplier.company_id == company_id),
+            )
+            .join(
+                Invoice,
+                (Invoice.purchase_order_id == PurchaseOrder.id)
+                & (Invoice.company_id == company_id),
+            )
+            .filter(
+                PurchaseOrder.company_id == company_id,
+                PurchaseOrder.issued_at.isnot(None),
+            )
+        )
+
+        query = self._apply_supplier_lead_time_filters(
+            query=query,
+            filters=filters,
+            lead_time_days=lead_time_days,
+        )
+
+        return (
+            query.order_by(lead_time_days.desc())
+            .offset(filters.skip)
+            .limit(filters.limit)
+            .all()
+        )
+
+
+    def count_supplier_lead_time_report_rows(
+        self,
+        company_id: UUID,
+        filters: SupplierLeadTimeReportFilter,
+    ) -> int:
+        lead_time_days = (
+            # Assuming that the invoice get's created once items have been received
+            func.extract("epoch", Invoice.created_at - PurchaseOrder.issued_at) / 86400
+        )
+
+        query = (
+            self.db.query(PurchaseOrder.id)
+            .join(
+                Supplier,
+                (PurchaseOrder.supplier_id == Supplier.id)
+                & (Supplier.company_id == company_id),
+            )
+            .join(
+                Invoice,
+                (Invoice.purchase_order_id == PurchaseOrder.id)
+                & (Invoice.company_id == company_id),
+            )
+            .filter(
+                PurchaseOrder.company_id == company_id,
+                PurchaseOrder.issued_at.isnot(None),
+            )
+        )
+
+        query = self._apply_supplier_lead_time_filters(
+            query=query,
+            filters=filters,
+            lead_time_days=lead_time_days,
+        )
+
+        subquery = query.subquery()
+
+        return self.db.query(func.count()).select_from(subquery).scalar() or 0
+
+
+    def _apply_supplier_lead_time_filters(
+        self,
+        query,
+        filters: SupplierLeadTimeReportFilter,
+        lead_time_days,
+    ):
+        if filters.supplier_id:
+            query = query.filter(PurchaseOrder.supplier_id == filters.supplier_id)
+
+        if filters.date_from:
+            query = query.filter(PurchaseOrder.issued_at >= filters.date_from)
+
+        if filters.date_to:
+            query = query.filter(PurchaseOrder.issued_at <= filters.date_to)
+
+        if filters.min_lead_time_days is not None:
+            query = query.filter(lead_time_days >= filters.min_lead_time_days)
+
+        if filters.max_lead_time_days is not None:
+            query = query.filter(lead_time_days <= filters.max_lead_time_days)
 
         return query

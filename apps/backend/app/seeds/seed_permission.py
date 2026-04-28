@@ -44,11 +44,21 @@ DEFAULT_PERMISSIONS = [
     "reports.invoices.view",
     "reports.invoices.export",
 
+    "reports.outstanding_invoices.view",
+    "reports.outstanding_invoices.export",
+
+    "reports.supplier_spend.view",
+    "reports.supplier_spend.export",
+
     "reports.pr.view",
     "reports.pr.export",
 
     "reports.po.view",
     "reports.po.export",
+
+    "reports.supplier_lead_time.view",
+    "reports.supplier_lead_time.export",
+
     "audit_logs.view",
 ]
 
@@ -74,6 +84,12 @@ ROLE_PERMISSION_MAP = {
         "reports.pr.export",
         "reports.po.view",
         "reports.po.export",
+        "reports.supplier_spend.view",
+        "reports.supplier_spend.export",
+        "reports.pr.view",
+        "reports.pr.export",
+        "reports.supplier_lead_time.view",
+        "reports.supplier_lead_time.export",
     ],
 
     "Finance": [
@@ -91,9 +107,32 @@ ROLE_PERMISSION_MAP = {
         "reports.payments.export",
         "reports.invoices.view",
         "reports.invoices.export",
+        "reports.outstanding_invoices.view",
+        "reports.outstanding_invoices.export",
+        "reports.supplier_spend.view",
+        "reports.supplier_spend.export",
+        "reports.supplier_lead_time.view",
     ],
 
-    "Approver": [],
+    "Approver": [
+        "pr.view",
+        "pr.approve",
+        "pr.reject",
+        "po.view",
+        "po.approve",
+        "po.reject",
+        "invoice.view",
+        "invoice.approve",
+        "invoice.reject",
+        "payment.view",
+        "payment.approve",
+        "payment.reject",
+
+        "reports.pr.view",
+        "reports.po.view",
+        "reports.invoices.view",
+    ],
+    
 }
 
 

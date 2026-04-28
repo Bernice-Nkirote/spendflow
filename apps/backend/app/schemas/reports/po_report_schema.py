@@ -5,11 +5,11 @@ from uuid import UUID
 from pydantic import BaseModel, Field, model_validator
 
 
-class PaymentReportFilter(BaseModel):
+class POReportFilter(BaseModel):
     status: str | None = None
-    payment_method: str | None = None
-    invoice_id: UUID | None = None
     supplier_id: UUID | None = None
+    department_id: UUID | None = None
+    purchase_requisition_id: UUID | None = None
 
     date_from: datetime | None = None
     date_to: datetime | None = None
@@ -37,21 +37,26 @@ class PaymentReportFilter(BaseModel):
         return self
 
 
-class PaymentReportRow(BaseModel):
-    payment_id: UUID
-    invoice_id: UUID
-    invoice_number: str | None = None
-    supplier_id: UUID | None = None
+class POReportRow(BaseModel):
+    po_id: UUID
+    po_number: str
+    supplier_id: UUID
     supplier_name: str | None = None
-    amount: Decimal
+    department_id: UUID | None = None
+    department_name: str | None = None
+    purchase_requisition_id: UUID | None = None
+    total_amount: Decimal
+    currency: str
     status: str
-    payment_method: str | None = None
-    reference: str | None = None
-    created_by: UUID | None = None
+    item_count: int
+    created_by: UUID
+    submitted_by: UUID | None = None
+    issued_by: UUID | None = None
     created_at: datetime
-    paid_at: datetime | None = None
+    submitted_at: datetime | None = None
+    issued_at: datetime | None = None
 
 
-class PaymentReportResponse(BaseModel):
-    rows: list[PaymentReportRow]
+class POReportResponse(BaseModel):
+    rows: list[POReportRow]
     total_count: int

@@ -5,11 +5,10 @@ from uuid import UUID
 from pydantic import BaseModel, Field, model_validator
 
 
-class PaymentReportFilter(BaseModel):
+class InvoiceReportFilter(BaseModel):
     status: str | None = None
-    payment_method: str | None = None
-    invoice_id: UUID | None = None
     supplier_id: UUID | None = None
+    purchase_order_id: UUID | None = None
 
     date_from: datetime | None = None
     date_to: datetime | None = None
@@ -37,21 +36,17 @@ class PaymentReportFilter(BaseModel):
         return self
 
 
-class PaymentReportRow(BaseModel):
-    payment_id: UUID
+class InvoiceReportRow(BaseModel):
     invoice_id: UUID
-    invoice_number: str | None = None
-    supplier_id: UUID | None = None
+    invoice_number: str
+    supplier_id: UUID
     supplier_name: str | None = None
-    amount: Decimal
+    purchase_order_id: UUID | None = None
+    total_amount: Decimal
     status: str
-    payment_method: str | None = None
-    reference: str | None = None
-    created_by: UUID | None = None
     created_at: datetime
-    paid_at: datetime | None = None
 
 
-class PaymentReportResponse(BaseModel):
-    rows: list[PaymentReportRow]
+class InvoiceReportResponse(BaseModel):
+    rows: list[InvoiceReportRow]
     total_count: int
