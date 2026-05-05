@@ -18,13 +18,12 @@ class SupplierSpendReportBuilder:
 
     def headers(self) -> list[str]:
         return [
-            "supplier_id",
-            "supplier_name",
-            "total_invoice_amount",
-            "total_paid_amount",
-            "outstanding_amount",
-            "invoice_count",
-            "payment_count",
+            "Supplier",
+            "Total Invoice Amount",
+            "Total Paid Amount",
+            "Outstanding Amount",
+            "Invoice Count",
+            "Payment Count",
         ]
 
     def export_rows(
@@ -33,8 +32,7 @@ class SupplierSpendReportBuilder:
     ) -> list[list]:
         return [
             [
-                str(row.supplier_id),
-                row.supplier_name,
+                row.supplier_name or "N/A",
                 row.total_invoice_amount,
                 row.total_paid_amount,
                 row.outstanding_amount,

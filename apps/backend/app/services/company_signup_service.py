@@ -176,11 +176,13 @@ class CompanySignupService:
         except HTTPException:
             self.db.rollback()
             raise
-        except IntegrityError:
+        except IntegrityError as e:
             self.db.rollback()
+            print("SIGNUP INTEGRITY ERROR:", e)
+
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Company signup failed because some data already exists.",
+                detail="Signup failed because a unique field already exists. Check backend terminal logs.",
             )
         except Exception:
             self.db.rollback()

@@ -18,6 +18,7 @@ from app.schemas.payment_schema import PaymentCreate, PaymentUpdate
 from app.services.approval_instance_service import ApprovalInstanceService
 from app.services.permission_service import PermissionService
 from app.services.audit_log_service import AuditLogService
+from app.utils.value_helper.enum_utils import enum_value
 
 class PaymentService:
     def __init__(
@@ -116,7 +117,7 @@ class PaymentService:
                 "invoice_id": str(payment.invoice_id),
                 "amount": str(payment.amount),
                 "payment_method": payment.payment_method.value,
-                "status": payment.status.value,
+                "status": enum_value(payment.status),
             },
         )
 
@@ -238,7 +239,7 @@ class PaymentService:
         # capture the old state first
         old_values = {
             "amount": str(payment.amount),
-            "status": payment.status.value,
+            "status": enum_value(payment.status),
             "reference": payment.reference,
         }
         # extract the incoming changes
@@ -473,7 +474,7 @@ class PaymentService:
             actor_user_id=actor_user_id,
             description=f"Payment {payment.id} cancelled",
             old_values_json={
-                "status": payment.status.value,
+                "status": enum_value(payment.status),
                 "amount": str(payment.amount),
             },
         )

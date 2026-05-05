@@ -1,6 +1,9 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import Optional
 from uuid import UUID
+
+from app.models.enums import PRStatusEnum
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -40,13 +43,22 @@ class PRReportRow(BaseModel):
     pr_id: UUID
     pr_number: str
     title: str
-    department_id: UUID | None = None
-    department_name: str | None = None
-    requested_by: UUID | None = None
-    total_amount: Decimal
+
+    department_id: Optional[UUID] = None
+    department_name: Optional[str] = None
+
+    requested_by_id: Optional[UUID] = None
+    requested_by_name: Optional[str] = None
+
+    item_id: UUID
+    item_name: str
+    quantity: Decimal
+    unit_price: Decimal
+    line_total: Decimal
+
+    pr_total_amount: Decimal = Field(..., max_digits=14, decimal_places=2)
     currency: str
-    status: str
-    item_count: int
+    status: PRStatusEnum
     created_at: datetime
 
 

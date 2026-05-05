@@ -148,6 +148,32 @@ class PurchaseRequisitionService:
 
         return requisition
 
+    def get_purchase_requisition(
+        self,
+        requisition_id: UUID,
+        company_id: UUID,
+    ) -> PurchaseRequisition:
+        requisition = self._get_purchase_requisition(requisition_id, company_id)
+
+        requisition.items = self.item_repo.get_by_requisition_id(
+            requisition.id,
+            company_id,
+        )
+
+        requisition.department_name = (
+            requisition.department.name if requisition.department else None
+        )
+
+        requisition.requested_by_name = (
+            requisition.requester.name
+            if requisition.requester and hasattr(requisition.requester, "name")
+            else requisition.requester.email
+            if requisition.requester and hasattr(requisition.requester, "email")
+            else None
+        )
+
+        return requisition
+
     def _get_draft_requisition(
         self,
         requisition_id: UUID,
@@ -276,19 +302,6 @@ class PurchaseRequisitionService:
         created_requisition.items = created_items
         return created_requisition
 
-    def get_purchase_requisition(
-        self,
-        requisition_id: UUID,
-        company_id: UUID,
-    ) -> PurchaseRequisition:
-        requisition = self._get_purchase_requisition(requisition_id, company_id)
-
-        requisition.items = self.item_repo.get_by_requisition_id(
-            requisition.id,
-            company_id,
-        )
-
-        return requisition
 
     def get_all_purchase_requisitions(
         self,

@@ -31,6 +31,8 @@ class Company(Base):
         nullable=False
     )
 
+    currency = Column(String,nullable=False, default="KES")
+
     __table_args__ = (
         UniqueConstraint("name", name="uq_companies_name"),
         Index("ix_companies_name", "name"),

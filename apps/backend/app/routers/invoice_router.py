@@ -44,15 +44,18 @@ def get_invoice_service(
         repo=approval_instance_repo,
         workflow_level_repo=workflow_level_repo,
     )
-    permission_service = PermissionService(
-        permission_repo=PermissionRepository(db),
-        role_permission_repo=RolePermissionRepository(db),
-        role_repo=RoleRepository(db),
-    )
+
     audit_log_service = AuditLogService(
         repo=AuditLogRepository(db),
     )
 
+    permission_service = PermissionService(
+        permission_repo=PermissionRepository(db),
+        role_permission_repo=RolePermissionRepository(db),
+        role_repo=RoleRepository(db),
+        audit_log_service=audit_log_service,
+    )
+    
     return InvoiceService(
         invoice_repo=invoice_repo,
         line_item_repo=line_item_repo,

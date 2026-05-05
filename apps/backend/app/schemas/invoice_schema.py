@@ -15,7 +15,7 @@ from app.schemas.invoice_line_item_schema import (
 class InvoiceCreate(BaseModel):
     purchase_order_id: Optional[UUID] = None
     supplier_id: UUID
-    invoice_number: str
+    invoice_number: str | None = None
     line_items: List[InvoiceLineItemCreate]
 
     @field_validator("invoice_number")

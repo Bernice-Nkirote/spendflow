@@ -24,15 +24,12 @@ class SupplierLeadTimeReportBuilder:
 
     def headers(self) -> list[str]:
         return [
-            "po_id",
-            "po_number",
-            "supplier_id",
-            "supplier_name",
-            "invoice_id",
-            "invoice_number",
-            "issued_at",
-            "invoice_created_at",
-            "lead_time_days",
+            "Supplier",
+            "PO Number",
+            "Invoice Number",
+            "PO Issued At",
+            "Invoice Created At",
+            "Lead Time Days",
         ]
 
     def export_rows(
@@ -41,12 +38,9 @@ class SupplierLeadTimeReportBuilder:
     ) -> list[list]:
         return [
             [
-                str(row.po_id),
+                row.supplier_name or "N/A",
                 row.po_number,
-                str(row.supplier_id),
-                row.supplier_name,
-                str(row.invoice_id) if row.invoice_id else None,
-                row.invoice_number,
+                row.invoice_number or "N/A",
                 row.issued_at,
                 row.invoice_created_at,
                 row.lead_time_days,

@@ -287,7 +287,7 @@ class PurchaseOrderService:
                 "supplier_id":str(updated_po.supplier_id),
                 "total_amount": str(updated_po.total_amount),
                 "currency":updated_po.currency,
-                "status": updated_po.status.value,
+                "status": updated_po.status,
             },
         )
 
@@ -422,7 +422,7 @@ class PurchaseOrderService:
                 "supplier_id": str(updated_po.supplier_id),
                 "total_amount": str(updated_po.total_amount),
                 "currency": updated_po.currency,
-                "status": updated_po.status.value,
+                "status": updated_po.status,
             },
         )
         self.po_repo.db.commit()

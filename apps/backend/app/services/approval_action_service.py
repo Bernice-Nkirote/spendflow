@@ -22,6 +22,7 @@ from app.repositories.workflow_level_repository import WorkflowLevelRepository
 from app.repositories.workflow_role_repository import WorkflowLevelRoleRepository
 from app.schemas.approval_action_schema import ApprovalActionCreate
 from app.services.audit_log_service import AuditLogService
+from app.utils.value_helper.enum_utils import enum_value
 
 class ApprovalActionService:
     def __init__(
@@ -330,10 +331,10 @@ class ApprovalActionService:
                     else f"Purchase requisition {requisition.pr_number} rejected"
                 ),
                 old_values_json={
-                    "status": old_status.value,
+                    "status": enum_value(old_status),
                 },
                 new_values_json={
-                    "status": requisition.status.value,
+                    "status": enum_value(requisition.status),
                 },
             )
             return
@@ -364,10 +365,10 @@ class ApprovalActionService:
                     else f"Purchase order {po.po_number} rejected"
                 ),
                 old_values_json={
-                    "status": old_status.value,
+                    "status": enum_value(old_status),
                 },
                 new_values_json={
-                    "status": po.status.value,
+                    "status": enum_value(po.status),
                 },
             )
             return
@@ -402,10 +403,10 @@ class ApprovalActionService:
                     else f"Invoice {invoice.invoice_number} rejected"
                 ),
                 old_values_json={
-                    "status": old_status.value,
+                    "status": enum_value(old_status),
                 },
                 new_values_json={
-                    "status": invoice.status.value,
+                    "status": enum_value(invoice.status),
                 },
             ) 
 
@@ -441,10 +442,10 @@ class ApprovalActionService:
                     else f"Payment {payment.id} rejected"
                 ),
                 old_values_json={
-                    "status": old_payment_status.value,
+                    "status": enum_value(old_payment_status),
                 },
                 new_values_json={
-                    "status": payment.status.value,
+                    "status": enum_value(payment.status),
                 },
             )
 

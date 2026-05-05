@@ -10,7 +10,13 @@ class InvoiceReportBuilder:
                 supplier_id=row.supplier_id,
                 supplier_name=row.supplier_name,
                 purchase_order_id=row.purchase_order_id,
-                total_amount=row.total_amount,
+                po_number=row.po_number,
+                item_id=row.item_id,
+                item_description=row.item_description,
+                quantity=row.quantity,
+                unit_price=row.unit_price,
+                line_total=row.line_total,
+                invoice_total_amount=row.invoice_total_amount,
                 status=row.status,
                 created_at=row.created_at,
             )
@@ -19,14 +25,16 @@ class InvoiceReportBuilder:
 
     def headers(self) -> list[str]:
         return [
-            "invoice_id",
-            "invoice_number",
-            "supplier_id",
-            "supplier_name",
-            "purchase_order_id",
-            "total_amount",
-            "status",
-            "created_at",
+            "Invoice Number",
+            "Supplier",
+            "PO Number",
+            "Item",
+            "Quantity",
+            "Unit Price",
+            "Line Total",
+            "Invoice Total Amount",
+            "Status",
+            "Created At",
         ]
 
     def export_rows(
@@ -35,12 +43,14 @@ class InvoiceReportBuilder:
     ) -> list[list]:
         return [
             [
-                str(row.invoice_id),
                 row.invoice_number,
-                str(row.supplier_id),
-                row.supplier_name,
-                str(row.purchase_order_id) if row.purchase_order_id else None,
-                row.total_amount,
+                row.supplier_name or "N/A",
+                row.po_number or "N/A",
+                row.item_description,
+                row.quantity,
+                row.unit_price,
+                row.line_total,
+                row.invoice_total_amount,
                 row.status,
                 row.created_at,
             ]

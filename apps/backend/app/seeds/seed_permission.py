@@ -4,6 +4,7 @@ from app.models.role_permission import RolePermission
 
 
 DEFAULT_PERMISSIONS = [
+    # Purchase Requisitions
     "pr.create",
     "pr.view",
     "pr.update",
@@ -13,6 +14,7 @@ DEFAULT_PERMISSIONS = [
     "pr.reject",
     "pr.convert_to_po",
 
+    # Purchase Orders
     "po.create",
     "po.view",
     "po.update",
@@ -22,6 +24,7 @@ DEFAULT_PERMISSIONS = [
     "po.reject",
     "po.dispatch",
 
+    # Invoices
     "invoice.create",
     "invoice.view",
     "invoice.update",
@@ -30,6 +33,7 @@ DEFAULT_PERMISSIONS = [
     "invoice.reject",
     "invoice.cancel",
 
+    # Payments
     "payment.create",
     "payment.view",
     "payment.update",
@@ -38,27 +42,23 @@ DEFAULT_PERMISSIONS = [
     "payment.reject",
     "payment.cancel",
 
+    # Reports
     "reports.payments.view",
     "reports.payments.export",
-
     "reports.invoices.view",
     "reports.invoices.export",
-
     "reports.outstanding_invoices.view",
     "reports.outstanding_invoices.export",
-
     "reports.supplier_spend.view",
     "reports.supplier_spend.export",
-
+    "reports.supplier_lead_time.view",
+    "reports.supplier_lead_time.export",
     "reports.pr.view",
     "reports.pr.export",
-
     "reports.po.view",
     "reports.po.export",
 
-    "reports.supplier_lead_time.view",
-    "reports.supplier_lead_time.export",
-
+    # Audit Logs
     "audit_logs.view",
 ]
 
@@ -73,21 +73,22 @@ ROLE_PERMISSION_MAP = {
         "pr.submit",
         "pr.cancel",
         "pr.convert_to_po",
+
         "po.create",
         "po.view",
         "po.update",
         "po.submit",
         "po.cancel",
         "po.dispatch",
+
         "invoice.view",
+
         "reports.pr.view",
         "reports.pr.export",
         "reports.po.view",
         "reports.po.export",
         "reports.supplier_spend.view",
         "reports.supplier_spend.export",
-        "reports.pr.view",
-        "reports.pr.export",
         "reports.supplier_lead_time.view",
         "reports.supplier_lead_time.export",
     ],
@@ -98,11 +99,13 @@ ROLE_PERMISSION_MAP = {
         "invoice.update",
         "invoice.submit",
         "invoice.cancel",
+
         "payment.create",
         "payment.view",
         "payment.update",
         "payment.submit",
         "payment.cancel",
+
         "reports.payments.view",
         "reports.payments.export",
         "reports.invoices.view",
@@ -112,18 +115,22 @@ ROLE_PERMISSION_MAP = {
         "reports.supplier_spend.view",
         "reports.supplier_spend.export",
         "reports.supplier_lead_time.view",
+        "reports.supplier_lead_time.export",
     ],
 
     "Approver": [
         "pr.view",
         "pr.approve",
         "pr.reject",
+
         "po.view",
         "po.approve",
         "po.reject",
+
         "invoice.view",
         "invoice.approve",
         "invoice.reject",
+
         "payment.view",
         "payment.approve",
         "payment.reject",
@@ -132,14 +139,15 @@ ROLE_PERMISSION_MAP = {
         "reports.po.view",
         "reports.invoices.view",
     ],
-    
 }
 
 
 def seed_permissions_for_company(company_id, db):
     permission_by_name = {}
 
-    for permission_name in DEFAULT_PERMISSIONS:
+    unique_default_permissions = list(dict.fromkeys(DEFAULT_PERMISSIONS))
+
+    for permission_name in unique_default_permissions:
         permission = (
             db.query(Permission)
             .filter(
@@ -174,8 +182,13 @@ def seed_permissions_for_company(company_id, db):
         if not role:
             continue
 
-        for permission_name in permission_names:
-            permission = permission_by_name[permission_name]
+        unique_permission_names = list(dict.fromkeys(permission_names))
+
+        for permission_name in unique_permission_names:
+            permission = permission_by_name.get(permission_name)
+
+            if not permission:
+                continue
 
             existing_assignment = (
                 db.query(RolePermission)
@@ -195,4 +208,7 @@ def seed_permissions_for_company(company_id, db):
                 role_id=role.id,
                 permission_id=permission.id,
             )
+
             db.add(role_permission)
+
+    db.flush()

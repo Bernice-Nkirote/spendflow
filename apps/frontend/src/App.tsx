@@ -1,12 +1,7 @@
-import "./App.css";
+import AppRoutes from "./routes/AppRoutes";
+
 function App() {
-  return (
-    <>
-      <div>
-        <p>Spendflow</p>
-      </div>
-    </>
-  );
+  return <AppRoutes />;
 }
 
 export default App;

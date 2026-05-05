@@ -17,6 +17,7 @@ from app.builders.reports.supplier_lead_time_report_builder import (
     SupplierLeadTimeReportBuilder,
 )
 from app.repositories.reports.report_repository import ReportRepository
+from app.repositories.report_export_log_repository import ReportExportLogRepository
 from app.schemas.reports.payment_report_schema import (
     PaymentReportFilter,
     PaymentReportResponse,
@@ -55,6 +56,7 @@ class ReportService:
         self,
         report_repo: ReportRepository,
         permission_service: PermissionService,
+        report_export_log_repo: ReportExportLogRepository,
         payment_report_builder: PaymentReportBuilder,
         invoice_report_builder: InvoiceReportBuilder,
         outstanding_invoice_report_builder: OutstandingInvoiceReportBuilder,
@@ -65,6 +67,7 @@ class ReportService:
     ):
         self.report_repo = report_repo
         self.permission_service = permission_service
+        self.report_export_log_repo = report_export_log_repo
         self.payment_report_builder = payment_report_builder
         self.invoice_report_builder = invoice_report_builder
         self.outstanding_invoice_report_builder = outstanding_invoice_report_builder
@@ -109,6 +112,7 @@ class ReportService:
         self,
         company_id: UUID,
         role_id: UUID,
+        user_id: UUID,
         filters: PaymentReportFilter,
     ):
         self._require_permission(
@@ -129,12 +133,20 @@ class ReportService:
             rows=self.payment_report_builder.export_rows(rows),
         )
 
+        self._log_report_export(
+            company_id=company_id,
+            user_id=user_id,
+            report_type="payments",
+            export_format="CSV",
+        )
+
         return csv_file, self._build_filename("payments_report", "csv")
 
     def export_payment_report_excel(
         self,
         company_id: UUID,
         role_id: UUID,
+        user_id: UUID,
         filters: PaymentReportFilter,
     ):
         self._require_permission(
@@ -154,6 +166,13 @@ class ReportService:
             sheet_name="Payments Report",
             headers=self.payment_report_builder.headers(),
             rows=self.payment_report_builder.export_rows(rows),
+        )
+
+        self._log_report_export(
+            company_id=company_id,
+            user_id=user_id,
+            report_type="payments",
+            export_format="EXCEL",
         )
 
         return excel_file, self._build_filename("payments_report", "xlsx")
@@ -181,7 +200,7 @@ class ReportService:
         report_name: str,
         extension: str,
     ) -> str:
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S_%f")
         return f"{report_name}_{timestamp}.{extension}"
     
     # -------------------
@@ -222,6 +241,7 @@ class ReportService:
         self,
         company_id: UUID,
         role_id: UUID,
+        user_id: UUID,
         filters: InvoiceReportFilter,
     ):
         self._require_permission(
@@ -242,6 +262,13 @@ class ReportService:
             rows=self.invoice_report_builder.export_rows(rows),
         )
 
+        self._log_report_export(
+            company_id=company_id,
+            user_id=user_id,
+            report_type="invoices",
+            export_format="CSV",
+        )
+
         return csv_file, self._build_filename("invoices_report", "csv")
 
 
@@ -249,6 +276,7 @@ class ReportService:
         self,
         company_id: UUID,
         role_id: UUID,
+        user_id: UUID,
         filters: InvoiceReportFilter,
     ):
         self._require_permission(
@@ -268,6 +296,13 @@ class ReportService:
             sheet_name="Invoices Report",
             headers=self.invoice_report_builder.headers(),
             rows=self.invoice_report_builder.export_rows(rows),
+        )
+
+        self._log_report_export(
+            company_id=company_id,
+            user_id=user_id,
+            report_type="invoices",
+            export_format="EXCEL",
         )
 
         return excel_file, self._build_filename("invoices_report", "xlsx")
@@ -310,6 +345,7 @@ class ReportService:
         self,
         company_id: UUID,
         role_id: UUID,
+        user_id: UUID,
         filters: OutstandingInvoiceReportFilter,
     ):
         self._require_permission(
@@ -330,6 +366,13 @@ class ReportService:
             rows=self.outstanding_invoice_report_builder.export_rows(rows),
         )
 
+        self._log_report_export(
+            company_id=company_id,
+            user_id=user_id,
+            report_type="outstanding_invoices",
+            export_format="CSV",
+        )
+
         return csv_file, self._build_filename("outstanding_invoices_report", "csv")
 
 
@@ -337,6 +380,7 @@ class ReportService:
         self,
         company_id: UUID,
         role_id: UUID,
+        user_id: UUID,
         filters: OutstandingInvoiceReportFilter,
     ):
         self._require_permission(
@@ -356,6 +400,12 @@ class ReportService:
             sheet_name="Outstanding Invoices",
             headers=self.outstanding_invoice_report_builder.headers(),
             rows=self.outstanding_invoice_report_builder.export_rows(rows),
+        )
+        self._log_report_export(
+            company_id=company_id,
+            user_id=user_id,
+            report_type="outstanding_invoices",
+            export_format="EXCEL",
         )
 
         return excel_file, self._build_filename("outstanding_invoices_report", "xlsx")
@@ -398,6 +448,7 @@ class ReportService:
         self,
         company_id: UUID,
         role_id: UUID,
+        user_id: UUID,
         filters: SupplierSpendReportFilter,
     ):
         self._require_permission(
@@ -417,6 +468,12 @@ class ReportService:
             headers=self.supplier_spend_report_builder.headers(),
             rows=self.supplier_spend_report_builder.export_rows(rows),
         )
+        self._log_report_export(
+            company_id=company_id,
+            user_id=user_id,
+            report_type="supplier_spend",
+            export_format="CSV",
+        )
 
         return csv_file, self._build_filename("supplier_spend_report", "csv")
 
@@ -425,6 +482,7 @@ class ReportService:
         self,
         company_id: UUID,
         role_id: UUID,
+        user_id: UUID,
         filters: SupplierSpendReportFilter,
     ):
         self._require_permission(
@@ -445,7 +503,12 @@ class ReportService:
             headers=self.supplier_spend_report_builder.headers(),
             rows=self.supplier_spend_report_builder.export_rows(rows),
         )
-
+        self._log_report_export(
+            company_id=company_id,
+            user_id=user_id,
+            report_type="supplier_spend",
+            export_format="EXCEL",
+        )
         return excel_file, self._build_filename("supplier_spend_report", "xlsx")
 
     # ---------------------
@@ -485,6 +548,7 @@ class ReportService:
         self,
         company_id: UUID,
         role_id: UUID,
+        user_id: UUID,
         filters: PRReportFilter,
     ):
         self._require_permission(
@@ -504,6 +568,12 @@ class ReportService:
             headers=self.pr_report_builder.headers(),
             rows=self.pr_report_builder.export_rows(rows),
         )
+        self._log_report_export(
+            company_id=company_id,
+            user_id=user_id,
+            report_type="purchase_requisitions",
+            export_format="CSV",
+        )
 
         return csv_file, self._build_filename("purchase_requisitions_report", "csv")
 
@@ -511,6 +581,7 @@ class ReportService:
         self,
         company_id: UUID,
         role_id: UUID,
+        user_id: UUID,
         filters: PRReportFilter,
     ):
         self._require_permission(
@@ -530,6 +601,12 @@ class ReportService:
             sheet_name="PR Report",
             headers=self.pr_report_builder.headers(),
             rows=self.pr_report_builder.export_rows(rows),
+        )
+        self._log_report_export(
+            company_id=company_id,
+            user_id=user_id,
+            report_type="purchase_requisitions",
+            export_format="EXCEL",
         )
 
         return excel_file, self._build_filename("purchase_requisitions_report", "xlsx")
@@ -572,6 +649,7 @@ class ReportService:
         self,
         company_id: UUID,
         role_id: UUID,
+        user_id: UUID,
         filters: POReportFilter,
     ):
         self._require_permission(
@@ -591,6 +669,12 @@ class ReportService:
             headers=self.po_report_builder.headers(),
             rows=self.po_report_builder.export_rows(rows),
         )
+        self._log_report_export(
+            company_id=company_id,
+            user_id=user_id,
+            report_type="purchase_orders",
+            export_format="CSV",
+        )
 
         return csv_file, self._build_filename("purchase_orders_report", "csv")
 
@@ -599,6 +683,7 @@ class ReportService:
         self,
         company_id: UUID,
         role_id: UUID,
+        user_id: UUID,
         filters: POReportFilter,
     ):
         self._require_permission(
@@ -618,6 +703,12 @@ class ReportService:
             sheet_name="PO Report",
             headers=self.po_report_builder.headers(),
             rows=self.po_report_builder.export_rows(rows),
+        )
+        self._log_report_export(
+            company_id=company_id,
+            user_id=user_id,
+            report_type="purchase_orders",
+            export_format="EXCEL",
         )
 
         return excel_file, self._build_filename("purchase_orders_report", "xlsx")
@@ -649,7 +740,7 @@ class ReportService:
             company_id=company_id,
             filters=filters,
         )
-
+    
         return SupplierLeadTimeReportResponse(
             rows=rows,
             total_count=total_count,
@@ -660,6 +751,7 @@ class ReportService:
         self,
         company_id: UUID,
         role_id: UUID,
+        user_id: UUID,
         filters: SupplierLeadTimeReportFilter,
     ):
         self._require_permission(
@@ -679,7 +771,12 @@ class ReportService:
             headers=self.supplier_lead_time_report_builder.headers(),
             rows=self.supplier_lead_time_report_builder.export_rows(rows),
         )
-
+        self._log_report_export(
+            company_id=company_id,
+            user_id=user_id,
+            report_type="supplier_lead_time",
+            export_format="CSV",
+        )
         return csv_file, self._build_filename("supplier_lead_time_report", "csv")
 
 
@@ -687,6 +784,7 @@ class ReportService:
         self,
         company_id: UUID,
         role_id: UUID,
+        user_id: UUID,
         filters: SupplierLeadTimeReportFilter,
     ):
         self._require_permission(
@@ -707,6 +805,30 @@ class ReportService:
             headers=self.supplier_lead_time_report_builder.headers(),
             rows=self.supplier_lead_time_report_builder.export_rows(rows),
         )
+        self._log_report_export(
+            company_id=company_id,
+            user_id=user_id,
+            report_type="supplier_lead_time",
+            export_format="EXCEL",
+        )
 
         return excel_file, self._build_filename("supplier_lead_time_report", "xlsx")
 
+    # -------------------------
+    # REPORTS LOG
+    # -------------------------
+    def _log_report_export(
+        self,
+        company_id: UUID,
+        user_id: UUID,
+        report_type: str,
+        export_format: str,
+    ) -> None:
+        self.report_export_log_repo.create(
+            company_id=company_id,
+            user_id=user_id,
+            report_type=report_type,
+            export_format=export_format,
+        )
+
+        self.report_repo.db.commit()

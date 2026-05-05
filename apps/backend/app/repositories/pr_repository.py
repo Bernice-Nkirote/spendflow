@@ -1,7 +1,7 @@
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session,joinedload
 
 from app.models.enums import PRStatusEnum
 from app.models.purchase_requisition import PurchaseRequisition
@@ -24,6 +24,11 @@ class PurchaseRequisitionRepository:
     ) -> Optional[PurchaseRequisition]:
         return (
             self.db.query(PurchaseRequisition)
+            .options(
+                joinedload(PurchaseRequisition.department),
+                joinedload(PurchaseRequisition.requester),
+                joinedload(PurchaseRequisition.items),
+            )
             .filter(
                 PurchaseRequisition.id == requisition_id,
                 PurchaseRequisition.company_id == company_id,

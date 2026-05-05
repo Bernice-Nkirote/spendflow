@@ -62,14 +62,15 @@ def get_purchase_order_service(
         workflow_level_repo=workflow_level_repo,
     )
 
+    audit_log_service = AuditLogService(
+        repo=AuditLogRepository(db),
+    )
+
     permission_service = PermissionService(
         permission_repo=PermissionRepository(db),
         role_permission_repo=RolePermissionRepository(db),
         role_repo=RoleRepository(db),
-    )
-
-    audit_log_service = AuditLogService(
-        repo=AuditLogRepository(db),
+        audit_log_service=audit_log_service,
     )
 
     return PurchaseOrderService(

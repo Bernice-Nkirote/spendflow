@@ -43,8 +43,14 @@ class PurchaseRequisitionRead(BaseModel):
     items: list[PurchaseRequisitionItemRead]
     created_at: datetime
     updated_at: datetime
-
+  
     model_config = ConfigDict(
         from_attributes=True,
         json_encoders={Decimal: lambda v: format(v, ".2f")},
     )
+
+class PurchaseRequisitionDetailRead(PurchaseRequisitionRead):
+    department_name: Optional[str] = None
+    requested_by_name: Optional[str] = None
+
+   

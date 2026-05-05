@@ -1,6 +1,13 @@
 from io import BytesIO
 
 from openpyxl import Workbook
+from datetime import datetime
+
+def clean_excel_value(value):
+    if isinstance(value, datetime) and value.tzinfo is not None:
+        return value.replace(tzinfo=None)
+
+    return value
 
 
 def generate_excel_report(
@@ -15,7 +22,7 @@ def generate_excel_report(
     sheet.append(headers)
 
     for row in rows:
-        sheet.append(row)
+        sheet.append([clean_excel_value(value) for value in row])
 
     sheet.freeze_panes = "A2"
 

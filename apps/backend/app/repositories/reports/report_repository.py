@@ -1,9 +1,10 @@
 from uuid import UUID
 
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from app.models.invoice import Invoice
+from app.models.invoice_line_item import InvoiceLineItem
 from app.models.payments import Payment
 from app.models.supplier import Supplier
 from app.models.department import Department
@@ -11,6 +12,8 @@ from app.models.purchase_requisition import PurchaseRequisition
 from app.models.purchase_requisition_item import PurchaseRequisitionItem
 from app.models.purchase_order import PurchaseOrder
 from app.models.purchase_order_item import PurchaseOrderItem
+from app.models.user import User
+from app.models.enums import InvoiceStatusEnum
 from app.schemas.reports.payment_report_schema import PaymentReportFilter
 from app.schemas.reports.invoice_report_schema import InvoiceReportFilter
 from app.schemas.reports.outstanding_invoice_report_schema import OutstandingInvoiceReportFilter
@@ -35,25 +38,40 @@ class ReportRepository:
         query = (
             self.db.query(
                 Payment.id.label("payment_id"),
+                Payment.reference.label("payment_reference"),
+
                 Payment.invoice_id.label("invoice_id"),
                 Invoice.invoice_number.label("invoice_number"),
+
                 Invoice.supplier_id.label("supplier_id"),
                 Supplier.name.label("supplier_name"),
+
                 Payment.amount.label("amount"),
-                Payment.status.label("status"),
                 Payment.payment_method.label("payment_method"),
-                Payment.reference.label("reference"),
-                Payment.created_by.label("created_by"),
+                Payment.status.label("status"),
+
+                Payment.created_by.label("created_by_id"),
+                User.name.label("created_by_name"),
+
                 Payment.created_at.label("created_at"),
                 Payment.paid_at.label("paid_at"),
             )
-            .join(Invoice, Payment.invoice_id == Invoice.id)
-            .join(Supplier, Invoice.supplier_id == Supplier.id)
-            .filter(
-                Payment.company_id == company_id,
-                Invoice.company_id == company_id,
-                Supplier.company_id == company_id,
+            .join(
+                Invoice,
+                (Payment.invoice_id == Invoice.id)
+                & (Invoice.company_id == company_id),
             )
+            .join(
+                Supplier,
+                (Invoice.supplier_id == Supplier.id)
+                & (Supplier.company_id == company_id),
+            )
+            .outerjoin(
+                User,
+                (Payment.created_by == User.id)
+                & (User.company_id == company_id),
+            )
+            .filter(Payment.company_id == company_id)
         )
 
         query = self._apply_payment_filters(query, filters)
@@ -71,19 +89,30 @@ class ReportRepository:
         filters: PaymentReportFilter,
     ) -> int:
         query = (
-            self.db.query(func.count(Payment.id))
-            .join(Invoice, Payment.invoice_id == Invoice.id)
-            .join(Supplier, Invoice.supplier_id == Supplier.id)
+            self.db.query(Payment.id)
+            .join(
+                Invoice, 
+                (Payment.invoice_id == Invoice.id)
+                &(Invoice.company_id == company_id),
+            )
+            .join(
+                Supplier, 
+                (Invoice.supplier_id == Supplier.id)
+                &(Supplier.company_id == company_id),
+                )
+            .outerjoin(
+                User,
+                (Payment.created_by == User.id)
+                &(User.company_id == company_id),
+            )
             .filter(
-                Payment.company_id == company_id,
-                Invoice.company_id == company_id,
-                Supplier.company_id == company_id,
+                Payment.company_id == company_id
             )
         )
 
         query = self._apply_payment_filters(query, filters)
-
-        return query.scalar() or 0
+        subquery = query.subquery()
+        return self.db.query(func.count()).select_from(subquery).scalar() or 0
 
     def _apply_payment_filters(
         self,
@@ -128,24 +157,48 @@ class ReportRepository:
             self.db.query(
                 Invoice.id.label("invoice_id"),
                 Invoice.invoice_number.label("invoice_number"),
+
                 Invoice.supplier_id.label("supplier_id"),
                 Supplier.name.label("supplier_name"),
+
                 Invoice.purchase_order_id.label("purchase_order_id"),
-                Invoice.total_amount.label("total_amount"),
+                PurchaseOrder.po_number.label("po_number"),
+
+                InvoiceLineItem.id.label("item_id"),
+                InvoiceLineItem.description.label("item_description"),
+                InvoiceLineItem.invoiced_quantity.label("quantity"),
+                InvoiceLineItem.unit_price.label("unit_price"),
+                InvoiceLineItem.total_price.label("line_total"),
+
+                Invoice.total_amount.label("invoice_total_amount"),
                 Invoice.status.label("status"),
                 Invoice.created_at.label("created_at"),
             )
-            .join(Supplier, Invoice.supplier_id == Supplier.id)
-            .filter(
-                Invoice.company_id == company_id,
-                Supplier.company_id == company_id,
+            .join(
+                Supplier,
+                (Invoice.supplier_id == Supplier.id)
+                & (Supplier.company_id == company_id),
             )
+            .outerjoin(
+                PurchaseOrder,
+                (Invoice.purchase_order_id == PurchaseOrder.id)
+                & (PurchaseOrder.company_id == company_id),
+            )
+            .join(
+                InvoiceLineItem,
+                (InvoiceLineItem.invoice_id == Invoice.id)
+                & (InvoiceLineItem.company_id == company_id),
+            )
+            .filter(Invoice.company_id == company_id)
         )
 
         query = self._apply_invoice_filters(query, filters)
 
         return (
-            query.order_by(Invoice.created_at.desc())
+            query.order_by(
+                Invoice.created_at.desc(),
+                Invoice.invoice_number.asc(),
+            )
             .offset(filters.skip)
             .limit(filters.limit)
             .all()
@@ -158,19 +211,31 @@ class ReportRepository:
         filters: InvoiceReportFilter,
     ) -> int:
         query = (
-            self.db.query(func.count(Invoice.id))
-            .join(Supplier, Invoice.supplier_id == Supplier.id)
-            .filter(
-                Invoice.company_id == company_id,
-                Supplier.company_id == company_id,
+            self.db.query(InvoiceLineItem.id)
+            .join(
+                Invoice,
+                (InvoiceLineItem.invoice_id == Invoice.id)
+                & (Invoice.company_id == company_id),
             )
+            .join(
+                Supplier,
+                (Invoice.supplier_id == Supplier.id)
+                & (Supplier.company_id == company_id),
+            )
+            .outerjoin(
+                PurchaseOrder,
+                (Invoice.purchase_order_id == PurchaseOrder.id)
+                & (PurchaseOrder.company_id == company_id),
+            )
+            .filter(InvoiceLineItem.company_id == company_id)
         )
 
         query = self._apply_invoice_filters(query, filters)
 
-        return query.scalar() or 0
+        subquery = query.subquery()
 
-
+        return self.db.query(func.count()).select_from(subquery).scalar() or 0
+    
     def _apply_invoice_filters(
         self,
         query,
@@ -217,6 +282,7 @@ class ReportRepository:
                 Invoice.supplier_id.label("supplier_id"),
                 Supplier.name.label("supplier_name"),
                 Invoice.purchase_order_id.label("purchase_order_id"),
+                PurchaseOrder.po_number.label("po_number"),
                 Invoice.total_amount.label("total_amount"),
                 amount_paid.label("amount_paid"),
                 outstanding_amount.label("outstanding_amount"),
@@ -225,6 +291,11 @@ class ReportRepository:
             )
             .join(Supplier, Invoice.supplier_id == Supplier.id)
             .outerjoin(
+                PurchaseOrder,
+                (Invoice.purchase_order_id == PurchaseOrder.id)
+                & (PurchaseOrder.company_id == company_id),
+            )
+            .outerjoin(
                 Payment,
                 (Payment.invoice_id == Invoice.id)
                 & (Payment.company_id == company_id),
@@ -232,6 +303,7 @@ class ReportRepository:
             .filter(
                 Invoice.company_id == company_id,
                 Supplier.company_id == company_id,
+                Invoice.status != InvoiceStatusEnum.DRAFT,
             )
             .group_by(
                 Invoice.id,
@@ -239,6 +311,7 @@ class ReportRepository:
                 Invoice.supplier_id,
                 Supplier.name,
                 Invoice.purchase_order_id,
+                PurchaseOrder.po_number,
                 Invoice.total_amount,
                 Invoice.status,
                 Invoice.created_at,
@@ -274,6 +347,11 @@ class ReportRepository:
             )
             .join(Supplier, Invoice.supplier_id == Supplier.id)
             .outerjoin(
+                PurchaseOrder,
+                (Invoice.purchase_order_id == PurchaseOrder.id)
+                &(PurchaseOrder.company_id == company_id),
+            )
+            .outerjoin(
                 Payment,
                 (Payment.invoice_id == Invoice.id)
                 & (Payment.company_id == company_id),
@@ -281,6 +359,7 @@ class ReportRepository:
             .filter(
                 Invoice.company_id == company_id,
                 Supplier.company_id == company_id,
+                Invoice.status != InvoiceStatusEnum.DRAFT,
             )
             .group_by(
                 Invoice.id,
@@ -452,8 +531,6 @@ class ReportRepository:
         company_id: UUID,
         filters: PRReportFilter,
     ):
-        item_count = func.count(PurchaseRequisitionItem.id)
-
         query = (
             self.db.query(
                 PurchaseRequisition.id.label("pr_id"),
@@ -461,12 +538,18 @@ class ReportRepository:
                 PurchaseRequisition.title.label("title"),
                 PurchaseRequisition.department_id.label("department_id"),
                 Department.name.label("department_name"),
-                PurchaseRequisition.requested_by.label("requested_by"),
-                PurchaseRequisition.total_amount.label("total_amount"),
+                PurchaseRequisition.requested_by.label("requested_by_id"),
+                User.name.label("requested_by_name"),
+                PurchaseRequisition.total_amount.label("pr_total_amount"),
                 PurchaseRequisition.currency.label("currency"),
                 PurchaseRequisition.status.label("status"),
-                item_count.label("item_count"),
                 PurchaseRequisition.created_at.label("created_at"),
+
+                PurchaseRequisitionItem.id.label("item_id"),
+                PurchaseRequisitionItem.item_name.label("item_name"),
+                PurchaseRequisitionItem.quantity.label("quantity"),
+                PurchaseRequisitionItem.unit_price.label("unit_price"),
+                PurchaseRequisitionItem.line_total.label("line_total"),
             )
             .outerjoin(
                 Department,
@@ -474,6 +557,11 @@ class ReportRepository:
                 & (Department.company_id == company_id),
             )
             .outerjoin(
+                User,
+                (PurchaseRequisition.requested_by == User.id)
+                & (User.company_id == company_id),
+            )
+            .join(
                 PurchaseRequisitionItem,
                 (PurchaseRequisitionItem.requisition_id == PurchaseRequisition.id)
                 & (PurchaseRequisitionItem.company_id == company_id),
@@ -482,24 +570,15 @@ class ReportRepository:
                 PurchaseRequisition.company_id == company_id,
                 PurchaseRequisition.is_active == True,
             )
-            .group_by(
-                PurchaseRequisition.id,
-                PurchaseRequisition.pr_number,
-                PurchaseRequisition.title,
-                PurchaseRequisition.department_id,
-                Department.name,
-                PurchaseRequisition.requested_by,
-                PurchaseRequisition.total_amount,
-                PurchaseRequisition.currency,
-                PurchaseRequisition.status,
-                PurchaseRequisition.created_at,
-            )
         )
 
         query = self._apply_pr_filters(query, filters)
 
         return (
-            query.order_by(PurchaseRequisition.created_at.desc())
+            query.order_by(
+                PurchaseRequisition.created_at.desc(),
+                PurchaseRequisition.pr_number.asc(),
+            )
             .offset(filters.skip)
             .limit(filters.limit)
             .all()
@@ -562,30 +641,44 @@ class ReportRepository:
     # ----------------------
     # PO REPO REPORT
     # ---------------------
-
     def get_po_report_rows(
         self,
         company_id: UUID,
         filters: POReportFilter,
     ):
-        item_count = func.count(PurchaseOrderItem.id)
+        CreatedByUser = aliased(User)
+        SubmittedByUser = aliased(User)
+        IssuedByUser = aliased(User)
 
         query = (
             self.db.query(
                 PurchaseOrder.id.label("po_id"),
                 PurchaseOrder.po_number.label("po_number"),
+
                 PurchaseOrder.supplier_id.label("supplier_id"),
                 Supplier.name.label("supplier_name"),
+
                 PurchaseOrder.department_id.label("department_id"),
                 Department.name.label("department_name"),
+
                 PurchaseOrder.purchase_requisition_id.label("purchase_requisition_id"),
-                PurchaseOrder.total_amount.label("total_amount"),
+                PurchaseRequisition.pr_number.label("pr_number"),
+
+                CreatedByUser.name.label("created_by_name"),
+                SubmittedByUser.name.label("submitted_by_name"),
+                IssuedByUser.name.label("issued_by_name"),
+
+                PurchaseOrderItem.id.label("item_id"),
+                PurchaseOrderItem.item_name.label("item_name"),
+                PurchaseOrderItem.quantity.label("quantity"),
+                PurchaseOrderItem.unit_price.label("unit_price"),
+                (
+                    PurchaseOrderItem.quantity * PurchaseOrderItem.unit_price
+                ).label("line_total"),
+                PurchaseOrder.total_amount.label("po_total_amount"),
                 PurchaseOrder.currency.label("currency"),
                 PurchaseOrder.status.label("status"),
-                item_count.label("item_count"),
-                PurchaseOrder.created_by.label("created_by"),
-                PurchaseOrder.submitted_by.label("submitted_by"),
-                PurchaseOrder.issued_by.label("issued_by"),
+
                 PurchaseOrder.created_at.label("created_at"),
                 PurchaseOrder.submitted_at.label("submitted_at"),
                 PurchaseOrder.issued_at.label("issued_at"),
@@ -601,40 +694,44 @@ class ReportRepository:
                 & (Department.company_id == company_id),
             )
             .outerjoin(
+                PurchaseRequisition,
+                (PurchaseOrder.purchase_requisition_id == PurchaseRequisition.id)
+                & (PurchaseRequisition.company_id == company_id),
+            )
+            .outerjoin(
+                CreatedByUser,
+                (PurchaseOrder.created_by == CreatedByUser.id)
+                & (CreatedByUser.company_id == company_id),
+            )
+            .outerjoin(
+                SubmittedByUser,
+                (PurchaseOrder.submitted_by == SubmittedByUser.id)
+                & (SubmittedByUser.company_id == company_id),
+            )
+            .outerjoin(
+                IssuedByUser,
+                (PurchaseOrder.issued_by == IssuedByUser.id)
+                & (IssuedByUser.company_id == company_id),
+            )
+            .join(
                 PurchaseOrderItem,
                 (PurchaseOrderItem.purchase_order_id == PurchaseOrder.id)
                 & (PurchaseOrderItem.company_id == company_id),
             )
             .filter(PurchaseOrder.company_id == company_id)
-            .group_by(
-                PurchaseOrder.id,
-                PurchaseOrder.po_number,
-                PurchaseOrder.supplier_id,
-                Supplier.name,
-                PurchaseOrder.department_id,
-                Department.name,
-                PurchaseOrder.purchase_requisition_id,
-                PurchaseOrder.total_amount,
-                PurchaseOrder.currency,
-                PurchaseOrder.status,
-                PurchaseOrder.created_by,
-                PurchaseOrder.submitted_by,
-                PurchaseOrder.issued_by,
-                PurchaseOrder.created_at,
-                PurchaseOrder.submitted_at,
-                PurchaseOrder.issued_at,
-            )
         )
 
         query = self._apply_po_filters(query, filters)
 
         return (
-            query.order_by(PurchaseOrder.created_at.desc())
+            query.order_by(
+                PurchaseOrder.created_at.desc(),
+                PurchaseOrder.po_number.asc(),
+            )
             .offset(filters.skip)
             .limit(filters.limit)
             .all()
         )
-
 
     def count_po_report_rows(
         self,
@@ -642,7 +739,12 @@ class ReportRepository:
         filters: POReportFilter,
     ) -> int:
         query = (
-            self.db.query(PurchaseOrder.id)
+            self.db.query(PurchaseOrderItem.id)
+            .join(
+                PurchaseOrder,
+                (PurchaseOrderItem.purchase_order_id == PurchaseOrder.id)
+                & (PurchaseOrder.company_id == company_id),
+            )
             .join(
                 Supplier,
                 (PurchaseOrder.supplier_id == Supplier.id)
@@ -653,7 +755,12 @@ class ReportRepository:
                 (PurchaseOrder.department_id == Department.id)
                 & (Department.company_id == company_id),
             )
-            .filter(PurchaseOrder.company_id == company_id)
+            .outerjoin(
+                PurchaseRequisition,
+                (PurchaseOrder.purchase_requisition_id == PurchaseRequisition.id)
+                & (PurchaseRequisition.company_id == company_id),
+            )
+            .filter(PurchaseOrderItem.company_id == company_id)
         )
 
         query = self._apply_po_filters(query, filters)
@@ -661,7 +768,6 @@ class ReportRepository:
         subquery = query.subquery()
 
         return self.db.query(func.count()).select_from(subquery).scalar() or 0
-
 
     def _apply_po_filters(
         self,

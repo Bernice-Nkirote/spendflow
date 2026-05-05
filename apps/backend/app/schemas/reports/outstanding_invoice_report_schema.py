@@ -46,6 +46,7 @@ class OutstandingInvoiceReportRow(BaseModel):
     supplier_id: UUID
     supplier_name: str | None = None
     purchase_order_id: UUID | None = None
+    po_number: str | None = None
     total_amount: Decimal
     amount_paid: Decimal
     outstanding_amount: Decimal

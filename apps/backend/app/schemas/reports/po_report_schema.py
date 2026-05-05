@@ -3,10 +3,11 @@ from decimal import Decimal
 from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
+from app.models.enums import POStatusEnum
 
 
 class POReportFilter(BaseModel):
-    status: str | None = None
+    status: POStatusEnum | None = None
     supplier_id: UUID | None = None
     department_id: UUID | None = None
     purchase_requisition_id: UUID | None = None
@@ -36,26 +37,36 @@ class POReportFilter(BaseModel):
 
         return self
 
-
 class POReportRow(BaseModel):
     po_id: UUID
     po_number: str
-    supplier_id: UUID
+
+    supplier_id: UUID | None = None
     supplier_name: str | None = None
+
     department_id: UUID | None = None
     department_name: str | None = None
+
     purchase_requisition_id: UUID | None = None
-    total_amount: Decimal
+    pr_number: str | None = None
+
+    created_by_name: str | None = None
+    submitted_by_name: str | None = None
+    issued_by_name: str | None = None
+
+    item_id: UUID
+    item_name: str
+    quantity: Decimal
+    unit_price: Decimal
+    line_total: Decimal
+
+    po_total_amount: Decimal
     currency: str
-    status: str
-    item_count: int
-    created_by: UUID
-    submitted_by: UUID | None = None
-    issued_by: UUID | None = None
+    status: POStatusEnum
+
     created_at: datetime
     submitted_at: datetime | None = None
     issued_at: datetime | None = None
-
 
 class POReportResponse(BaseModel):
     rows: list[POReportRow]

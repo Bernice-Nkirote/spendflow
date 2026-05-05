@@ -13,6 +13,7 @@ class CompanyService:
 
     def create_company(self, data: CompanyCreate) -> Company:
         name = data.name.strip()
+        currency=data.currency.strip().upper() if data.currency else "KES"
         if not name:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -28,6 +29,7 @@ class CompanyService:
 
         company = Company(
             name=name,
+            currency=currency,
             is_active=data.is_active if data.is_active is not None else True,
         )
 

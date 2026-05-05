@@ -2,6 +2,7 @@ from decimal import Decimal
 from io import BytesIO
 
 from fastapi import HTTPException, status
+from app.utils.value_helper.enum_utils import enum_value
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
@@ -38,10 +39,9 @@ class PDFService:
 
         issued_at = po.issued_at.strftime("%Y-%m-%d %H:%M") if po.issued_at else "-"
         submitted_at = po.submitted_at.strftime("%Y-%m-%d %H:%M") if po.submitted_at else "-"
-
         return [
             ["PO Number", po.po_number, "Supplier", supplier_name],
-            ["Status", str(po.status.value), "Supplier Email", supplier_email],
+            ["Status", str(enum_value(po.status)), "Supplier Email", supplier_email],
             ["Currency", po.currency, "Contact Person", supplier_contact],
             ["Submitted At", submitted_at, "Supplier Phone", supplier_phone],
             ["Issued At", issued_at, "Department ID", str(po.department_id) if po.department_id else "-"],

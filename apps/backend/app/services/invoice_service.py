@@ -1,6 +1,8 @@
 from decimal import Decimal
 from typing import Any
 from uuid import UUID
+from datetime import datetime
+import uuid
 
 from fastapi import HTTPException, status
 
@@ -21,6 +23,7 @@ from app.schemas.invoice_schema import InvoiceCreate, InvoiceUpdate
 from app.services.permission_service import PermissionService
 from app.services.approval_instance_service import ApprovalInstanceService
 from app.services.audit_log_service import AuditLogService
+from app.utils.value_helper.enum_utils import enum_value
 
 class InvoiceService:
     def __init__(
@@ -41,6 +44,11 @@ class InvoiceService:
         self.permission_service = permission_service
         self.audit_log_service = audit_log_service
 
+    def _generate_invoice_number(self) -> str:
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S%f")
+        suffix = uuid.uuid4().hex[:6].upper()
+        return f"INV-{timestamp}-{suffix}"
+
     def create_invoice(
         self,
         invoice_data: InvoiceCreate,
@@ -60,12 +68,11 @@ class InvoiceService:
                     detail="You do not have permission to create invoices",
                 )
             
-        invoice_number = invoice_data.invoice_number.strip()
-        if not invoice_number:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invoice number is required",
-            )
+        invoice_number = (
+            invoice_data.invoice_number.strip()
+            if invoice_data.invoice_number
+            else self._generate_invoice_number()
+        )
 
         if not invoice_data.line_items:
             raise HTTPException(
@@ -128,7 +135,7 @@ class InvoiceService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Invoice supplier must match the purchase order supplier",
                 )
-
+        
         invoice = Invoice(
             company_id=company_id,
             purchase_order_id=po.id,
@@ -230,7 +237,7 @@ class InvoiceService:
                 "purchase_order_id": str(updated_invoice.purchase_order_id),
                 "supplier_id": str(updated_invoice.supplier_id),
                 "total_amount": str(updated_invoice.total_amount),
-                "status": updated_invoice.status.value,
+                "status": enum_value(updated_invoice.status),
             },
         )
         
@@ -373,7 +380,7 @@ class InvoiceService:
         old_values = {
             "invoice_number": invoice.invoice_number,
             "total_amount": str(invoice.total_amount),
-            "status": invoice.status.value,
+            "status": enum_value(invoice.status),
         }
 
         update_data = invoice_data.model_dump(exclude_unset=True)
@@ -598,7 +605,7 @@ class InvoiceService:
             description=f"Invoice {invoice.invoice_number} cancelled",
             old_values_json={
                 "invoice_number": invoice.invoice_number,
-                "status": invoice.status.value,
+                "status": enum_value(invoice.status),
                 "total_amount": str(invoice.total_amount),
             },
         )

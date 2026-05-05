@@ -23,12 +23,14 @@ from app.schemas.pr_item_schema import (
 from app.schemas.pr_schema import (
     PurchaseRequisitionCreate,
     PurchaseRequisitionRead,
+    PurchaseRequisitionDetailRead,
     PurchaseRequisitionUpdate,
 )
 from app.services.approval_instance_service import ApprovalInstanceService
 from app.services.pr_service import PurchaseRequisitionService
 from app.services.permission_service import PermissionService
 from app.services.audit_log_service import AuditLogService
+
 
 router = APIRouter(
     prefix="/purchase-requisitions",
@@ -50,14 +52,17 @@ def get_purchase_requisition_service(
         workflow_level_repo=workflow_level_repo,
     )
 
+    audit_log_service = AuditLogService(
+        repo=AuditLogRepository(db)
+    )
+
     permission_service = PermissionService(
         permission_repo=PermissionRepository(db),
         role_permission_repo=RolePermissionRepository(db),
         role_repo=RoleRepository(db),
+        audit_log_service=audit_log_service,
     )
-    audit_log_service = AuditLogService(
-        repo=AuditLogRepository(db)
-    )
+    
 
     return PurchaseRequisitionService(
         requisition_repo=requisition_repo,
@@ -134,7 +139,7 @@ def get_purchase_requisitions_by_department(
     )
 
 
-@router.get("/{requisition_id}", response_model=PurchaseRequisitionRead)
+@router.get("/{requisition_id}", response_model=PurchaseRequisitionDetailRead)
 def get_purchase_requisition(
     requisition_id: UUID,
     current_user=Depends(get_current_user),

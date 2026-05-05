@@ -1,75 +1,88 @@
 from app.schemas.reports.po_report_schema import POReportRow
 
-
 class POReportBuilder:
-    def build_rows(self, raw_rows) -> list[POReportRow]:
+    @staticmethod
+    def build_rows(rows):
         return [
-            POReportRow(
-                po_id=row.po_id,
-                po_number=row.po_number,
-                supplier_id=row.supplier_id,
-                supplier_name=row.supplier_name,
-                department_id=row.department_id,
-                department_name=row.department_name,
-                purchase_requisition_id=row.purchase_requisition_id,
-                total_amount=row.total_amount,
-                currency=row.currency,
-                status=row.status,
-                item_count=row.item_count,
-                created_by=row.created_by,
-                submitted_by=row.submitted_by,
-                issued_by=row.issued_by,
-                created_at=row.created_at,
-                submitted_at=row.submitted_at,
-                issued_at=row.issued_at,
-            )
-            for row in raw_rows
+            {
+                
+                "po_id": row.po_id,
+                "po_number": row.po_number,
+
+                "supplier_id": row.supplier_id,
+                "supplier_name": row.supplier_name or "N/A",
+
+                "department_id": row.department_id,
+                "department_name": row.department_name or "N/A",
+
+                "purchase_requisition_id": row.purchase_requisition_id,
+                "pr_number": row.pr_number or "N/A",
+
+                "created_by_name": row.created_by_name or "N/A",
+                "submitted_by_name": row.submitted_by_name or "N/A",
+                "issued_by_name": row.issued_by_name or "N/A",
+
+                "item_id": row.item_id,
+                "item_name": row.item_name,
+                "quantity": row.quantity,
+                "unit_price": row.unit_price,
+                "line_total": row.line_total,
+
+                "po_total_amount": row.po_total_amount,
+                "currency": row.currency,
+                "status": row.status,
+
+                "created_at": row.created_at,
+                "submitted_at": row.submitted_at,
+                "issued_at": row.issued_at,
+
+            }
+            for row in rows
         ]
 
-    def headers(self) -> list[str]:
+    @staticmethod
+    def headers():
         return [
-            "po_id",
-            "po_number",
-            "supplier_id",
-            "supplier_name",
-            "department_id",
-            "department_name",
-            "purchase_requisition_id",
-            "total_amount",
-            "currency",
-            "status",
-            "item_count",
-            "created_by",
-            "submitted_by",
-            "issued_by",
-            "created_at",
-            "submitted_at",
-            "issued_at",
+            "PO Number",
+            "Supplier",
+            "Department",
+            "PR Number",
+            "Created By",
+            "Submitted By",
+            "Issued By",
+            "Item",
+            "Quantity",
+            "Unit Price",
+            "Line Total",
+            "PO Total Amount",
+            "Currency",
+            "Status",
+            "Created At",
+            "Submitted At",
+            "Issued At",
         ]
 
-    def export_rows(
-        self,
-        rows: list[POReportRow],
-    ) -> list[list]:
+    @staticmethod
+    def export_rows(rows):
         return [
             [
-                str(row.po_id),
-                row.po_number,
-                str(row.supplier_id),
-                row.supplier_name,
-                str(row.department_id) if row.department_id else None,
-                row.department_name,
-                str(row.purchase_requisition_id) if row.purchase_requisition_id else None,
-                row.total_amount,
-                row.currency,
-                row.status,
-                row.item_count,
-                str(row.created_by),
-                str(row.submitted_by) if row.submitted_by else None,
-                str(row.issued_by) if row.issued_by else None,
-                row.created_at,
-                row.submitted_at,
-                row.issued_at,
+                row.get("po_number"),
+                row.get("supplier_name"),
+                row.get("department_name"),
+                row.get("pr_number"),
+                row.get("created_by_name"),
+                row.get("submitted_by_name"),
+                row.get("issued_by_name"),
+                row.get("item_name"),
+                row.get("quantity"),
+                row.get("unit_price"),
+                row.get("line_total"),
+                row.get("po_total_amount"),
+                row.get("currency"),
+                row.get("status"),
+                row.get("created_at"),
+                row.get("submitted_at"),
+                row.get("issued_at"),
             ]
             for row in rows
         ]

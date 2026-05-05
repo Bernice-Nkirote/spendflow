@@ -2,11 +2,13 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
+from app.models.enums import PaymentStatusEnum
+
 from pydantic import BaseModel, Field, model_validator
 
 
 class PaymentReportFilter(BaseModel):
-    status: str | None = None
+    status: PaymentStatusEnum | None = None
     payment_method: str | None = None
     invoice_id: UUID | None = None
     supplier_id: UUID | None = None
@@ -39,15 +41,21 @@ class PaymentReportFilter(BaseModel):
 
 class PaymentReportRow(BaseModel):
     payment_id: UUID
+    payment_reference: str | None = None
+
     invoice_id: UUID
-    invoice_number: str | None = None
-    supplier_id: UUID | None = None
+    invoice_number: str
+
+    supplier_id: UUID 
     supplier_name: str | None = None
+
     amount: Decimal
-    status: str
     payment_method: str | None = None
-    reference: str | None = None
-    created_by: UUID | None = None
+    status: str
+
+    created_by_id: UUID | None = None
+    created_by_name: str | None = None
+
     created_at: datetime
     paid_at: datetime | None = None
 

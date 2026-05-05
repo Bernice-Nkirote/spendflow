@@ -3,9 +3,14 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.security import create_access_token, verify_password
+from app.core.auth_dependancy import get_current_user
+from app.models.user import User
+
 from app.repositories.company_repository import CompanyRepository
 from app.repositories.user_repository import UserRepository
+
 from app.schemas.user_schema import UserLogin
+from app.schemas.auth_schema import AuthMeResponse
 
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -86,3 +91,17 @@ def login(
         "access_token": access_token,
         "token_type": "bearer",
     }
+
+@router.get("/me", response_model=AuthMeResponse)
+def get_current_user_profile(
+    current_user: User = Depends(get_current_user),
+):
+    return AuthMeResponse(
+        id=current_user.id,
+        name=current_user.name,
+        email=current_user.email,
+        company_id=current_user.company_id,
+        role_id=current_user.role_id,
+        role_name=current_user.role.name if current_user.role else None,
+        company_name=current_user.company.name if current_user.company else None,
+    )

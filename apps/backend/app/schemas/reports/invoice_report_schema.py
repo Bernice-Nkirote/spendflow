@@ -39,10 +39,20 @@ class InvoiceReportFilter(BaseModel):
 class InvoiceReportRow(BaseModel):
     invoice_id: UUID
     invoice_number: str
+
     supplier_id: UUID
     supplier_name: str | None = None
+
     purchase_order_id: UUID | None = None
-    total_amount: Decimal
+    po_number: str | None = None
+
+    item_id: UUID
+    item_description: str
+    quantity: Decimal
+    unit_price: Decimal
+    line_total: Decimal
+
+    invoice_total_amount: Decimal
     status: str
     created_at: datetime
 

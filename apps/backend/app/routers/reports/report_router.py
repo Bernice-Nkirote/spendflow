@@ -26,6 +26,7 @@ from app.schemas.reports.payment_report_schema import (
     PaymentReportFilter,
     PaymentReportResponse,
 )
+from app.repositories.report_export_log_repository import ReportExportLogRepository
 from app.schemas.reports.invoice_report_schema import (
     InvoiceReportFilter,
     InvoiceReportResponse,
@@ -78,6 +79,7 @@ def get_report_service(db: Session = Depends(get_db)) -> ReportService:
     return ReportService(
         report_repo=ReportRepository(db),
         permission_service=permission_service,
+        report_export_log_repo=ReportExportLogRepository(db),
         payment_report_builder=PaymentReportBuilder(),
         invoice_report_builder=InvoiceReportBuilder(),
         outstanding_invoice_report_builder=OutstandingInvoiceReportBuilder(),
@@ -115,6 +117,7 @@ def export_payment_report_csv(
     csv_file, filename = report_service.export_payment_report_csv(
         company_id=current_user.company_id,
         role_id=current_user.role_id,
+        user_id=current_user.id,
         filters=filters,
     )
 
@@ -123,7 +126,10 @@ def export_payment_report_csv(
         media_type="text/csv",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
-        },
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },       
     )
 
 
@@ -136,6 +142,7 @@ def export_payment_report_excel(
     excel_file, filename = report_service.export_payment_report_excel(
         company_id=current_user.company_id,
         role_id=current_user.role_id,
+        user_id=current_user.id,
         filters=filters,
     )
 
@@ -144,7 +151,10 @@ def export_payment_report_excel(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
-        },
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },   
     )
 
 # ---------------------
@@ -175,6 +185,7 @@ def export_invoice_report_csv(
     csv_file, filename = report_service.export_invoice_report_csv(
         company_id=current_user.company_id,
         role_id=current_user.role_id,
+        user_id=current_user.id,
         filters=filters,
     )
 
@@ -183,7 +194,10 @@ def export_invoice_report_csv(
         media_type="text/csv",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
-        },
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },   
     )
 
 
@@ -196,6 +210,7 @@ def export_invoice_report_excel(
     excel_file, filename = report_service.export_invoice_report_excel(
         company_id=current_user.company_id,
         role_id=current_user.role_id,
+        user_id=current_user.id,
         filters=filters,
     )
 
@@ -204,7 +219,10 @@ def export_invoice_report_excel(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
-        },
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },   
     )
 
 # ----------------------
@@ -236,6 +254,7 @@ def export_outstanding_invoice_report_csv(
     csv_file, filename = report_service.export_outstanding_invoice_report_csv(
         company_id=current_user.company_id,
         role_id=current_user.role_id,
+        user_id=current_user.id,
         filters=filters,
     )
 
@@ -244,7 +263,10 @@ def export_outstanding_invoice_report_csv(
         media_type="text/csv",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
-        },
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },   
     )
 
 
@@ -257,15 +279,19 @@ def export_outstanding_invoice_report_excel(
     excel_file, filename = report_service.export_outstanding_invoice_report_excel(
         company_id=current_user.company_id,
         role_id=current_user.role_id,
+        user_id=current_user.id,
         filters=filters,
     )
 
     return StreamingResponse(
         excel_file,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={
+       headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
-        },
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },   
     )
 
 
@@ -297,6 +323,7 @@ def export_supplier_spend_report_csv(
     csv_file, filename = report_service.export_supplier_spend_report_csv(
         company_id=current_user.company_id,
         role_id=current_user.role_id,
+        user_id=current_user.id,
         filters=filters,
     )
 
@@ -305,7 +332,10 @@ def export_supplier_spend_report_csv(
         media_type="text/csv",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
-        },
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },   
     )
 
 
@@ -318,6 +348,7 @@ def export_supplier_spend_report_excel(
     excel_file, filename = report_service.export_supplier_spend_report_excel(
         company_id=current_user.company_id,
         role_id=current_user.role_id,
+        user_id=current_user.id,
         filters=filters,
     )
 
@@ -326,7 +357,10 @@ def export_supplier_spend_report_excel(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
-        },
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },   
     )
 
 # --------------------
@@ -358,6 +392,7 @@ def export_pr_report_csv(
     csv_file, filename = report_service.export_pr_report_csv(
         company_id=current_user.company_id,
         role_id=current_user.role_id,
+        user_id=current_user.id,
         filters=filters,
     )
 
@@ -366,7 +401,10 @@ def export_pr_report_csv(
         media_type="text/csv",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
-        },
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },   
     )
 
 
@@ -379,6 +417,7 @@ def export_pr_report_excel(
     excel_file, filename = report_service.export_pr_report_excel(
         company_id=current_user.company_id,
         role_id=current_user.role_id,
+        user_id=current_user.id,
         filters=filters,
     )
 
@@ -387,7 +426,10 @@ def export_pr_report_excel(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
-        },
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },   
     )
 
 # --------------------
@@ -418,6 +460,7 @@ def export_po_report_csv(
     csv_file, filename = report_service.export_po_report_csv(
         company_id=current_user.company_id,
         role_id=current_user.role_id,
+        user_id=current_user.id,
         filters=filters,
     )
 
@@ -426,7 +469,10 @@ def export_po_report_csv(
         media_type="text/csv",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
-        },
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },   
     )
 
 
@@ -439,6 +485,7 @@ def export_po_report_excel(
     excel_file, filename = report_service.export_po_report_excel(
         company_id=current_user.company_id,
         role_id=current_user.role_id,
+        user_id=current_user.id,
         filters=filters,
     )
 
@@ -447,7 +494,10 @@ def export_po_report_excel(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
-        },
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },   
     )
 
 # --------------------------------
@@ -478,6 +528,7 @@ def export_supplier_lead_time_report_csv(
     csv_file, filename = report_service.export_supplier_lead_time_report_csv(
         company_id=current_user.company_id,
         role_id=current_user.role_id,
+        user_id=current_user.id,
         filters=filters,
     )
 
@@ -486,7 +537,10 @@ def export_supplier_lead_time_report_csv(
         media_type="text/csv",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
-        },
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },   
     )
 
 
@@ -499,6 +553,7 @@ def export_supplier_lead_time_report_excel(
     excel_file, filename = report_service.export_supplier_lead_time_report_excel(
         company_id=current_user.company_id,
         role_id=current_user.role_id,
+        user_id=current_user.id,
         filters=filters,
     )
 
@@ -507,5 +562,8 @@ def export_supplier_lead_time_report_excel(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
-        },
+            "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },   
     )

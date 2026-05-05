@@ -12,6 +12,7 @@ class OutstandingInvoiceReportBuilder:
                 supplier_id=row.supplier_id,
                 supplier_name=row.supplier_name,
                 purchase_order_id=row.purchase_order_id,
+                po_number=row.po_number,
                 total_amount=row.total_amount,
                 amount_paid=row.amount_paid,
                 outstanding_amount=row.outstanding_amount,
@@ -23,16 +24,14 @@ class OutstandingInvoiceReportBuilder:
 
     def headers(self) -> list[str]:
         return [
-            "invoice_id",
-            "invoice_number",
-            "supplier_id",
-            "supplier_name",
-            "purchase_order_id",
-            "total_amount",
-            "amount_paid",
-            "outstanding_amount",
-            "status",
-            "created_at",
+            "Invoice Number",
+            "Supplier",
+            "PO Number",
+            "Total Amount",
+            "Amount Paid",
+            "Outstanding Amount",
+            "Status",
+            "Created At",
         ]
 
     def export_rows(
@@ -41,11 +40,9 @@ class OutstandingInvoiceReportBuilder:
     ) -> list[list]:
         return [
             [
-                str(row.invoice_id),
                 row.invoice_number,
-                str(row.supplier_id),
-                row.supplier_name,
-                str(row.purchase_order_id) if row.purchase_order_id else None,
+                row.supplier_name or "N/A",
+                row.po_number or "N/A",
                 row.total_amount,
                 row.amount_paid,
                 row.outstanding_amount,
