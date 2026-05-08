@@ -17,7 +17,7 @@ from app.repositories.role_repository import RoleRepository
 from app.repositories.audit_log_repository import AuditLogRepository
 from app.services.audit_log_service import AuditLogService
 
-from app.schemas.payment_schema import PaymentCreate, PaymentRead, PaymentUpdate
+from app.schemas.payment_schema import PaymentCreate, PaymentRead, PaymentUpdate, PaymentDetailRead
 from app.services.approval_instance_service import ApprovalInstanceService
 from app.services.payment_service import PaymentService
 from app.services.permission_service import PermissionService
@@ -38,14 +38,16 @@ def get_payment_service(
         repo=approval_instance_repo,
         workflow_level_repo=workflow_level_repo,
     )
+    audit_log_service = AuditLogService(
+        repo=AuditLogRepository(db),
+    )
     permission_service = PermissionService(
         permission_repo=PermissionRepository(db),
         role_permission_repo=RolePermissionRepository(db),
         role_repo=RoleRepository(db),
+        audit_log_service=audit_log_service,
     )
-    audit_log_service = AuditLogService(
-        repo=AuditLogRepository(db),
-    )
+    
 
     return PaymentService(
         payment_repo=payment_repo,
@@ -121,7 +123,7 @@ def get_payments_by_status(
     )
 
 
-@router.get("/{payment_id}", response_model=PaymentRead)
+@router.get("/{payment_id}", response_model=PaymentDetailRead)
 def get_payment(
     payment_id: UUID,
     current_user=Depends(get_current_user),

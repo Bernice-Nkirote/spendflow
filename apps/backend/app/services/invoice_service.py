@@ -255,11 +255,37 @@ class InvoiceService:
             invoice_id=invoice_id,
             company_id=company_id,
         )
+
         if not invoice:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Invoice not found",
             )
+
+        invoice.line_items = self.line_item_repo.get_all_by_invoice(
+            invoice_id=invoice.id,
+            company_id=company_id,
+        )
+
+        invoice.supplier_name = invoice.supplier.name if invoice.supplier else None
+
+        invoice.po_number = (
+            invoice.purchase_order.po_number
+            if invoice.purchase_order
+            else None
+        )
+
+        invoice.submitted_by_user_name = (
+            invoice.submitted_by_user.name
+            if invoice.submitted_by_user
+            else None
+        )
+
+        invoice.submitted_by_supplier_user_name = (
+            invoice.submitted_by_supplier_user.name
+            if invoice.submitted_by_supplier_user
+            else None
+        )
 
         return invoice
 

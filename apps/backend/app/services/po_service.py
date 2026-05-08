@@ -4,6 +4,7 @@ from uuid import UUID, uuid4
 
 from fastapi import HTTPException, status
 
+from app.utils.value_helper.enum_utils import enum_value
 from app.models.approval_instance import ApprovalInstance
 from app.models.enums import ApprovalStatus, EntityTypeEnum, POStatusEnum, PRStatusEnum
 from app.models.purchase_order import PurchaseOrder
@@ -16,6 +17,7 @@ from app.repositories.pr_repository import PurchaseRequisitionRepository
 from app.services.approval_instance_service import ApprovalInstanceService
 from app.services.permission_service import PermissionService
 from app.services.audit_log_service import AuditLogService
+
 class PurchaseOrderService:
     def __init__(
         self,
@@ -125,6 +127,20 @@ class PurchaseOrderService:
         updated_po.items = items
 
         return updated_po
+    
+    def _enrich_po_readable_fields(self, po: PurchaseOrder) -> PurchaseOrder:
+        po.supplier_name = po.supplier.name if po.supplier else None
+        po.department_name = po.department.name if po.department else None
+        po.created_by_name = po.creator.name if po.creator else None
+        po.submitted_by_name = po.submitter.name if po.submitter else None
+        po.issued_by_name = po.issuer.name if po.issuer else None
+        po.pr_number = (
+            po.purchase_requisition.pr_number
+            if po.purchase_requisition
+            else None
+        )
+
+        return po
 
 # Create many PO items in one operation, internal
     def _create_po_items(
@@ -220,13 +236,16 @@ class PurchaseOrderService:
         company_id: UUID,
     ) -> PurchaseOrder:
         po = self.po_repo.get_by_id(po_id, company_id)
+
         if not po:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Purchase order not found",
             )
 
-        return po
+        po.items = self.po_item_repo.get_all_by_po(po.id, company_id)
+
+        return self._enrich_po_readable_fields(po)
 
     def create_po(
         self,
@@ -448,7 +467,12 @@ class PurchaseOrderService:
                 detail="Limit must be greater than zero",
             )
 
-        return self.po_repo.get_all(company_id, skip, limit)
+        purchase_orders = self.po_repo.get_all(company_id, skip, limit)
+
+        return [
+            self._enrich_po_readable_fields(po)
+            for po in purchase_orders
+        ]
 
     def get_all_pos_by_supplier(
         self,
@@ -1019,10 +1043,10 @@ class PurchaseOrderService:
             actor_user_id=user_id,
             description=f"Purchase order {po.po_number} cancelled",
             old_values_json={
-                "status": old_status.value,
+                "status": enum_value(old_status),
             },
             new_values_json={
-                "status": POStatusEnum.CANCELLED.value,
+                "status": enum_value(POStatusEnum.CANCELLED),
             },
         )
         

@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.enums import InvoiceStatusEnum
 from app.models.invoice import Invoice
@@ -23,12 +23,19 @@ class InvoiceRepository:
     ) -> Invoice | None:
         return (
             self.db.query(Invoice)
+            .options(
+                joinedload(Invoice.supplier),
+                joinedload(Invoice.purchase_order),
+                joinedload(Invoice.submitted_by_user),
+                joinedload(Invoice.submitted_by_supplier_user),
+                joinedload(Invoice.line_items),
+            )
             .filter(
                 Invoice.id == invoice_id,
                 Invoice.company_id == company_id,
             )
             .first()
-        )
+        )   
 
     def get_all(
         self,

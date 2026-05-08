@@ -21,7 +21,12 @@ from app.schemas.invoice_line_item_schema import (
 from app.repositories.permission_repository import PermissionRepository
 from app.repositories.role_permission_repository import RolePermissionRepository
 from app.repositories.role_repository import RoleRepository
-from app.schemas.invoice_schema import InvoiceCreate, InvoiceRead, InvoiceUpdate
+from app.schemas.invoice_schema import(
+InvoiceCreate, 
+InvoiceRead, 
+InvoiceUpdate,
+InvoiceDetailRead,
+)
 from app.services.approval_instance_service import ApprovalInstanceService
 from app.services.invoice_service import InvoiceService
 from app.services.permission_service import PermissionService
@@ -143,7 +148,7 @@ def get_invoices_by_purchase_order(
     )
 
 
-@router.get("/{invoice_id}", response_model=InvoiceRead)
+@router.get("/{invoice_id}", response_model=InvoiceDetailRead)
 def get_invoice(
     invoice_id: UUID,
     current_user=Depends(get_current_user),

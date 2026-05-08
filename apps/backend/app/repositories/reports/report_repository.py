@@ -403,6 +403,63 @@ class ReportRepository:
 
         return query 
     
+    def get_outstanding_invoice_detail(
+        self,
+        company_id: UUID,
+        invoice_id: UUID,
+    ):
+        amount_paid = func.coalesce(func.sum(Payment.amount), 0)
+        outstanding_amount = Invoice.total_amount - amount_paid
+
+        return (
+            self.db.query(
+                Invoice.id.label("invoice_id"),
+                Invoice.invoice_number.label("invoice_number"),
+                Invoice.supplier_id.label("supplier_id"),
+                Supplier.name.label("supplier_name"),
+                Invoice.purchase_order_id.label("purchase_order_id"),
+                PurchaseOrder.po_number.label("po_number"),
+                Invoice.total_amount.label("total_amount"),
+                amount_paid.label("amount_paid"),
+                outstanding_amount.label("outstanding_amount"),
+                Invoice.status.label("status"),
+                Invoice.created_at.label("created_at"),
+            )
+            .join(
+                Supplier,
+                (Invoice.supplier_id == Supplier.id)
+                & (Supplier.company_id == company_id),
+            )
+            .outerjoin(
+                PurchaseOrder,
+                (Invoice.purchase_order_id == PurchaseOrder.id)
+                & (PurchaseOrder.company_id == company_id),
+            )
+            .outerjoin(
+                Payment,
+                (Payment.invoice_id == Invoice.id)
+                & (Payment.company_id == company_id),
+            )
+            .filter(
+                Invoice.id == invoice_id,
+                Invoice.company_id == company_id,
+                Invoice.status != InvoiceStatusEnum.DRAFT,
+            )
+            .group_by(
+                Invoice.id,
+                Invoice.invoice_number,
+                Invoice.supplier_id,
+                Supplier.name,
+                Invoice.purchase_order_id,
+                PurchaseOrder.po_number,
+                Invoice.total_amount,
+                Invoice.status,
+                Invoice.created_at,
+            )
+            .having(outstanding_amount > 0)
+            .first()
+        )
+    
     # ----------------------
     # SUPPLIER SPEND REPORT
     # ---------------------
@@ -522,6 +579,165 @@ class ReportRepository:
 
         return query
     
+    # Supplier spend Detail 
+
+    def get_supplier_spend_detail_summary(
+        self,
+        company_id: UUID,
+        supplier_id: UUID,
+    ):
+        invoice_totals_subquery = (
+            self.db.query(
+                Invoice.supplier_id.label("supplier_id"),
+                func.coalesce(func.sum(Invoice.total_amount), 0).label(
+                    "total_invoice_amount"
+                ),
+                func.count(Invoice.id).label("invoice_count"),
+            )
+            .filter(
+                Invoice.company_id == company_id,
+                Invoice.supplier_id == supplier_id,
+            )
+            .group_by(Invoice.supplier_id)
+            .subquery()
+        )
+
+        payment_totals_subquery = (
+            self.db.query(
+                Invoice.supplier_id.label("supplier_id"),
+                func.coalesce(func.sum(Payment.amount), 0).label("total_paid_amount"),
+                func.count(Payment.id).label("payment_count"),
+            )
+            .join(
+                Invoice,
+                (Payment.invoice_id == Invoice.id)
+                & (Invoice.company_id == company_id),
+            )
+            .filter(
+                Payment.company_id == company_id,
+                Invoice.supplier_id == supplier_id,
+            )
+            .group_by(Invoice.supplier_id)
+            .subquery()
+        )
+
+        total_invoice_amount = func.coalesce(
+            invoice_totals_subquery.c.total_invoice_amount,
+            0,
+        )
+
+        total_paid_amount = func.coalesce(
+            payment_totals_subquery.c.total_paid_amount,
+            0,
+        )
+
+        return (
+            self.db.query(
+                Supplier.id.label("supplier_id"),
+                Supplier.name.label("supplier_name"),
+                total_invoice_amount.label("total_invoice_amount"),
+                total_paid_amount.label("total_paid_amount"),
+                (total_invoice_amount - total_paid_amount).label("outstanding_amount"),
+                func.coalesce(invoice_totals_subquery.c.invoice_count, 0).label(
+                    "invoice_count"
+                ),
+                func.coalesce(payment_totals_subquery.c.payment_count, 0).label(
+                    "payment_count"
+                ),
+            )
+            .outerjoin(
+                invoice_totals_subquery,
+                invoice_totals_subquery.c.supplier_id == Supplier.id,
+            )
+            .outerjoin(
+                payment_totals_subquery,
+                payment_totals_subquery.c.supplier_id == Supplier.id,
+            )
+            .filter(
+                Supplier.id == supplier_id,
+                Supplier.company_id == company_id,
+            )
+            .first()
+        )
+
+    def get_supplier_spend_detail_invoices(
+        self,
+        company_id: UUID,
+        supplier_id: UUID,
+    ):
+        amount_paid = func.coalesce(func.sum(Payment.amount), 0)
+        outstanding_amount = Invoice.total_amount - amount_paid
+
+        return (
+            self.db.query(
+                Invoice.id.label("invoice_id"),
+                Invoice.invoice_number.label("invoice_number"),
+                Invoice.purchase_order_id.label("purchase_order_id"),
+                PurchaseOrder.po_number.label("po_number"),
+                Invoice.total_amount.label("total_amount"),
+                amount_paid.label("amount_paid"),
+                outstanding_amount.label("outstanding_amount"),
+                Invoice.status.label("status"),
+                Invoice.created_at.label("created_at"),
+            )
+            .outerjoin(
+                PurchaseOrder,
+                (Invoice.purchase_order_id == PurchaseOrder.id)
+                & (PurchaseOrder.company_id == company_id),
+            )
+            .outerjoin(
+                Payment,
+                (Payment.invoice_id == Invoice.id)
+                & (Payment.company_id == company_id),
+            )
+            .filter(
+                Invoice.company_id == company_id,
+                Invoice.supplier_id == supplier_id,
+                Invoice.status != InvoiceStatusEnum.DRAFT,
+            )
+            .group_by(
+                Invoice.id,
+                Invoice.invoice_number,
+                Invoice.purchase_order_id,
+                PurchaseOrder.po_number,
+                Invoice.total_amount,
+                Invoice.status,
+                Invoice.created_at,
+            )
+            .order_by(Invoice.created_at.desc())
+            .all()
+        )
+    
+    def get_supplier_spend_detail_payments(
+        self,
+        company_id: UUID,
+        supplier_id: UUID,
+    ):
+        return (
+            self.db.query(
+                Payment.id.label("payment_id"),
+                Payment.reference.label("payment_reference"),
+                Payment.invoice_id.label("invoice_id"),
+                Invoice.invoice_number.label("invoice_number"),
+                Payment.amount.label("amount"),
+                Payment.payment_method.label("payment_method"),
+                Payment.status.label("status"),
+                Payment.paid_at.label("paid_at"),
+                Payment.created_at.label("created_at"),
+            )
+            .join(
+                Invoice,
+                (Payment.invoice_id == Invoice.id)
+                & (Invoice.company_id == company_id),
+            )
+            .filter(
+                Payment.company_id == company_id,
+                Invoice.supplier_id == supplier_id,
+            )
+            .order_by(Payment.created_at.desc())
+            .all()
+        )
+
     # ----------------------
     # PR REPO REPORT
     # ---------------------
@@ -918,3 +1134,50 @@ class ReportRepository:
             query = query.filter(lead_time_days <= filters.max_lead_time_days)
 
         return query
+    
+    # Supplier lead time detail
+    def get_supplier_lead_time_detail(
+        self,
+        company_id: UUID,
+        po_id: UUID,
+    ):
+        lead_time_days = (
+            func.extract("epoch", Invoice.created_at - PurchaseOrder.issued_at) / 86400
+        )
+
+        return (
+            self.db.query(
+                PurchaseOrder.id.label("po_id"),
+                PurchaseOrder.po_number.label("po_number"),
+
+                PurchaseOrder.supplier_id.label("supplier_id"),
+                Supplier.name.label("supplier_name"),
+
+                Invoice.id.label("invoice_id"),
+                Invoice.invoice_number.label("invoice_number"),
+
+                PurchaseOrder.issued_at.label("issued_at"),
+                Invoice.created_at.label("invoice_created_at"),
+                lead_time_days.label("lead_time_days"),
+
+                PurchaseOrder.status.label("po_status"),
+                Invoice.status.label("invoice_status"),
+            )
+            .join(
+                Supplier,
+                (PurchaseOrder.supplier_id == Supplier.id)
+                & (Supplier.company_id == company_id),
+            )
+            .outerjoin(
+                Invoice,
+                (Invoice.purchase_order_id == PurchaseOrder.id)
+                & (Invoice.company_id == company_id),
+            )
+            .filter(
+                PurchaseOrder.id == po_id,
+                PurchaseOrder.company_id == company_id,
+                PurchaseOrder.issued_at.isnot(None),
+            )
+            .order_by(Invoice.created_at.asc())
+            .first()
+        )

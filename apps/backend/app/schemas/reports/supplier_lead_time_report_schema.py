@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, ConfigDict
 
 
 class SupplierLeadTimeReportFilter(BaseModel):
@@ -53,3 +53,22 @@ class SupplierLeadTimeReportRow(BaseModel):
 class SupplierLeadTimeReportResponse(BaseModel):
     rows: list[SupplierLeadTimeReportRow]
     total_count: int
+
+class SupplierLeadTimeDetailResponse(BaseModel):
+    po_id: UUID
+    po_number: str
+
+    supplier_id: UUID
+    supplier_name: str
+
+    invoice_id: UUID | None = None
+    invoice_number: str | None = None
+
+    issued_at: datetime | None = None
+    invoice_created_at: datetime | None = None
+    lead_time_days: float | None = None
+
+    po_status: str
+    invoice_status: str | None = None
+
+    model_config = ConfigDict(from_attributes=True)

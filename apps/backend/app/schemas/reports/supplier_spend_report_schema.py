@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, ConfigDict
 
 
 class SupplierSpendReportFilter(BaseModel):
@@ -64,3 +64,54 @@ class SupplierSpendReportRow(BaseModel):
 class SupplierSpendReportResponse(BaseModel):
     rows: list[SupplierSpendReportRow]
     total_count: int
+
+
+# SUPPLIER SPEND DETAIL
+class SupplierSpendDetailInvoiceRow(BaseModel):
+    invoice_id: UUID
+    invoice_number: str
+
+    purchase_order_id: UUID | None = None
+    po_number: str | None = None
+
+    total_amount: Decimal
+    amount_paid: Decimal
+    outstanding_amount: Decimal
+
+    status: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class SupplierSpendDetailPaymentRow(BaseModel):
+    payment_id: UUID
+    payment_reference: str | None = None
+
+    invoice_id: UUID
+    invoice_number: str
+
+    amount: Decimal
+    payment_method: str | None = None
+    status: str
+
+    paid_at: datetime | None = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class SupplierSpendDetailResponse(BaseModel):
+    supplier_id: UUID
+    supplier_name: str
+
+    total_invoice_amount: Decimal
+    total_paid_amount: Decimal
+    outstanding_amount: Decimal
+
+    invoice_count: int
+    payment_count: int
+
+    invoices: list[SupplierSpendDetailInvoiceRow]
+    payments: list[SupplierSpendDetailPaymentRow]
+
+    model_config = ConfigDict(from_attributes=True)

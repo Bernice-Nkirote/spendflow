@@ -49,3 +49,11 @@ class PurchaseOrderRead(BaseModel):
     items: List[PurchaseOrderItemRead]
 
     model_config = ConfigDict(from_attributes=True)
+
+class PurchaseOrderDetailRead(PurchaseOrderRead):
+    supplier_name: Optional[str] = None
+    department_name: Optional[str] = None
+    created_by_name: Optional[str] = None
+    submitted_by_name: Optional[str] = None
+    issued_by_name: Optional[str] = None
+    pr_number: Optional[str] = None

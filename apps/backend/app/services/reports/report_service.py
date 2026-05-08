@@ -29,10 +29,14 @@ from app.schemas.reports.invoice_report_schema import(
 from app.schemas.reports.outstanding_invoice_report_schema import (
     OutstandingInvoiceReportFilter,
     OutstandingInvoiceReportResponse,
+    OutstandingInvoiceReportRow,
 )
 from app.schemas.reports.supplier_spend_report_schema import (
     SupplierSpendReportFilter,
     SupplierSpendReportResponse,
+    SupplierSpendDetailResponse,
+    SupplierSpendDetailInvoiceRow,
+    SupplierSpendDetailPaymentRow,
 )
 from app.schemas.reports.pr_report_schema import (
     PRReportFilter,
@@ -45,6 +49,7 @@ from app.schemas.reports.po_report_schema import (
 from app.schemas.reports.supplier_lead_time_report_schema import (
     SupplierLeadTimeReportFilter,
     SupplierLeadTimeReportResponse,
+    SupplierLeadTimeDetailResponse,
 )
 from app.services.permission_service import PermissionService
 from app.utils.reports.csv_generator import generate_csv_report
@@ -409,6 +414,44 @@ class ReportService:
         )
 
         return excel_file, self._build_filename("outstanding_invoices_report", "xlsx")
+    
+
+    def get_outstanding_invoice_detail(
+        self,
+        company_id: UUID,
+        role_id: UUID,
+        invoice_id: UUID,
+    ) -> OutstandingInvoiceReportRow:
+        self._require_permission(
+            role_id=role_id,
+            company_id=company_id,
+            permission_name="reports.outstanding_invoices.view",
+        )
+
+        row = self.report_repo.get_outstanding_invoice_detail(
+            company_id=company_id,
+            invoice_id=invoice_id,
+        )
+
+        if not row:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Outstanding invoice not found",
+            )
+
+        return OutstandingInvoiceReportRow(
+            invoice_id=row.invoice_id,
+            invoice_number=row.invoice_number,
+            supplier_id=row.supplier_id,
+            supplier_name=row.supplier_name,
+            purchase_order_id=row.purchase_order_id,
+            po_number=row.po_number,
+            total_amount=row.total_amount,
+            amount_paid=row.amount_paid,
+            outstanding_amount=row.outstanding_amount,
+            status=row.status,
+            created_at=row.created_at,
+        )
 
     # ---------------------------
     # SUPPLIER SPEND SERVICE 
@@ -510,6 +553,59 @@ class ReportService:
             export_format="EXCEL",
         )
         return excel_file, self._build_filename("supplier_spend_report", "xlsx")
+
+    # supplier spend detail 
+
+    def get_supplier_spend_detail(
+        self,
+        company_id: UUID,
+        role_id: UUID,
+        supplier_id: UUID,
+    ) -> SupplierSpendDetailResponse:
+        self._require_permission(
+            role_id=role_id,
+            company_id=company_id,
+            permission_name="reports.supplier_spend.view",
+        )
+
+        summary = self.report_repo.get_supplier_spend_detail_summary(
+            company_id=company_id,
+            supplier_id=supplier_id,
+        )
+
+        if not summary:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Supplier spend details not found",
+            )
+
+        invoice_rows = self.report_repo.get_supplier_spend_detail_invoices(
+            company_id=company_id,
+            supplier_id=supplier_id,
+        )
+
+        payment_rows = self.report_repo.get_supplier_spend_detail_payments(
+            company_id=company_id,
+            supplier_id=supplier_id,
+        )
+
+        return SupplierSpendDetailResponse(
+            supplier_id=summary.supplier_id,
+            supplier_name=summary.supplier_name,
+            total_invoice_amount=summary.total_invoice_amount,
+            total_paid_amount=summary.total_paid_amount,
+            outstanding_amount=summary.outstanding_amount,
+            invoice_count=summary.invoice_count,
+            payment_count=summary.payment_count,
+            invoices=[
+                SupplierSpendDetailInvoiceRow.model_validate(row)
+                for row in invoice_rows
+            ],
+            payments=[
+                SupplierSpendDetailPaymentRow.model_validate(row)
+                for row in payment_rows
+            ],
+        )
 
     # ---------------------
     # PR REPORT SERVICE 
@@ -746,6 +842,30 @@ class ReportService:
             total_count=total_count,
         )
 
+    def get_supplier_lead_time_detail(
+        self,
+        company_id: UUID,
+        role_id: UUID,
+        po_id: UUID,
+    ) -> SupplierLeadTimeDetailResponse:
+        self._require_permission(
+            role_id=role_id,
+            company_id=company_id,
+            permission_name="reports.supplier_lead_time.view",
+        )
+
+        row = self.report_repo.get_supplier_lead_time_detail(
+            company_id=company_id,
+            po_id=po_id,
+        )
+
+        if not row:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Supplier lead time detail not found",
+            )
+
+        return SupplierLeadTimeDetailResponse.model_validate(row)
 
     def export_supplier_lead_time_report_csv(
         self,

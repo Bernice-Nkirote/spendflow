@@ -1,3 +1,4 @@
+from uuid import UUID
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
@@ -34,10 +35,12 @@ from app.schemas.reports.invoice_report_schema import (
 from app.schemas.reports.outstanding_invoice_report_schema import (
     OutstandingInvoiceReportFilter,
     OutstandingInvoiceReportResponse,
+    OutstandingInvoiceReportRow,
 )
 from app.schemas.reports.supplier_spend_report_schema import (
     SupplierSpendReportFilter,
     SupplierSpendReportResponse,
+    SupplierSpendDetailResponse,
 )
 from app.schemas.reports.pr_report_schema import (
     PRReportFilter,
@@ -50,6 +53,7 @@ from app.schemas.reports.po_report_schema import (
 from app.schemas.reports.supplier_lead_time_report_schema import (
     SupplierLeadTimeReportFilter,
     SupplierLeadTimeReportResponse,
+    SupplierLeadTimeDetailResponse,
 )
 from app.services.audit_log_service import AuditLogService
 from app.services.permission_service import PermissionService
@@ -244,6 +248,20 @@ def get_outstanding_invoice_report(
         filters=filters,
     )
 
+@router.get(
+    "/outstanding-invoices/{invoice_id}",
+    response_model=OutstandingInvoiceReportRow,
+)
+def get_outstanding_invoice_detail(
+    invoice_id: UUID,
+    current_user: User = Depends(get_current_user),
+    report_service: ReportService = Depends(get_report_service),
+):
+    return report_service.get_outstanding_invoice_detail(
+        company_id=current_user.company_id,
+        role_id=current_user.role_id,
+        invoice_id=invoice_id,
+    )
 
 @router.get("/outstanding-invoices/export/csv")
 def export_outstanding_invoice_report_csv(
@@ -294,7 +312,6 @@ def export_outstanding_invoice_report_excel(
         },   
     )
 
-
 # -----------------------------
 # SUPPLIER SPEND REPORTS ROUTER
 # -----------------------------
@@ -313,6 +330,20 @@ def get_supplier_spend_report(
         filters=filters,
     )
 
+@router.get(
+    "/supplier-spend/{supplier_id}",
+    response_model=SupplierSpendDetailResponse,
+)
+def get_supplier_spend_detail(
+    supplier_id: UUID,
+    current_user: User = Depends(get_current_user),
+    report_service: ReportService = Depends(get_report_service),
+):
+    return report_service.get_supplier_spend_detail(
+        company_id=current_user.company_id,
+        role_id=current_user.role_id,
+        supplier_id=supplier_id,
+    )
 
 @router.get("/supplier-spend/export/csv")
 def export_supplier_spend_report_csv(
@@ -518,6 +549,20 @@ def get_supplier_lead_time_report(
         filters=filters,
     )
 
+@router.get(
+    "/supplier-lead-time/{po_id}",
+    response_model=SupplierLeadTimeDetailResponse,
+)
+def get_supplier_lead_time_detail(
+    po_id: UUID,
+    current_user: User = Depends(get_current_user),
+    report_service: ReportService = Depends(get_report_service),
+):
+    return report_service.get_supplier_lead_time_detail(
+        company_id=current_user.company_id,
+        role_id=current_user.role_id,
+        po_id=po_id,
+    )
 
 @router.get("/supplier-lead-time/export/csv")
 def export_supplier_lead_time_report_csv(

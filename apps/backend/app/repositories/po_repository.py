@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.enums import POStatusEnum
 from app.models.purchase_order import PurchaseOrder
@@ -22,13 +22,22 @@ class PurchaseOrderRepository:
         company_id: UUID,
     ) -> PurchaseOrder | None:
         return (
-            self.db.query(PurchaseOrder)
-            .filter(
-                PurchaseOrder.id == po_id,
-                PurchaseOrder.company_id == company_id,
-            )
-            .first()
+        self.db.query(PurchaseOrder)
+        .options(
+            joinedload(PurchaseOrder.supplier),
+            joinedload(PurchaseOrder.department),
+            joinedload(PurchaseOrder.creator),
+            joinedload(PurchaseOrder.submitter),
+            joinedload(PurchaseOrder.issuer),
+            joinedload(PurchaseOrder.purchase_requisition),
+            joinedload(PurchaseOrder.items),
         )
+        .filter(
+            PurchaseOrder.id == po_id,
+            PurchaseOrder.company_id == company_id,
+        )
+        .first()
+    )
 
     def get_all(
         self,
@@ -38,6 +47,15 @@ class PurchaseOrderRepository:
     ) -> list[PurchaseOrder]:
         return (
             self.db.query(PurchaseOrder)
+            .options(
+                joinedload(PurchaseOrder.supplier),
+                joinedload(PurchaseOrder.department),
+                joinedload(PurchaseOrder.creator),
+                joinedload(PurchaseOrder.submitter),
+                joinedload(PurchaseOrder.issuer),
+                joinedload(PurchaseOrder.purchase_requisition),
+                joinedload(PurchaseOrder.items),
+            )
             .filter(PurchaseOrder.company_id == company_id)
             .order_by(PurchaseOrder.created_at.desc())
             .offset(skip)

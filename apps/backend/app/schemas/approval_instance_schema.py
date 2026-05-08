@@ -19,6 +19,10 @@ class ApprovalInstanceRead(BaseModel):
     workflow_id: UUID
     entity_id: UUID
     entity_type: EntityTypeEnum
+    entity_reference: Optional[str] = None
+    requester_name: Optional[str] = None
+    total_amount: Optional[float] = None
+    currency: Optional[str] = None
     current_level_id: Optional[UUID]
     status: ApprovalStatus
     company_id: UUID

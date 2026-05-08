@@ -198,6 +198,18 @@ export const poColumns: ReportTableColumn<POReportItem>[] = [
       <span className="whitespace-nowrap">{formatDate(value as string)}</span>
     ),
   },
+  {
+    header: "Actions",
+    accessor: "po_id",
+    render: (value) => (
+      <Link
+        to={`/purchase-orders/${value}`}
+        className="whitespace-nowrap text-sm font-medium text-primary-blue hover:underline"
+      >
+        View Details
+      </Link>
+    ),
+  },
 ];
 
 // INVOICE COLUMNS
@@ -286,6 +298,18 @@ export const invoiceColumns: ReportTableColumn<InvoiceReportItem>[] = [
       <span className="whitespace-nowrap">{formatDate(value as string)}</span>
     ),
   },
+  {
+    header: "Actions",
+    accessor: "invoice_id",
+    render: (value) => (
+      <Link
+        to={`/invoices/${value}`}
+        className="whitespace-nowrap text-sm font-medium text-primary-blue hover:underline"
+      >
+        View Details
+      </Link>
+    ),
+  },
 ];
 
 // OUTSTANDING INVOICE COLUMNS
@@ -354,6 +378,18 @@ export const outstandingInvoiceColumns: ReportTableColumn<OutstandingInvoiceRepo
       sortable: true,
       render: (value) => (
         <span className="whitespace-nowrap">{formatDate(value as string)}</span>
+      ),
+    },
+    {
+      header: "Actions",
+      accessor: "invoice_id",
+      render: (value) => (
+        <Link
+          to={`/reports/outstanding-invoices/${value}`}
+          className="whitespace-nowrap text-sm font-medium text-primary-blue hover:underline"
+        >
+          View Details
+        </Link>
       ),
     },
   ];
@@ -440,6 +476,18 @@ export const paymentColumns: ReportTableColumn<PaymentReportItem>[] = [
       </span>
     ),
   },
+  {
+    header: "Actions",
+    accessor: "payment_id",
+    render: (value) => (
+      <Link
+        to={`/payments/${value}`}
+        className="whitespace-nowrap text-sm font-medium text-primary-blue hover:underline"
+      >
+        View Details
+      </Link>
+    ),
+  },
 ];
 
 // SUPPLIER SPEND COLUMNS
@@ -490,6 +538,18 @@ export const supplierSpendColumns: ReportTableColumn<SupplierSpendReportItem>[] 
       accessor: "payment_count",
       align: "right",
       sortable: true,
+    },
+    {
+      header: "Actions",
+      accessor: "supplier_id",
+      render: (value) => (
+        <Link
+          to={`/reports/supplier-spend/${value}`}
+          className="whitespace-nowrap text-sm font-medium text-primary-blue hover:underline"
+        >
+          View Details
+        </Link>
+      ),
     },
   ];
 
@@ -558,6 +618,18 @@ export const supplierLeadTimeColumns: ReportTableColumn<SupplierLeadTimeReportIt
             ? "-"
             : `${Number(value).toFixed(1)} days`}
         </span>
+      ),
+    },
+    {
+      header: "Actions",
+      accessor: "po_id",
+      render: (value) => (
+        <Link
+          to={`/reports/supplier-lead-time/${value}`}
+          className="whitespace-nowrap text-sm font-medium text-primary-blue hover:underline"
+        >
+          View Details
+        </Link>
       ),
     },
   ];

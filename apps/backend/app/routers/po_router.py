@@ -22,15 +22,18 @@ from app.repositories.permission_repository import PermissionRepository
 from app.repositories.role_permission_repository import RolePermissionRepository
 from app.repositories.role_repository import RoleRepository
 from app.repositories.audit_log_repository import AuditLogRepository
+from app.repositories.company_repository import CompanyRepository
 from app.schemas.po_items_schema import (
     PurchaseOrderItemCreate,
     PurchaseOrderItemRead,
     PurchaseOrderItemUpdate,
+    
 )
 from app.schemas.po_schema import (
     PurchaseOrderCreate,
     PurchaseOrderRead,
     PurchaseOrderUpdate,
+    PurchaseOrderDetailRead,
 )
 from app.schemas.po_email_log_schema import POEmailLogRead
 from app.services.approval_instance_service import ApprovalInstanceService
@@ -60,6 +63,7 @@ def get_purchase_order_service(
     approval_instance_service = ApprovalInstanceService(
         repo=approval_instance_repo,
         workflow_level_repo=workflow_level_repo,
+        pr_repo=pr_repo,
     )
 
     audit_log_service = AuditLogService(
@@ -91,12 +95,14 @@ def get_po_pdf_service(
     po_service = get_purchase_order_service(db)
     po_item_repo = PurchaseOrderItemRepository(db)
     supplier_repo = SupplierRepository(db)
+    company_repo = CompanyRepository(db)
     pdf_service = PDFService()
 
     return POPDFService(
         po_service=po_service,
         po_item_repo=po_item_repo,
         supplier_repo=supplier_repo,
+        company_repo=company_repo,
         pdf_service=pdf_service,
     )
 
@@ -184,7 +190,7 @@ def create_purchase_order_from_requisition(
     )
 
 
-@router.get("/", response_model=list[PurchaseOrderRead])
+@router.get("/", response_model=list[PurchaseOrderDetailRead])
 def get_all_purchase_orders(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1),
@@ -230,7 +236,7 @@ def get_purchase_orders_by_supplier(
     )
 
 
-@router.get("/{po_id}", response_model=PurchaseOrderRead)
+@router.get("/{po_id}", response_model=PurchaseOrderDetailRead)
 def get_purchase_order(
     po_id: UUID,
     current_user=Depends(get_current_user),

@@ -32,9 +32,10 @@ export default function ApprovalQueue({ items }: ApprovalQueueProps) {
       {!items || items.length === 0 ? (
         <EmptyState message="No pending approvals" />
       ) : (
-        <div className="overflow-hidden rounded-lg border border-gray-200">
+        <div className="max-h-[420px] overflow-auto rounded-lg border border-gray-200">
+          {" "}
           <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="bg-gray-50">
+            <thead className="sticky top-0 z-10 bg-gray-50">
               <tr>
                 <th className="px-4 py-3 text-left font-medium text-gray-500">
                   Document
@@ -52,7 +53,7 @@ export default function ApprovalQueue({ items }: ApprovalQueueProps) {
             </thead>
 
             <tbody className="divide-y divide-gray-100 bg-white">
-              {items.slice(0, 5).map((item) => (
+              {items.slice(0, 10).map((item) => (
                 <tr key={item.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3">
                     <p className="font-medium text-gray-900">

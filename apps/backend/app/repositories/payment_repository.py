@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.enums import PaymentStatusEnum
 from app.models.payments import Payment
@@ -24,6 +24,10 @@ class PaymentRepository:
     ) -> Payment | None:
         return (
             self.db.query(Payment)
+            .options(
+                joinedload(Payment.invoice),
+                joinedload(Payment.created_by_user),
+            )
             .filter(
                 Payment.id == payment_id,
                 Payment.company_id == company_id,

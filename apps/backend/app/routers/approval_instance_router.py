@@ -8,6 +8,7 @@ from app.core.auth_dependancy import get_current_user
 from app.core.database import get_db
 from app.repositories.approval_instance_repository import ApprovalInstanceRepository
 from app.repositories.workflow_level_repository import WorkflowLevelRepository
+from app.repositories.pr_repository import PurchaseRequisitionRepository
 from app.schemas.approval_instance_schema import (
     ApprovalInstanceCreate,
     ApprovalInstanceRead,
@@ -26,9 +27,10 @@ def get_service(db: Session = Depends(get_db)) -> ApprovalInstanceService:
     Build ApprovalInstanceService with required repositories.
     """
     return ApprovalInstanceService(
-        repo=ApprovalInstanceRepository(db),
-        workflow_level_repo=WorkflowLevelRepository(db),
-    )
+    repo=ApprovalInstanceRepository(db),
+    workflow_level_repo=WorkflowLevelRepository(db),
+    pr_repo=PurchaseRequisitionRepository(db),
+)
 
 
 @router.post("/", response_model=ApprovalInstanceRead)

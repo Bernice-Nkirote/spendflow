@@ -3,6 +3,7 @@ from uuid import UUID
 from fastapi import HTTPException, status
 
 from app.models.enums import POStatusEnum
+from app.repositories.company_repository import CompanyRepository
 from app.repositories.po_item_repository import PurchaseOrderItemRepository
 from app.repositories.supplier_repository import SupplierRepository
 from app.services.documents.pdf_service import PDFService
@@ -15,11 +16,13 @@ class POPDFService:
         po_service: PurchaseOrderService,
         po_item_repo: PurchaseOrderItemRepository,
         supplier_repo: SupplierRepository,
+        company_repo: CompanyRepository,
         pdf_service: PDFService,
     ):
         self.po_service = po_service
         self.po_item_repo = po_item_repo
         self.supplier_repo = supplier_repo
+        self.company_repo = company_repo
         self.pdf_service = pdf_service
 
     def generate_po_pdf(
@@ -33,6 +36,13 @@ class POPDFService:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="PDF can only be generated for approved or sent purchase orders",
+            )
+
+        company = self.company_repo.get_by_id(company_id)
+        if not company:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Company not found",
             )
 
         supplier = self.supplier_repo.get_by_id(po.supplier_id, company_id)
@@ -50,6 +60,7 @@ class POPDFService:
             )
 
         pdf_bytes = self.pdf_service.generate_po_pdf(
+            company=company,
             po=po,
             supplier=supplier,
             items=items,

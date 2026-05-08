@@ -85,3 +85,9 @@ class InvoiceRead(BaseModel):
     line_items: List[InvoiceLineItemRead]
 
     model_config = ConfigDict(from_attributes=True)
+
+class InvoiceDetailRead(InvoiceRead):
+    supplier_name: Optional[str] = None
+    po_number: Optional[str] = None
+    submitted_by_user_name: Optional[str] = None
+    submitted_by_supplier_user_name: Optional[str] = None

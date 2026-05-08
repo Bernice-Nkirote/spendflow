@@ -1,9 +1,10 @@
 export type PurchaseRequisitionStatus =
   | "DRAFT"
-  | "SUBMITTED"
+  | "PENDING_APPROVAL"
   | "APPROVED"
   | "REJECTED"
-  | "CANCELLED";
+  | "CANCELLED"
+  | "CONVERTED_TO_PO";
 
 export type PurchaseRequisitionDetails = {
   id: string;
@@ -34,4 +35,43 @@ export type PurchaseRequisitionItem = {
   line_total: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type PurchaseRequisitionListItem = Omit<
+  PurchaseRequisitionDetails,
+  "department_name" | "requested_by_name"
+>;
+
+export type PurchaseRequisitionListParams = {
+  skip?: number;
+  limit?: number;
+};
+
+export type PurchaseRequisitionItemCreate = {
+  item_name: string;
+  description: string;
+  quantity: string;
+  unit_price: string;
+};
+
+export type PurchaseRequisitionCreatePayload = {
+  title: string;
+  description?: string;
+  currency: string;
+  department_id?: string;
+  items: PurchaseRequisitionItemCreate[];
+};
+
+export type PurchaseRequisitionUpdatePayload = {
+  title?: string;
+  description?: string | null;
+  currency?: string;
+  department_id?: string | null;
+};
+
+export type PurchaseRequisitionItemUpdatePayload = {
+  item_name?: string;
+  description?: string;
+  quantity?: string;
+  unit_price?: string;
 };

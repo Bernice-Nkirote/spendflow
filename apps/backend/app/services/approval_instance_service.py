@@ -3,9 +3,10 @@ import uuid
 from fastapi import HTTPException, status
 
 from app.models.approval_instance import ApprovalInstance
-from app.models.enums import ApprovalStatus
+from app.models.enums import ApprovalStatus, EntityTypeEnum
 from app.repositories.approval_instance_repository import ApprovalInstanceRepository
 from app.repositories.workflow_level_repository import WorkflowLevelRepository
+from app.repositories.pr_repository import PurchaseRequisitionRepository
 from app.schemas.approval_instance_schema import ApprovalInstanceCreate
 
 
@@ -14,10 +15,49 @@ class ApprovalInstanceService:
         self,
         repo: ApprovalInstanceRepository,
         workflow_level_repo: WorkflowLevelRepository,
+        pr_repo: PurchaseRequisitionRepository,
     ):
         self.repo = repo
         self.workflow_level_repo = workflow_level_repo
+        self.pr_repo = pr_repo
 
+    def _enrich_instance(self, instance: ApprovalInstance) -> ApprovalInstance:
+        """
+        Adds business-readable metadata to an approval instance response.
+        and It only attaches response fields for frontend display.
+        """
+        instance.entity_reference = None
+        instance.requester_name = None
+        instance.total_amount = None
+        instance.currency = None
+
+        if instance.entity_type == EntityTypeEnum.PR:
+            requisition = self.pr_repo.get_by_id(
+                instance.entity_id,
+                instance.company_id,
+            )
+
+            if requisition:
+                instance.entity_reference = requisition.pr_number
+                instance.requester_name = getattr(
+                    requisition,
+                    "requested_by_name",
+                    None,
+                )
+
+                if not instance.requester_name:
+                    requester = getattr(requisition, "requester", None)
+                    instance.requester_name = getattr(requester, "name", None)
+
+                instance.total_amount = (
+                    float(requisition.total_amount)
+                    if requisition.total_amount is not None
+                    else None
+                )
+                instance.currency = requisition.currency
+
+        return instance  
+    
     def create_instance(
         self,
         data: ApprovalInstanceCreate,
@@ -95,7 +135,7 @@ class ApprovalInstanceService:
                 detail="Approval instance not found",
             )
 
-        return instance
+        return self._enrich_instance(instance)
 
     def get_all_instances(
         self,
@@ -115,7 +155,9 @@ class ApprovalInstanceService:
                 detail="Limit must be greater than zero",
             )
 
-        return self.repo.get_all(company_id, skip=skip, limit=limit)
+        instances = self.repo.get_all(company_id, skip=skip, limit=limit)
+
+        return [self._enrich_instance(instance) for instance in instances]
 
     def update_instance_status(
         self,

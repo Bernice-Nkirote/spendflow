@@ -57,3 +57,8 @@ class PaymentRead(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class PaymentDetailRead(PaymentRead):
+    invoice_number: Optional[str] = None
+    supplier_name: Optional[str] = None
+    created_by_name: Optional[str] = None

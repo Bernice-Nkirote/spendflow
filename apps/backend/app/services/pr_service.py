@@ -4,6 +4,8 @@ from uuid import UUID
 
 from fastapi import HTTPException, status
 
+from app.utils.value_helper.enum_utils import enum_value
+
 from app.models.approval_instance import ApprovalInstance
 from app.models.enums import ApprovalStatus, EntityTypeEnum, PRStatusEnum
 from app.models.purchase_requisition import PurchaseRequisition
@@ -396,7 +398,10 @@ class PurchaseRequisitionService:
             "currency": requisition.currency,
         }
 
-        update_data = requisition_data.model_dump(exclude_unset=True)
+        update_data = requisition_data.model_dump(
+            exclude_unset=True,
+            mode="json",
+        )
 
         if "title" in update_data:
             normalized_title = update_data["title"].strip()
@@ -579,12 +584,25 @@ class PurchaseRequisitionService:
                 detail="Purchase requisition must have at least one item.",
             )
 
+        deleted_item = PurchaseRequisitionItem(
+            id=item.id,
+            company_id=item.company_id,
+            requisition_id=item.requisition_id,
+            item_name=item.item_name,
+            description=item.description,
+            quantity=item.quantity,
+            unit_price=item.unit_price,
+            line_total=item.line_total,
+            created_at=item.created_at,
+            updated_at=item.updated_at,
+        )
+
         self.item_repo.delete(item)
         self._recalculate_requisition_total(requisition, company_id)
 
         self.item_repo.db.commit()
 
-        return item
+        return deleted_item
 
     def submit_purchase_requisition(
         self,
@@ -725,10 +743,10 @@ class PurchaseRequisitionService:
             actor_user_id=user_id,
             description=f"Purchase requisition {requisition.pr_number} cancelled",
             old_values_json={
-            "status": old_status.value,
+            "status": enum_value(old_status),
         },
             new_values_json={
-                "status": PRStatusEnum.CANCELLED.value,
+                "status": enum_value(requisition.status),
             },
         )
         

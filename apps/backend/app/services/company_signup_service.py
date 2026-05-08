@@ -10,6 +10,7 @@ from app.models.department import Department
 from app.models.role import Role
 from app.models.user import User
 from app.seeds.seed_permission import seed_permissions_for_company
+from app.seeds.seed_approval_workflows import seed_default_approval_workflows_for_company
 from app.repositories.company_repository import CompanyRepository
 from app.repositories.department_repository import DepartmentRepository
 from app.repositories.role_repository import RoleRepository
@@ -134,7 +135,8 @@ class CompanySignupService:
                     is_active=True,
                 )
                 seeded_departments.append(self.department_repo.create(department))
-
+            seed_default_approval_workflows_for_company(company.id, self.db)
+            
             admin_role = self.role_repo.get_by_name("Admin", company.id)
             if not admin_role:
                 raise HTTPException(

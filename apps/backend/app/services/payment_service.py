@@ -116,7 +116,7 @@ class PaymentService:
             new_values_json={
                 "invoice_id": str(payment.invoice_id),
                 "amount": str(payment.amount),
-                "payment_method": payment.payment_method.value,
+                "payment_method": enum_value(payment.payment_method),
                 "status": enum_value(payment.status),
             },
         )
@@ -135,11 +135,26 @@ class PaymentService:
             payment_id=payment_id,
             company_id=company_id,
         )
+
         if not payment:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Payment not found",
             )
+
+        payment.invoice_number = (
+            payment.invoice.invoice_number if payment.invoice else None
+        )
+
+        payment.supplier_name = (
+            payment.invoice.supplier.name
+            if payment.invoice and payment.invoice.supplier
+            else None
+        )
+
+        payment.created_by_name = (
+            payment.created_by_user.name if payment.created_by_user else None
+        )
 
         return payment
 
