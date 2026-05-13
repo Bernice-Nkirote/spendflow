@@ -64,6 +64,8 @@ class WorkflowLevelRead(BaseModel):
     min_amount: Optional[Decimal] = None
     max_amount: Optional[Decimal] = None
     department_id: UUID
+    workflow_name: Optional[str] = None
+    department_name: Optional[str] = None
     condition_expression: Optional[dict] = None
     created_at: datetime
     updated_at: datetime

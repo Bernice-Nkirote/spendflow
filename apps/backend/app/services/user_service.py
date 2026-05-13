@@ -1,19 +1,39 @@
 import uuid
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from fastapi import HTTPException, status
 
-from app.core.security import hash_password
+from app.core.config import settings
+from app.core.security import generate_secure_token, hash_password, hash_token
 from app.models.user import User
+from app.models.user_onboarding_token import UserOnboardingToken
+from app.repositories.user_onboarding_token_repository import UserOnboardingTokenRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.user_schema import UserCreate, UserUpdate
+from app.services.audit_log_service import AuditLogService
+from app.services.notifications.email_service import EmailService
 
 
 class UserService:
-    def __init__(self, repo: UserRepository):
+    def __init__(
+        self,
+        repo: UserRepository,
+        onboarding_token_repo: UserOnboardingTokenRepository,
+        audit_log_service: AuditLogService,
+        email_service: EmailService,
+    ):
         self.repo = repo
+        self.onboarding_token_repo = onboarding_token_repo
+        self.audit_log_service = audit_log_service
+        self.email_service = email_service
 
-    def create_user(self, user_data: UserCreate, company_id: UUID) -> User:
+    def create_user(
+        self,
+        user_data: UserCreate,
+        company_id: UUID,
+        actor_user_id: UUID,
+    ) -> User:
         name = user_data.name.strip()
         if not name:
             raise HTTPException(
@@ -26,13 +46,6 @@ class UserService:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Email is required.",
-            )
-
-        password = user_data.password.strip()
-        if not password:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Password is required.",
             )
 
         phone_number = user_data.phone_number.strip() if user_data.phone_number else None
@@ -52,6 +65,9 @@ class UserService:
                     detail="Phone number already exists in this company.",
                 )
 
+        raw_setup_token = generate_secure_token()
+        token_hash_value = hash_token(raw_setup_token)
+
         user = User(
             id=uuid.uuid4(),
             company_id=company_id,
@@ -60,13 +76,131 @@ class UserService:
             name=name,
             email=email,
             phone_number=phone_number,
-            hashed_password=hash_password(password),
-            is_active=True,
+            hashed_password=hash_password(generate_secure_token()),
+            is_active=False,
+            has_completed_onboarding=False,
+            onboarded_at=None,
         )
+
         created_user = self.repo.create(user)
+
+        onboarding_token = UserOnboardingToken(
+            id=uuid.uuid4(),
+            company_id=company_id,
+            user_id=created_user.id,
+            token_hash=token_hash_value,
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
+            is_used=False,
+        )
+
+        self.onboarding_token_repo.create(onboarding_token)
+
+        setup_link = f"{settings.FRONTEND_BASE_URL}/setup-password?token={raw_setup_token}"
+
+        self.email_service.send_user_onboarding_email(
+            to_email=created_user.email,
+            user_name=created_user.name,
+            setup_link=setup_link,
+        )
+
+        self.audit_log_service.log_action(
+            company_id=company_id,
+            entity_type="USER",
+            entity_id=created_user.id,
+            action="USER_CREATED",
+            actor_user_id=actor_user_id,
+            description=f"User profile created for {created_user.email}",
+            details_json={
+                "email": created_user.email,
+                "name": created_user.name,
+                "department_id": str(created_user.department_id) if created_user.department_id else None,
+                "role_id": str(created_user.role_id),
+                "onboarding_email_sent": True,
+            },
+        )
+
         self.repo.db.commit()
         self.repo.db.refresh(created_user)
+
         return created_user
+    
+    def setup_password(self, token: str, password: str) -> User:
+        raw_token = token.strip()
+        if not raw_token:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Setup token is required.",
+            )
+
+        new_password = password.strip()
+        if len(new_password) < 8:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Password must be at least 8 characters long.",
+            )
+
+        token_hash_value = hash_token(raw_token)
+        onboarding_token = self.onboarding_token_repo.get_by_token_hash(token_hash_value)
+
+        if not onboarding_token:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired setup token.",
+            )
+
+        if onboarding_token.is_used:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Setup token has already been used.",
+            )
+
+        if onboarding_token.expires_at < datetime.now(timezone.utc):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Setup token has expired.",
+            )
+
+        user = self.repo.get_by_id(
+            user_id=onboarding_token.user_id,
+            company_id=onboarding_token.company_id,
+        )
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found.",
+            )
+
+        now = datetime.now(timezone.utc)
+
+        user.hashed_password = hash_password(new_password)
+        user.is_active = True
+        user.has_completed_onboarding = True
+        user.onboarded_at = now
+
+        onboarding_token.is_used = True
+        onboarding_token.used_at = now
+
+        updated_user = self.repo.update(user)
+        self.onboarding_token_repo.update(onboarding_token)
+
+        self.audit_log_service.log_action(
+            company_id=user.company_id,
+            entity_type="USER",
+            entity_id=user.id,
+            action="USER_PASSWORD_SET",
+            actor_user_id=user.id,
+            description=f"User completed password setup for {user.email}",
+            details_json={
+                "email": user.email,
+                "name": user.name,
+            },
+        )
+
+        self.repo.db.commit()
+        self.repo.db.refresh(updated_user)
+
+        return updated_user
 
     def get_user(self, user_id: UUID, company_id: UUID) -> User:
         user = self.repo.get_by_id(user_id, company_id)
@@ -155,13 +289,19 @@ class UserService:
         self.repo.db.refresh(updated_user)
 
         return updated_user
-
+    
     def activate_user(self, user_id: UUID, company_id: UUID) -> User:
         user = self.repo.get_by_id(user_id, company_id)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found.",
+            )
+
+        if not user.has_completed_onboarding:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User cannot be activated before completing password setup.",
             )
 
         if user.is_active:
@@ -171,19 +311,30 @@ class UserService:
             )
 
         user.is_active = True
-        
+
         updated_user = self.repo.update(user)
         self.repo.db.commit()
         self.repo.db.refresh(updated_user)
 
         return updated_user
 
-    def deactivate_user(self, user_id: UUID, company_id: UUID) -> User:
+    def deactivate_user(
+        self,
+        user_id: UUID,
+        company_id: UUID,
+        current_user_id: UUID,
+    ) -> User:
         user = self.repo.get_by_id(user_id, company_id)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found.",
+            )
+
+        if user.id == current_user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="You cannot deactivate your own account.",
             )
 
         if not user.is_active:
@@ -193,18 +344,30 @@ class UserService:
             )
 
         user.is_active = False
+
         updated_user = self.repo.update(user)
         self.repo.db.commit()
         self.repo.db.refresh(updated_user)
 
         return updated_user
     
-    def delete_user(self, user_id: UUID, company_id: UUID) -> None:
+    def delete_user(
+        self,
+        user_id: UUID,
+        company_id: UUID,
+        current_user_id: UUID,
+    ) -> None:
         user = self.repo.get_by_id(user_id, company_id)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found.",
+            )
+
+        if user.id == current_user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="You cannot delete your own account.",
             )
 
         if self.repo.has_requisitions(user_id, company_id):

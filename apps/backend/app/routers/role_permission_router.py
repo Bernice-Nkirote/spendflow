@@ -2,6 +2,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
+from app.repositories.audit_log_repository import AuditLogRepository
+from app.services.audit_log_service import AuditLogService
 
 from app.core.database import get_db
 from app.core.auth_dependancy import get_current_admin_user
@@ -21,12 +23,15 @@ router = APIRouter(
     dependencies=[Depends(get_current_admin_user)],
 )
 
-
 def get_permission_service(db: Session = Depends(get_db)) -> PermissionService:
+    audit_log_repo = AuditLogRepository(db)
+    audit_log_service = AuditLogService(audit_log_repo)
+
     return PermissionService(
         permission_repo=PermissionRepository(db),
         role_permission_repo=RolePermissionRepository(db),
         role_repo=RoleRepository(db),
+        audit_log_service=audit_log_service,
     )
 
 
@@ -39,6 +44,7 @@ def assign_permission_to_role(
     return service.assign_permission_to_role(
         data=data,
         company_id=current_user.company_id,
+        actor_user_id=current_user.id,
     )
 
 
@@ -68,5 +74,6 @@ def remove_permission_from_role(
     service.remove_permission_from_role(
         role_permission_id=role_permission_id,
         company_id=current_user.company_id,
+        actor_user_id=current_user.id,
     )
     return None

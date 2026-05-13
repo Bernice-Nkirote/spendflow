@@ -1,6 +1,9 @@
+import secrets
+import hashlib
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from jose import jwt
+
 
 # Use Argon2 instead of bcrypt
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
@@ -28,3 +31,10 @@ def create_access_token(data: dict) -> str:
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+def generate_secure_token() -> str:
+    return secrets.token_urlsafe(32)
+
+
+def hash_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()

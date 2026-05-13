@@ -46,8 +46,8 @@ class Payment(Base):
     status = Column(
         payment_status_enum,
         nullable=False,
-        default=PaymentStatusEnum.COMPLETED,
-        server_default=PaymentStatusEnum.COMPLETED.value,
+        default=PaymentStatusEnum.DRAFT,
+        server_default=PaymentStatusEnum.DRAFT.value,
         index=True,
     )
 

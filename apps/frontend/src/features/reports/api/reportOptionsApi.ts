@@ -12,8 +12,9 @@ type SupplierResponse = {
 };
 
 export async function getDepartmentOptions(): Promise<ReportFilterOption[]> {
-  const response =
-    await axiosInstance.get<DepartmentResponse[]>("/departments/");
+  const response = await axiosInstance.get<DepartmentResponse[]>(
+    "/departments/options",
+  );
 
   return response.data.map((department) => ({
     label: department.name,

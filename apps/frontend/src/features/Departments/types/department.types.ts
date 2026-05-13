@@ -6,3 +6,13 @@ export type Department = {
   created_at: string;
   updated_at: string;
 };
+
+export type DepartmentCreatePayload = {
+  name: string;
+  is_active?: boolean;
+};
+
+export type DepartmentUpdatePayload = {
+  name?: string;
+  is_active?: boolean;
+};

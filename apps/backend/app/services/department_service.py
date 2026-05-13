@@ -64,7 +64,23 @@ class DepartmentService:
         company_id: UUID,
     ) -> Department:
         department = self.get_department(department_id, company_id)
+        if self.repo.has_users(department_id, company_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Department cannot be modified because users are assigned to it.",
+            )
 
+        if self.repo.has_requisitions(department_id, company_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Department cannot be modified because it has purchase requisitions.",
+            )
+
+        if self.repo.has_purchase_orders(department_id, company_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Department cannot be modified because it has purchase orders.",
+            )
         update_data = department_data.model_dump(exclude_unset=True)
 
         if "name" in update_data:
@@ -112,6 +128,24 @@ class DepartmentService:
 
     def deactivate_department(self, department_id: UUID, company_id: UUID) -> Department:
         department = self.get_department(department_id, company_id)
+
+        if self.repo.has_users(department_id, company_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Department cannot be deactivated because users are assigned to it.",
+            )
+
+        if self.repo.has_requisitions(department_id, company_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Department cannot be deactivated because it is linked to existing purchase requisitions.",
+            )
+
+        if self.repo.has_purchase_orders(department_id, company_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Department cannot be deactivated because it is linked to existing purchase orders.",
+            )
 
         if not department.is_active:
             raise HTTPException(

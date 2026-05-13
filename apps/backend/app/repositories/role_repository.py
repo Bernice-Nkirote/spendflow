@@ -4,7 +4,9 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.models.role import Role
-
+from app.models.user import User
+from app.models.workflow_level_roles import WorkflowLevelRole
+from app.models.role_permission import RolePermission
 
 class RoleRepository:
     def __init__(self, db: Session):
@@ -44,6 +46,39 @@ class RoleRepository:
             .first()
         )
     
+    def has_users(self, role_id: UUID, company_id: UUID) -> bool:
+        return (
+            self.db.query(User)
+            .filter(
+                User.role_id == role_id,
+                User.company_id == company_id,
+            )
+            .first()
+            is not None
+        )
+
+    def has_workflow_level_roles(self, role_id: UUID, company_id: UUID) -> bool:
+        return (
+            self.db.query(WorkflowLevelRole)
+            .filter(
+                WorkflowLevelRole.role_id == role_id,
+                WorkflowLevelRole.company_id == company_id,
+            )
+            .first()
+            is not None
+        )
+
+    def has_role_permissions(self, role_id: UUID, company_id: UUID) -> bool:
+        return (
+            self.db.query(RolePermission)
+            .filter(
+                RolePermission.role_id == role_id,
+                RolePermission.company_id == company_id,
+            )
+            .first()
+            is not None
+        )
+
     def update(self, role: Role) -> Role:
         self.db.flush()
         self.db.refresh(role)

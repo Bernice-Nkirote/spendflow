@@ -28,6 +28,7 @@ class ApprovalActionRead(BaseModel):
     instance_id: UUID
     level_id: UUID
     user_id: UUID
+    user_name: Optional[str] = None
 
     action: ActionType
     comment: Optional[str] = None

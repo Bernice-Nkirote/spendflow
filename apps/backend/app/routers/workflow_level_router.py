@@ -8,7 +8,11 @@ from app.core.auth_dependancy import get_current_admin_user
 from app.core.database import get_db
 from app.repositories.approval_workflow_repository import ApprovalWorkflowRepository
 from app.repositories.workflow_level_repository import WorkflowLevelRepository
-from app.schemas.workflow_levels_schema import WorkflowLevelCreate, WorkflowLevelRead
+from app.schemas.workflow_levels_schema import (
+    WorkflowLevelCreate, 
+    WorkflowLevelRead,
+    WorkflowLevelUpdate,
+)
 from app.services.workflow_level_service import WorkflowLevelService
 
 
@@ -44,7 +48,7 @@ def list_levels(
     service: WorkflowLevelService = Depends(get_service),
     current_user=Depends(get_current_admin_user),
 ):
-    return service.list_levels(workflow_id, current_user.company_id)
+    return service.get_all_levels(workflow_id, current_user.company_id)
 
 
 @router.get("/{level_id}", response_model=WorkflowLevelRead)
@@ -54,3 +58,17 @@ def get_level(
     current_user=Depends(get_current_admin_user),
 ):
     return service.get_level(level_id, current_user.company_id)
+
+
+@router.put("/{level_id}", response_model=WorkflowLevelRead)
+def update_level(
+    level_id: UUID,
+    level_data: WorkflowLevelUpdate,
+    service: WorkflowLevelService = Depends(get_service),
+    current_user=Depends(get_current_admin_user),
+):
+    return service.update_level(
+        level_id=level_id,
+        level_data=level_data,
+        company_id=current_user.company_id,
+    )

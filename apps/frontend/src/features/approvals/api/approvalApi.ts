@@ -43,3 +43,11 @@ export async function createApprovalAction(
 
   return response.data;
 }
+
+export async function getApprovalInstancesByEntity(
+  entityId: string,
+): Promise<ApprovalInstance[]> {
+  const instances = await getApprovalInstances();
+
+  return instances.filter((instance) => instance.entity_id === entityId);
+}

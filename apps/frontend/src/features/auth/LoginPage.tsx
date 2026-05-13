@@ -156,7 +156,7 @@ function LoginPage() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="admin@company.com"
+            placeholder="you@company.com"
             error={emailError}
           />
 

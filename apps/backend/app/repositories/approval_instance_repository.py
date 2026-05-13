@@ -1,7 +1,7 @@
 import uuid
 from typing import Optional
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.approval_instance import ApprovalInstance
 from app.models.enums import ApprovalStatus, EntityTypeEnum
@@ -24,6 +24,11 @@ class ApprovalInstanceRepository:
     ) -> Optional[ApprovalInstance]:
         return (
             self.db.query(ApprovalInstance)
+            .options(
+                joinedload(ApprovalInstance.workflow),
+                joinedload(ApprovalInstance.current_level),
+                joinedload(ApprovalInstance.actions),
+            )
             .filter(
                 ApprovalInstance.id == instance_id,
                 ApprovalInstance.company_id == company_id,
@@ -37,8 +42,13 @@ class ApprovalInstanceRepository:
         skip: int = 0,
         limit: int = 100,
     ) -> list[ApprovalInstance]:
-        return (
+       return (
             self.db.query(ApprovalInstance)
+            .options(
+                joinedload(ApprovalInstance.workflow),
+                joinedload(ApprovalInstance.current_level),
+                joinedload(ApprovalInstance.actions),
+            )
             .filter(ApprovalInstance.company_id == company_id)
             .order_by(ApprovalInstance.created_at.desc())
             .offset(skip)

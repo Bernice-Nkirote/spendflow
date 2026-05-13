@@ -103,6 +103,26 @@ class PaymentRepository:
             .scalar()
         )
 
+    def get_total_reserved_amount(
+        self,
+        invoice_id: UUID,
+        company_id: UUID,
+    ):
+        return (
+            self.db.query(func.coalesce(func.sum(Payment.amount), 0))
+            .filter(
+                Payment.invoice_id == invoice_id,
+                Payment.company_id == company_id,
+                Payment.status.in_(
+            [
+                PaymentStatusEnum.PENDING_APPROVAL,
+                PaymentStatusEnum.COMPLETED,
+            ]
+        ),
+            )
+            .scalar()
+        )
+
     def update(self, payment: Payment) -> Payment:
         self.db.flush()
         self.db.refresh(payment)

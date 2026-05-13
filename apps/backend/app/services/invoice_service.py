@@ -266,11 +266,19 @@ class InvoiceService:
             invoice_id=invoice.id,
             company_id=company_id,
         )
+        return self._enrich_invoice_readable_fields(invoice)
 
+    def _enrich_invoice_readable_fields(self, invoice: Invoice) -> Invoice:
         invoice.supplier_name = invoice.supplier.name if invoice.supplier else None
 
         invoice.po_number = (
             invoice.purchase_order.po_number
+            if invoice.purchase_order
+            else None
+        )
+
+        invoice.currency = (
+            invoice.purchase_order.currency
             if invoice.purchase_order
             else None
         )
@@ -307,11 +315,13 @@ class InvoiceService:
                 detail="Limit must be greater than zero",
             )
 
-        return self.invoice_repo.get_all(
+        invoices = self.invoice_repo.get_all(
             company_id=company_id,
             skip=skip,
             limit=limit,
         )
+
+        return [self._enrich_invoice_readable_fields(invoice) for invoice in invoices]
 
     def get_all_invoices_by_status(
         self,
@@ -332,12 +342,13 @@ class InvoiceService:
                 detail="Limit must be greater than zero",
             )
 
-        return self.invoice_repo.get_by_status(
-            status=invoice_status,
+        invoices = self.invoice_repo.get_all(
             company_id=company_id,
             skip=skip,
             limit=limit,
         )
+
+        return [self._enrich_invoice_readable_fields(invoice) for invoice in invoices]
 
     def get_all_invoices_by_supplier(
         self,
@@ -364,12 +375,13 @@ class InvoiceService:
                 detail="Limit must be greater than zero",
             )
 
-        return self.invoice_repo.get_by_supplier(
-            supplier_id=supplier_id,
+        invoices = self.invoice_repo.get_all(
             company_id=company_id,
             skip=skip,
             limit=limit,
         )
+
+        return [self._enrich_invoice_readable_fields(invoice) for invoice in invoices]
 
     def get_all_invoices_by_purchase_order(
         self,
@@ -386,10 +398,12 @@ class InvoiceService:
                 detail="Purchase order not found",
             )
 
-        return self.invoice_repo.get_by_purchase_order_id(
+        invoices = self.invoice_repo.get_by_purchase_order_id(
             purchase_order_id=purchase_order_id,
             company_id=company_id,
         )
+
+        return [self._enrich_invoice_readable_fields(invoice) for invoice in invoices]
 
     def update_invoice(
         self,

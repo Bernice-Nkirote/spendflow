@@ -1,32 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+
 import { getApprovalInstances } from "../api/approvalApi";
 import type { ApprovalInstance } from "../types/approval.types";
 import ApprovalStatusBadge from "../components/ApprovalStatusBadge";
-
-function formatCurrency(
-  value: number | string | null | undefined,
-  currency = "KES",
-) {
-  const numericValue = Number(value ?? 0);
-
-  try {
-    return new Intl.NumberFormat("en-KE", {
-      style: "currency",
-      currency: currency || "KES",
-      maximumFractionDigits: 2,
-    }).format(Number.isNaN(numericValue) ? 0 : numericValue);
-  } catch {
-    return `${currency || "KES"} ${
-      Number.isNaN(numericValue) ? "0.00" : numericValue.toFixed(2)
-    }`;
-  }
-}
+import { formatCurrency } from "../../../utils/formatCurrency";
 
 function ApprovalQueuePage() {
   const [instances, setInstances] = useState<ApprovalInstance[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [historyPage, setHistoryPage] = useState(1);
+  const historyPageSize = 5;
 
   useEffect(() => {
     async function loadApprovals() {
@@ -55,6 +40,16 @@ function ApprovalQueuePage() {
     (instance) => instance.status !== "PENDING",
   );
 
+  const totalHistoryPages = Math.max(
+    1,
+    Math.ceil(completedInstances.length / historyPageSize),
+  );
+
+  const paginatedCompletedInstances = completedInstances.slice(
+    (historyPage - 1) * historyPageSize,
+    historyPage * historyPageSize,
+  );
+
   return (
     <div className="space-y-6">
       <div>
@@ -80,64 +75,68 @@ function ApprovalQueuePage() {
             No pending approvals found.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
+          <div className="max-w-full overflow-x-auto">
+            <table className="min-w-[1000px] border-separate border-spacing-0 text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left font-semibold text-gray-600">
+                  <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
                     Entity Type
                   </th>
-                  <th className="px-6 py-3 text-left font-semibold text-gray-600">
+                  <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
                     Reference
                   </th>
-                  <th className="px-6 py-3 text-left font-semibold text-gray-600">
+                  <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
                     Requester
                   </th>
-                  <th className="px-6 py-3 text-left font-semibold text-gray-600">
+                  <th className="border-b px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
                     Amount
                   </th>
-                  <th className="px-6 py-3 text-left font-semibold text-gray-600">
+                  <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left font-semibold text-gray-600">
+                  <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
                     Created
                   </th>
-                  <th className="px-6 py-3 text-right font-semibold text-gray-600">
+                  <th className="border-b px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
                     Action
                   </th>
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-gray-100">
+              <tbody>
                 {pendingInstances.map((instance) => (
-                  <tr key={instance.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 font-medium text-gray-900">
+                  <tr
+                    key={instance.id}
+                    className="transition-colors hover:bg-gray-50"
+                  >
+                    <td className="border-b px-4 py-3 font-medium text-primary-black">
                       {instance.entity_type}
                     </td>
 
-                    <td className="px-6 py-4 font-medium text-gray-900">
-                      {instance.entity_reference || instance.entity_id}
+                    <td className="border-b px-4 py-3 font-medium text-primary-black">
+                      {instance.entity_reference || "Not available"}
                     </td>
 
-                    <td className="px-6 py-4 text-gray-600">
+                    <td className="border-b px-4 py-3 text-primary-gray">
                       {instance.requester_name || "-"}
                     </td>
 
-                    <td className="px-6 py-4 text-gray-600">
+                    <td className="border-b px-4 py-3 text-right tabular-nums text-primary-black">
                       {formatCurrency(
-                        instance.total_amount,
+                        Number(instance.total_amount ?? 0),
                         instance.currency || "KES",
                       )}
                     </td>
-                    <td className="px-6 py-4">
+
+                    <td className="border-b px-4 py-3">
                       <ApprovalStatusBadge status={instance.status} />
                     </td>
 
-                    <td className="px-6 py-4 text-gray-600">
+                    <td className="border-b px-4 py-3 text-primary-gray">
                       {new Date(instance.created_at).toLocaleDateString()}
                     </td>
 
-                    <td className="px-6 py-4 text-right">
+                    <td className="border-b px-4 py-3 text-right">
                       <Link
                         to={`/approvals/${instance.id}`}
                         className="rounded-lg bg-primary-blue px-4 py-2 text-xs font-semibold text-white hover:bg-primary-blue/90"
@@ -171,69 +170,72 @@ function ApprovalQueuePage() {
             No completed approvals found.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
+          <div className="max-w-full overflow-x-auto">
+            <table className="min-w-[1000px] border-separate border-spacing-0 text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left font-semibold text-gray-600">
+                  <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
                     Entity Type
                   </th>
-                  <th className="px-6 py-3 text-left font-semibold text-gray-600">
+                  <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
                     Reference
                   </th>
-                  <th className="px-6 py-3 text-left font-semibold text-gray-600">
+                  <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
                     Requester
                   </th>
-                  <th className="px-6 py-3 text-left font-semibold text-gray-600">
+                  <th className="border-b px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
                     Amount
                   </th>
-                  <th className="px-6 py-3 text-left font-semibold text-gray-600">
+                  <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left font-semibold text-gray-600">
+                  <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
                     Last Comment
                   </th>
-                  <th className="px-6 py-3 text-right font-semibold text-gray-600">
+                  <th className="border-b px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
                     Action
                   </th>
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-gray-100">
-                {completedInstances.map((instance) => {
+              <tbody>
+                {paginatedCompletedInstances.map((instance) => {
                   const lastAction =
                     instance.actions?.[instance.actions.length - 1];
 
                   return (
-                    <tr key={instance.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 font-medium text-gray-900">
+                    <tr
+                      key={instance.id}
+                      className="transition-colors hover:bg-gray-50"
+                    >
+                      <td className="border-b px-4 py-3 font-medium text-primary-black">
                         {instance.entity_type}
                       </td>
 
-                      <td className="px-6 py-4 font-medium text-gray-900">
-                        {instance.entity_reference || instance.entity_id}
+                      <td className="border-b px-4 py-3 font-medium text-primary-black">
+                        {instance.entity_reference || "Not available"}
                       </td>
 
-                      <td className="px-6 py-4 text-gray-600">
+                      <td className="border-b px-4 py-3 text-primary-gray">
                         {instance.requester_name || "-"}
                       </td>
 
-                      <td className="px-6 py-4 text-gray-600">
+                      <td className="border-b px-4 py-3 text-right tabular-nums text-primary-black">
                         {formatCurrency(
-                          instance.total_amount,
+                          Number(instance.total_amount ?? 0),
                           instance.currency || "KES",
                         )}
                       </td>
 
-                      <td className="px-6 py-4">
+                      <td className="border-b px-4 py-3">
                         <ApprovalStatusBadge status={instance.status} />
                       </td>
 
-                      <td className="px-6 py-4 text-gray-600">
+                      <td className="border-b px-4 py-3 text-primary-gray">
                         {lastAction?.comment || "No comment provided."}
                       </td>
 
-                      <td className="px-6 py-4 text-right">
+                      <td className="border-b px-4 py-3 text-right">
                         <Link
                           to={`/approvals/${instance.id}`}
                           className="rounded-lg border px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
@@ -246,6 +248,38 @@ function ApprovalQueuePage() {
                 })}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {completedInstances.length > historyPageSize && (
+          <div className="flex flex-col gap-3 border-t px-4 py-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-primary-gray">
+              Page {historyPage} of {totalHistoryPages}
+            </p>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setHistoryPage((page) => Math.max(1, page - 1))}
+                disabled={historyPage === 1}
+                className="rounded-lg border px-3 py-2 font-medium text-primary-gray hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Previous
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setHistoryPage((page) =>
+                    Math.min(totalHistoryPages, page + 1),
+                  )
+                }
+                disabled={historyPage === totalHistoryPages}
+                className="rounded-lg border px-3 py-2 font-medium text-primary-gray hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
           </div>
         )}
       </div>

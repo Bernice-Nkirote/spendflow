@@ -56,7 +56,8 @@ class InvoiceStatusEnum(str, enum.Enum):
 
 
 class PaymentStatusEnum(str, enum.Enum):
-    PENDING = "PENDING"
+    DRAFT="DRAFT"
+    PENDING_APPROVAL = "PENDING_APPROVAL"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
     REJECTED = "REJECTED"

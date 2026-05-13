@@ -133,3 +133,28 @@ class EmailService:
             attachment_bytes=attachment_bytes,
             attachment_filename=attachment_filename,
         )
+    
+    def send_user_onboarding_email(
+        self,
+        to_email: str,
+        user_name: str,
+        setup_link: str,
+    ) -> None:
+        greeting_name = user_name.strip() if user_name and user_name.strip() else "User"
+
+        subject = "Your SpendFlow account has been created"
+        body = (
+            f"Dear {greeting_name},\n\n"
+            "Your SpendFlow user profile has been created.\n\n"
+            "Please use the link below to set your password and activate your account:\n\n"
+            f"{setup_link}\n\n"
+            "For security, this link will expire. If the link expires, please contact your administrator.\n\n"
+            "Best regards,\n"
+            "SpendFlow Team"
+        )
+
+        self.send_email(
+            to_email=to_email,
+            subject=subject,
+            body=body,
+        )

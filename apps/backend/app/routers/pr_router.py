@@ -16,6 +16,9 @@ from app.repositories.role_permission_repository import RolePermissionRepository
 from app.repositories.role_repository import RoleRepository
 from app.repositories.audit_log_repository import AuditLogRepository
 from app.repositories.pr_repository import PurchaseRequisitionRepository
+from app.repositories.po_repository import PurchaseOrderRepository
+from app.repositories.invoice_repository import InvoiceRepository
+from app.repositories.payment_repository import PaymentRepository
 from app.schemas.pr_item_schema import (
     PurchaseRequisitionItemCreate,
     PurchaseRequisitionItemRead,
@@ -52,6 +55,9 @@ def get_purchase_requisition_service(
         repo=approval_instance_repo,
         workflow_level_repo=workflow_level_repo,
         pr_repo=PurchaseRequisitionRepository(db),
+        po_repo=PurchaseOrderRepository(db),
+        invoice_repo=InvoiceRepository(db),
+        payment_repo=PaymentRepository(db),
     )
 
     audit_log_service = AuditLogService(

@@ -57,3 +57,11 @@ class WorkflowLevelRole(Base):
     company = relationship("Company", back_populates="workflow_level_roles")
     role = relationship("Role", back_populates="level_roles")
     level = relationship("WorkflowLevel", back_populates="level_roles")
+
+    @property
+    def role_name(self) -> str | None:
+        return self.role.name if self.role else None
+
+    @property
+    def level_name(self) -> str | None:
+        return self.level.name if self.level else None

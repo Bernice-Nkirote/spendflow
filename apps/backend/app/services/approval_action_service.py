@@ -127,6 +127,17 @@ class ApprovalActionService:
                 detail="User is not allowed to act on this workflow level",
             )
 
+        existing_action_for_instance = self.action_repo.get_by_instance_and_user(
+            instance_id=data.instance_id,
+            user_id=current_user.id,
+            company_id=company_id,
+        )
+        if existing_action_for_instance:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="You have already acted on this approval request.",
+            )
+
         existing_action = self.action_repo.get_by_instance_and_level_and_user(
             instance_id=data.instance_id,
             level_id=data.level_id,
@@ -226,6 +237,53 @@ class ApprovalActionService:
 
         return self.action_repo.get_by_instance(instance_id, company_id)
 
+
+    def _get_entity_approval_amount(
+        self,
+        instance,
+        company_id: UUID,
+    ):
+        if instance.entity_type == EntityTypeEnum.PR:
+            requisition = self.pr_repo.get_by_id(instance.entity_id, company_id)
+            if not requisition:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Purchase requisition not found for approval amount check",
+                )
+            return requisition.total_amount
+
+        if instance.entity_type == EntityTypeEnum.PO:
+            po = self.po_repo.get_by_id(instance.entity_id, company_id)
+            if not po:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Purchase order not found for approval amount check",
+                )
+            return po.total_amount
+
+        if instance.entity_type == EntityTypeEnum.INVOICE:
+            invoice = self.invoice_repo.get_by_id(instance.entity_id, company_id)
+            if not invoice:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Invoice not found for approval amount check",
+                )
+            return invoice.total_amount
+
+        if instance.entity_type == EntityTypeEnum.PAYMENT:
+            payment = self.payment_repo.get_by_id(instance.entity_id, company_id)
+            if not payment:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Payment not found for approval amount check",
+                )
+            return payment.amount
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unsupported entity type for approval amount check",
+        )
+
     def _apply_workflow_progression(
         self,
         instance,
@@ -274,6 +332,24 @@ class ApprovalActionService:
         if not required_role_ids.issubset(approved_role_ids):
             return
 
+        approval_amount = self._get_entity_approval_amount(
+            instance=instance,
+            company_id=company_id,
+        )
+
+        if current_level.max_amount is None or approval_amount <= current_level.max_amount:
+            instance.status = ApprovalStatus.APPROVED
+            instance.current_level_id = None
+            self.instance_repo.update(instance)
+
+            self._sync_entity_status(
+                instance=instance,
+                company_id=company_id,
+                approved=True,
+                actor_user_id=actor_user_id,
+            )
+            return
+
         next_level = self.workflow_level_repo.get_next_level(
             workflow_id=instance.workflow_id,
             current_level_order=current_level.level_order,
@@ -285,16 +361,12 @@ class ApprovalActionService:
             self.instance_repo.update(instance)
             return
 
-        instance.status = ApprovalStatus.APPROVED
-        instance.current_level_id = None
-        self.instance_repo.update(instance)
-
-        self._sync_entity_status(
-            instance=instance,
-            company_id=company_id,
-            approved=True,
-            actor_user_id=actor_user_id,
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No approval level is configured for this amount.",
         )
+
+        
 
     def _sync_entity_status(
         self,

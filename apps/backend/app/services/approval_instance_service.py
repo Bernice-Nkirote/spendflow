@@ -7,6 +7,9 @@ from app.models.enums import ApprovalStatus, EntityTypeEnum
 from app.repositories.approval_instance_repository import ApprovalInstanceRepository
 from app.repositories.workflow_level_repository import WorkflowLevelRepository
 from app.repositories.pr_repository import PurchaseRequisitionRepository
+from app.repositories.po_repository import PurchaseOrderRepository
+from app.repositories.invoice_repository import InvoiceRepository
+from app.repositories.payment_repository import PaymentRepository
 from app.schemas.approval_instance_schema import ApprovalInstanceCreate
 
 
@@ -16,10 +19,16 @@ class ApprovalInstanceService:
         repo: ApprovalInstanceRepository,
         workflow_level_repo: WorkflowLevelRepository,
         pr_repo: PurchaseRequisitionRepository,
+        po_repo: PurchaseOrderRepository,
+        invoice_repo: InvoiceRepository,
+        payment_repo: PaymentRepository,
     ):
         self.repo = repo
         self.workflow_level_repo = workflow_level_repo
         self.pr_repo = pr_repo
+        self.po_repo = po_repo
+        self.invoice_repo = invoice_repo
+        self.payment_repo = payment_repo
 
     def _enrich_instance(self, instance: ApprovalInstance) -> ApprovalInstance:
         """
@@ -27,9 +36,14 @@ class ApprovalInstanceService:
         and It only attaches response fields for frontend display.
         """
         instance.entity_reference = None
+        instance.entity_title = None
         instance.requester_name = None
         instance.total_amount = None
         instance.currency = None
+        instance.workflow_name = instance.workflow.name if instance.workflow else None
+        instance.current_level_name = (
+            instance.current_level.name if instance.current_level else None
+        )
 
         if instance.entity_type == EntityTypeEnum.PR:
             requisition = self.pr_repo.get_by_id(
@@ -39,6 +53,7 @@ class ApprovalInstanceService:
 
             if requisition:
                 instance.entity_reference = requisition.pr_number
+                instance.entity_title = requisition.title
                 instance.requester_name = getattr(
                     requisition,
                     "requested_by_name",
@@ -56,7 +71,142 @@ class ApprovalInstanceService:
                 )
                 instance.currency = requisition.currency
 
-        return instance  
+        if instance.entity_type == EntityTypeEnum.PO:
+            purchase_order = self.po_repo.get_by_id(
+                po_id=instance.entity_id,
+                company_id=instance.company_id,
+            )
+
+            if purchase_order:
+                instance.entity_reference = purchase_order.po_number
+                instance.entity_title = (
+                    f"Purchase Order for {purchase_order.supplier.name}"
+                    if purchase_order.supplier
+                    else "Purchase Order"
+                )
+
+                instance.requester_name = (
+                    purchase_order.submitter.name
+                    if purchase_order.submitter
+                    else None
+                )
+
+                if not instance.requester_name:
+                    instance.requester_name = (
+                        purchase_order.creator.name
+                        if purchase_order.creator
+                        else None
+                    )
+
+                instance.total_amount = (
+                    float(purchase_order.total_amount)
+                    if purchase_order.total_amount is not None
+                    else None
+                )
+
+                instance.currency = purchase_order.currency
+
+        if instance.entity_type == EntityTypeEnum.INVOICE:
+            invoice = self.invoice_repo.get_by_id(
+                invoice_id=instance.entity_id,
+                company_id=instance.company_id,
+            )
+
+            if invoice:
+                instance.entity_reference = invoice.invoice_number
+
+                supplier_name = invoice.supplier.name if invoice.supplier else None
+                po_number = (
+                    invoice.purchase_order.po_number
+                    if invoice.purchase_order
+                    else None
+                )
+
+                if supplier_name and po_number:
+                    instance.entity_title = f"Invoice from {supplier_name} for {po_number}"
+                elif supplier_name:
+                    instance.entity_title = f"Invoice from {supplier_name}"
+                else:
+                    instance.entity_title = "Invoice"
+
+                instance.requester_name = (
+                    invoice.submitted_by_user.name
+                    if invoice.submitted_by_user
+                    else None
+                )
+
+                if not instance.requester_name:
+                    instance.requester_name = (
+                        invoice.submitted_by_supplier_user.name
+                        if invoice.submitted_by_supplier_user
+                        else None
+                    )
+
+                instance.total_amount = (
+                    float(invoice.total_amount)
+                    if invoice.total_amount is not None
+                    else None
+                )
+
+                instance.currency = (
+                    invoice.purchase_order.currency
+                    if invoice.purchase_order
+                    else None
+                )
+
+        if instance.entity_type == EntityTypeEnum.PAYMENT:
+            payment = self.payment_repo.get_by_id(
+                payment_id=instance.entity_id,
+                company_id=instance.company_id,
+            )
+
+            if payment:
+                invoice = payment.invoice
+
+                invoice_number = (
+                    invoice.invoice_number if invoice else None
+                )
+
+                supplier_name = (
+                    invoice.supplier.name
+                    if invoice and invoice.supplier
+                    else None
+                )
+
+                instance.entity_reference = (
+                    f"Payment for {invoice_number}"
+                    if invoice_number
+                    else "Payment"
+                )
+
+                if supplier_name and invoice_number:
+                    instance.entity_title = (
+                        f"Payment to {supplier_name} for invoice {invoice_number}"
+                    )
+                elif supplier_name:
+                    instance.entity_title = f"Payment to {supplier_name}"
+                else:
+                    instance.entity_title = "Payment"
+
+                instance.requester_name = (
+                    payment.created_by_user.name
+                    if payment.created_by_user
+                    else None
+                )
+
+                instance.total_amount = (
+                    float(payment.amount)
+                    if payment.amount is not None
+                    else None
+                )
+
+                instance.currency = (
+                    invoice.purchase_order.currency
+                    if invoice and invoice.purchase_order
+                    else None
+                )
+
+        return instance
     
     def create_instance(
         self,

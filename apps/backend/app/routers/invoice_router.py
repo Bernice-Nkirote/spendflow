@@ -10,7 +10,9 @@ from app.repositories.approval_instance_repository import ApprovalInstanceReposi
 from app.repositories.approval_workflow_repository import ApprovalWorkflowRepository
 from app.repositories.invoice_line_item_repository import InvoiceLineItemRepository
 from app.repositories.invoice_repository import InvoiceRepository
+from app.repositories.payment_repository import PaymentRepository
 from app.repositories.po_repository import PurchaseOrderRepository
+from app.repositories.pr_repository import PurchaseRequisitionRepository
 from app.repositories.workflow_level_repository import WorkflowLevelRepository
 from app.repositories.audit_log_repository import AuditLogRepository
 from app.schemas.invoice_line_item_schema import (
@@ -41,13 +43,17 @@ def get_invoice_service(
     invoice_repo = InvoiceRepository(db)
     line_item_repo = InvoiceLineItemRepository(db)
     purchase_order_repo = PurchaseOrderRepository(db)
+    pr_repo = PurchaseRequisitionRepository(db)
     workflow_repo = ApprovalWorkflowRepository(db)
-
     approval_instance_repo = ApprovalInstanceRepository(db)
     workflow_level_repo = WorkflowLevelRepository(db)
     approval_instance_service = ApprovalInstanceService(
         repo=approval_instance_repo,
         workflow_level_repo=workflow_level_repo,
+        pr_repo=pr_repo,
+        po_repo=purchase_order_repo,
+        invoice_repo=invoice_repo,
+        payment_repo=PaymentRepository(db),
     )
 
     audit_log_service = AuditLogService(
@@ -90,7 +96,7 @@ def create_invoice(
     )
 
 
-@router.get("/", response_model=list[InvoiceRead])
+@router.get("/", response_model=list[InvoiceDetailRead])
 def get_all_invoices(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1),
@@ -104,7 +110,7 @@ def get_all_invoices(
     )
 
 
-@router.get("/status/{status}", response_model=list[InvoiceRead])
+@router.get("/status/{status}", response_model=list[InvoiceDetailRead])
 def get_invoices_by_status(
     status: InvoiceStatusEnum,
     skip: int = Query(0, ge=0),
@@ -120,7 +126,7 @@ def get_invoices_by_status(
     )
 
 
-@router.get("/supplier/{supplier_id}", response_model=list[InvoiceRead])
+@router.get("/supplier/{supplier_id}", response_model=list[InvoiceDetailRead])
 def get_invoices_by_supplier(
     supplier_id: UUID,
     skip: int = Query(0, ge=0),
@@ -136,7 +142,7 @@ def get_invoices_by_supplier(
     )
 
 
-@router.get("/purchase-order/{purchase_order_id}", response_model=list[InvoiceRead])
+@router.get("/purchase-order/{purchase_order_id}", response_model=list[InvoiceDetailRead])
 def get_invoices_by_purchase_order(
     purchase_order_id: UUID,
     current_user=Depends(get_current_user),
@@ -175,7 +181,7 @@ def update_invoice(
     )
 
 
-@router.patch("/{invoice_id}/submit", response_model=InvoiceRead)
+@router.patch("/{invoice_id}/submit", response_model=InvoiceDetailRead)
 def submit_invoice(
     invoice_id: UUID,
     current_user=Depends(get_current_user),

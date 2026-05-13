@@ -15,6 +15,9 @@ from app.repositories.permission_repository import PermissionRepository
 from app.repositories.role_permission_repository import RolePermissionRepository
 from app.repositories.role_repository import RoleRepository
 from app.repositories.audit_log_repository import AuditLogRepository
+from app.repositories.pr_repository import PurchaseRequisitionRepository
+from app.repositories.po_repository import PurchaseOrderRepository
+
 from app.services.audit_log_service import AuditLogService
 
 from app.schemas.payment_schema import PaymentCreate, PaymentRead, PaymentUpdate, PaymentDetailRead
@@ -37,6 +40,10 @@ def get_payment_service(
     approval_instance_service = ApprovalInstanceService(
         repo=approval_instance_repo,
         workflow_level_repo=workflow_level_repo,
+        pr_repo=PurchaseRequisitionRepository(db),
+        po_repo=PurchaseOrderRepository(db),
+        invoice_repo=invoice_repo,
+        payment_repo= payment_repo,
     )
     audit_log_service = AuditLogService(
         repo=AuditLogRepository(db),
@@ -61,7 +68,7 @@ def get_payment_service(
 
 @router.post(
     "/",
-    response_model=PaymentRead,
+    response_model=PaymentDetailRead,
     status_code=status.HTTP_201_CREATED,
 )
 def create_payment(
@@ -77,7 +84,7 @@ def create_payment(
     )
 
 
-@router.get("/", response_model=list[PaymentRead])
+@router.get("/", response_model=list[PaymentDetailRead])
 def get_all_payments(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1),
@@ -91,7 +98,7 @@ def get_all_payments(
     )
 
 
-@router.get("/invoice/{invoice_id}", response_model=list[PaymentRead])
+@router.get("/invoice/{invoice_id}", response_model=list[PaymentDetailRead])
 def get_payments_by_invoice(
     invoice_id: UUID,
     skip: int = Query(0, ge=0),
@@ -107,7 +114,7 @@ def get_payments_by_invoice(
     )
 
 
-@router.get("/status/{status}", response_model=list[PaymentRead])
+@router.get("/status/{status}", response_model=list[PaymentDetailRead])
 def get_payments_by_status(
     status: PaymentStatusEnum,
     skip: int = Query(0, ge=0),
@@ -135,7 +142,7 @@ def get_payment(
     )
 
 
-@router.put("/{payment_id}", response_model=PaymentRead)
+@router.put("/{payment_id}", response_model=PaymentDetailRead)
 def update_payment(
     payment_id: UUID,
     payment_data: PaymentUpdate,
@@ -150,7 +157,7 @@ def update_payment(
     )
 
 
-@router.patch("/{payment_id}/submit", response_model=PaymentRead)
+@router.patch("/{payment_id}/submit", response_model=PaymentDetailRead)
 def submit_payment(
     payment_id: UUID,
     current_user=Depends(get_current_user),

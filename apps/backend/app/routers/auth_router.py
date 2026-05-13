@@ -5,16 +5,45 @@ from app.core.database import get_db
 from app.core.security import create_access_token, verify_password
 from app.core.auth_dependancy import get_current_user
 from app.models.user import User
-
+from app.repositories.audit_log_repository import AuditLogRepository
 from app.repositories.company_repository import CompanyRepository
+from app.repositories.user_onboarding_token_repository import UserOnboardingTokenRepository
 from app.repositories.user_repository import UserRepository
 
-from app.schemas.user_schema import UserLogin
+from app.schemas.user_schema import UserLogin, UserPasswordSetup
 from app.schemas.auth_schema import AuthMeResponse
+
+from app.services.audit_log_service import AuditLogService
+from app.services.notifications.email_service import EmailService
+from app.services.user_service import UserService
+
+from app.core.config import settings
 
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
+def get_user_service(db: Session = Depends(get_db)) -> UserService:
+    user_repo = UserRepository(db)
+    onboarding_token_repo = UserOnboardingTokenRepository(db)
+
+    audit_log_repo = AuditLogRepository(db)
+    audit_log_service = AuditLogService(audit_log_repo)
+
+    email_service = EmailService(
+        smtp_host=settings.SMTP_HOST,
+        smtp_port=settings.SMTP_PORT,
+        smtp_username=settings.SMTP_USERNAME,
+        smtp_password=settings.SMTP_PASSWORD,
+        from_email=settings.FROM_EMAIL,
+        use_tls=settings.SMTP_USE_TLS,
+    )
+
+    return UserService(
+        repo=user_repo,
+        onboarding_token_repo=onboarding_token_repo,
+        audit_log_service=audit_log_service,
+        email_service=email_service,
+    )
 
 @router.post("/login")
 def login(
@@ -90,6 +119,20 @@ def login(
     return {
         "access_token": access_token,
         "token_type": "bearer",
+    }
+
+@router.post("/setup-password")
+def setup_password(
+    payload: UserPasswordSetup,
+    service: UserService = Depends(get_user_service),
+):
+    service.setup_password(
+        token=payload.token,
+        password=payload.password,
+    )
+
+    return {
+        "message": "Password setup completed successfully."
     }
 
 @router.get("/me", response_model=AuthMeResponse)

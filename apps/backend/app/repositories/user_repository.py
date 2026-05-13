@@ -72,7 +72,7 @@ class UserRepository:
         return (
             self.db.query(PurchaseRequisition)
             .filter(
-                PurchaseRequisition.requester_id == user_id,
+                PurchaseRequisition.requested_by == user_id,
                 PurchaseRequisition.company_id == company_id,
             )
             .first()

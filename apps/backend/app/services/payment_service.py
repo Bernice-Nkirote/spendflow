@@ -83,12 +83,12 @@ class PaymentService:
                 detail="Reference is required for this payment method",
             )
 
-        total_paid = self.payment_repo.get_total_paid(
+        total_reserved = self.payment_repo.get_total_reserved_amount(
             invoice_id=payment_data.invoice_id,
             company_id=company_id,
         )
 
-        if total_paid + payment_data.amount > invoice.total_amount:
+        if total_reserved + payment_data.amount > invoice.total_amount:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Overpayment is not allowed",
@@ -100,7 +100,7 @@ class PaymentService:
             amount=payment_data.amount,
             payment_method=payment_data.payment_method,
             reference=payment_data.reference,
-            status=PaymentStatusEnum.PENDING,
+            status=PaymentStatusEnum.DRAFT,
             created_by=created_by,
         )
 
@@ -124,7 +124,12 @@ class PaymentService:
         self.payment_repo.db.commit()
         self.payment_repo.db.refresh(created_payment)
 
-        return created_payment
+        created_payment = self.payment_repo.get_by_id(
+            payment_id=created_payment.id,
+            company_id=company_id,
+        )
+
+        return self._enrich_payment(created_payment)
 
     def get_payment(
         self,
@@ -142,6 +147,9 @@ class PaymentService:
                 detail="Payment not found",
             )
 
+        return self._enrich_payment(payment)
+
+    def _enrich_payment(self, payment: Payment) -> Payment:
         payment.invoice_number = (
             payment.invoice.invoice_number if payment.invoice else None
         )
@@ -176,11 +184,13 @@ class PaymentService:
                 detail="Limit must be greater than zero",
             )
 
-        return self.payment_repo.get_all(
+        payments = self.payment_repo.get_all(
             company_id=company_id,
             skip=skip,
             limit=limit,
         )
+
+        return [self._enrich_payment(payment) for payment in payments]
 
     def get_all_payments_by_invoice(
         self,
@@ -199,12 +209,14 @@ class PaymentService:
                 detail="Invoice not found",
             )
 
-        return self.payment_repo.get_by_invoice(
+        payments = self.payment_repo.get_by_invoice(
             invoice_id=invoice_id,
             company_id=company_id,
             skip=skip,
             limit=limit,
         )
+
+        return [self._enrich_payment(payment) for payment in payments]
 
     def get_all_payments_by_status(
         self,
@@ -225,12 +237,14 @@ class PaymentService:
                 detail="Limit must be greater than zero",
             )
 
-        return self.payment_repo.get_by_status(
+        payments = self.payment_repo.get_by_status(
             payment_status=payment_status,
             company_id=company_id,
             skip=skip,
             limit=limit,
         )
+
+        return [self._enrich_payment(payment) for payment in payments]
 
     def update_payment(
         self,
@@ -243,12 +257,12 @@ class PaymentService:
 
         payment_status = getattr(payment.status, "value", str(payment.status))
         if payment_status not in {
-            PaymentStatusEnum.PENDING.value,
+            PaymentStatusEnum.DRAFT.value,
             PaymentStatusEnum.REJECTED.value,
         }:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Only pending or rejected payments can be updated",
+                detail="Only draft or rejected payments can be updated",
             )
         
         # capture the old state first
@@ -287,12 +301,18 @@ class PaymentService:
                     detail="Invoice not found",
                 )
 
-            total_paid = self.payment_repo.get_total_paid(
+            total_reserved = self.payment_repo.get_total_reserved_amount(
                 invoice_id=payment.invoice_id,
                 company_id=company_id,
             )
 
-            if total_paid + update_data["amount"] > invoice.total_amount:
+            adjusted_reserved_total = (
+                total_reserved
+                - payment.amount
+                + update_data["amount"]
+            )
+
+            if adjusted_reserved_total > invoice.total_amount:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Overpayment is not allowed",
@@ -318,7 +338,12 @@ class PaymentService:
         self.payment_repo.db.commit()
         self.payment_repo.db.refresh(updated_payment)
 
-        return updated_payment
+        updated_payment = self.payment_repo.get_by_id(
+            payment_id=updated_payment.id,
+            company_id=company_id,
+        )
+
+        return self._enrich_payment(updated_payment)
 
     def submit_payment(
         self,
@@ -341,12 +366,12 @@ class PaymentService:
 
         payment_status = getattr(payment.status, "value", str(payment.status))
         if payment_status not in {
-            PaymentStatusEnum.PENDING.value,
+            PaymentStatusEnum.DRAFT.value,
             PaymentStatusEnum.REJECTED.value,
         }:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Only pending or rejected payments can be submitted",
+                detail="Only draft or rejected payments can be submitted",
             )
 
         invoice = self.invoice_repo.get_by_id(
@@ -378,12 +403,12 @@ class PaymentService:
                 detail="Reference is required for this payment method",
             )
 
-        total_paid = self.payment_repo.get_total_paid(
+        total_reserved = self.payment_repo.get_total_reserved_amount(
             invoice_id=payment.invoice_id,
             company_id=company_id,
         )
 
-        if total_paid + payment.amount > invoice.total_amount:
+        if total_reserved > invoice.total_amount:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Overpayment is not allowed",
@@ -431,6 +456,7 @@ class PaymentService:
 
         self.approval_instance_service.repo.create(approval_instance)
 
+        payment.status = PaymentStatusEnum.PENDING_APPROVAL
         updated_payment = self.payment_repo.update(payment)
 
         # AUDIT LOG
@@ -443,13 +469,19 @@ class PaymentService:
             description=f"Payment {payment.id} submitted for approval",
             details_json={
                 "approval_workflow_started": True,
+                "status": enum_value(payment.status),
             }
         )
 
         self.payment_repo.db.commit()
         self.payment_repo.db.refresh(updated_payment)
 
-        return updated_payment
+        updated_payment = self.payment_repo.get_by_id(
+            payment_id=updated_payment.id,
+            company_id=company_id,
+        )
+
+        return self._enrich_payment(updated_payment)
 
     def delete_payment(
         self,
@@ -468,16 +500,30 @@ class PaymentService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You do not have permission to delete payments",
             )
+        
         payment = self.get_payment(payment_id, company_id)
 
+        existing_pending = self.approval_instance_service.repo.get_pending_by_entity(
+            entity_id=payment.id,
+            entity_type=EntityTypeEnum.PAYMENT,
+            company_id=company_id,
+        )
+
+        if existing_pending:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="This payment has already been submitted for approval and cannot be deleted.",
+            )
+
         payment_status = getattr(payment.status, "value", str(payment.status))
+
         if payment_status not in {
-            PaymentStatusEnum.PENDING.value,
+            PaymentStatusEnum.DRAFT.value,
             PaymentStatusEnum.REJECTED.value,
         }:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Only pending or rejected payments can be deleted",
+                detail="Only draft or rejected payments can be deleted",
             )
 
         # AUDIT LOG

@@ -1,3 +1,5 @@
+import { formatCurrency } from "../../../utils/formatCurrency";
+
 export function formatDate(value: string) {
   return new Date(value).toLocaleDateString("en-KE", {
     day: "numeric",
@@ -6,17 +8,18 @@ export function formatDate(value: string) {
   });
 }
 
-export function formatMoney(value?: string | null, currency = "KES") {
-  if (!value) return "Not provided";
+export function formatMoney(value?: string | number | null, currency = "KES") {
+  if (value === null || value === undefined || value === "") {
+    return "Not provided";
+  }
 
   const amount = Number(value);
 
-  if (Number.isNaN(amount)) return "Not provided";
+  if (Number.isNaN(amount)) {
+    return "Not provided";
+  }
 
-  return new Intl.NumberFormat("en-KE", {
-    style: "currency",
-    currency,
-  }).format(amount);
+  return formatCurrency(amount, currency);
 }
 
 export function formatQuantity(value?: string | null) {

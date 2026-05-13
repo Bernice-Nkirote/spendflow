@@ -45,6 +45,13 @@ class InvoiceRepository:
     ) -> list[Invoice]:
         return (
             self.db.query(Invoice)
+            .options(
+                joinedload(Invoice.supplier),
+                joinedload(Invoice.purchase_order),
+                joinedload(Invoice.submitted_by_user),
+                joinedload(Invoice.submitted_by_supplier_user),
+                joinedload(Invoice.line_items),
+            )
             .filter(Invoice.company_id == company_id)
             .order_by(Invoice.created_at.desc())
             .offset(skip)
@@ -73,6 +80,13 @@ class InvoiceRepository:
     ) -> list[Invoice]:
         return (
             self.db.query(Invoice)
+            .options(
+                joinedload(Invoice.supplier),
+                joinedload(Invoice.purchase_order),
+                joinedload(Invoice.submitted_by_user),
+                joinedload(Invoice.submitted_by_supplier_user),
+                joinedload(Invoice.line_items),
+            )
             .filter(
                 Invoice.purchase_order_id == purchase_order_id,
                 Invoice.company_id == company_id,
@@ -90,6 +104,13 @@ class InvoiceRepository:
     ) -> list[Invoice]:
         return (
             self.db.query(Invoice)
+            .options(
+                joinedload(Invoice.supplier),
+                joinedload(Invoice.purchase_order),
+                joinedload(Invoice.submitted_by_user),
+                joinedload(Invoice.submitted_by_supplier_user),
+                joinedload(Invoice.line_items),
+            )
             .filter(
                 Invoice.status == status,
                 Invoice.company_id == company_id,
@@ -109,6 +130,13 @@ class InvoiceRepository:
     ) -> list[Invoice]:
         return (
             self.db.query(Invoice)
+            .options(
+                joinedload(Invoice.supplier),
+                joinedload(Invoice.purchase_order),
+                joinedload(Invoice.submitted_by_user),
+                joinedload(Invoice.submitted_by_supplier_user),
+                joinedload(Invoice.line_items),
+            )
             .filter(
                 Invoice.supplier_id == supplier_id,
                 Invoice.company_id == company_id,

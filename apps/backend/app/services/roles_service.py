@@ -61,7 +61,25 @@ class RoleService:
         company_id: UUID,
     ) -> Role:
         role = self.get_role(role_id, company_id)
+        is_admin_role = role.name.strip().lower() == "admin"
 
+        if is_admin_role:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Admin role cannot be modified.",
+            )
+
+        if self.repo.has_users(role.id, company_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Role cannot be modified because it is assigned to users.",
+            )
+
+        if self.repo.has_workflow_levels(role.id, company_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Role cannot be modified because it is used in approval workflows.",
+            )
         update_data = role_data.model_dump(exclude_unset=True)
 
         if "name" in update_data:
@@ -111,13 +129,48 @@ class RoleService:
 
         return updated_role
 
-    def deactivate_role(self, role_id: UUID, company_id: UUID) -> Role:
+    def deactivate_role(
+        self,
+        role_id: UUID,
+        company_id: UUID,
+        current_user_role_id: UUID,
+    ) -> Role:
         role = self.get_role(role_id, company_id)
+
+        if role.name.strip().lower() == "admin":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Admin role cannot be deactivated.",
+            )
+
+        if role.id == current_user_role_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="You cannot deactivate the role assigned to your own account.",
+            )
+
+        if role.name.strip().lower() == "admin":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="The Admin role cannot be deactivated.",
+            )
 
         if not role.is_active:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Role is already inactive.",
+            )
+
+        if self.repo.has_users(role_id, company_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Role cannot be deactivated because users are assigned to it. Reassign users first.",
+            )
+
+        if self.repo.has_workflow_level_roles(role_id, company_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Role cannot be deactivated because it is used in approval workflow levels.",
             )
 
         role.is_active = False
@@ -130,6 +183,24 @@ class RoleService:
 
     def delete_role(self, role_id: UUID, company_id: UUID) -> None:
         role = self.get_role(role_id, company_id)
+
+        if role.name.strip().lower() == "admin":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Admin role cannot be deleted.",
+            )
+
+        if self.repo.has_users(role.id, company_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Role cannot be deleted because it is assigned to users.",
+            )
+
+        if self.repo.has_workflow_levels(role.id, company_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Role cannot be deleted because it is used in approval workflows.",
+            )
 
         self.repo.delete(role)
         self.repo.db.commit()

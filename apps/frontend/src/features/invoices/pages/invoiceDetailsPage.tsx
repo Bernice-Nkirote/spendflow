@@ -3,19 +3,14 @@ import { Link, useParams } from "react-router-dom";
 
 import ErrorState from "../../../components/ui/ErrorState";
 import LoadingState from "../../../components/ui/LoadingState";
+import FloatingAlert from "../../../components/ui/FloatingAlert";
 
+import { formatCurrency } from "../../../utils/formatCurrency";
 import { getInvoiceById } from "../api/invoiceApi";
+import { getPaymentsByInvoice } from "../../payments/api/paymentApi";
 import type { InvoiceDetails } from "../types/invoice.types";
-
-function formatCurrency(value: string | number | null | undefined) {
-  const numericValue = Number(value ?? 0);
-
-  return new Intl.NumberFormat("en-KE", {
-    style: "currency",
-    currency: "KES",
-    maximumFractionDigits: 2,
-  }).format(Number.isNaN(numericValue) ? 0 : numericValue);
-}
+import InvoiceActions from "../components/InvoiceActions";
+import InvoiceStatusBadge from "../components/InvoiceStatusBadge";
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "-";
@@ -26,20 +21,15 @@ function formatDate(value: string | null | undefined) {
   }).format(new Date(value));
 }
 
-function formatStatus(status: string) {
-  return status
-    .toLowerCase()
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-}
-
 export default function InvoiceDetailsPage() {
   const { id } = useParams<{ id: string }>();
 
   const [invoice, setInvoice] = useState<InvoiceDetails | null>(null);
+  const [hasPendingPayment, setHasPendingPayment] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchInvoice() {
@@ -55,6 +45,11 @@ export default function InvoiceDetailsPage() {
 
         const response = await getInvoiceById(id);
         setInvoice(response);
+
+        const payments = await getPaymentsByInvoice(id);
+        setHasPendingPayment(
+          payments.some((payment) => payment.status === "PENDING"),
+        );
       } catch {
         setError("Failed to load invoice details.");
       } finally {
@@ -80,13 +75,28 @@ export default function InvoiceDetailsPage() {
 
   return (
     <div className="flex min-w-0 flex-col gap-6">
+      {actionSuccess && (
+        <FloatingAlert
+          type="success"
+          message={actionSuccess}
+          onClose={() => setActionSuccess(null)}
+        />
+      )}
+
+      {actionError && (
+        <FloatingAlert
+          type="error"
+          message={actionError}
+          onClose={() => setActionError(null)}
+        />
+      )}
       <div className="flex flex-col gap-4 rounded-xl border bg-white p-4 shadow-sm sm:p-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <Link
-            to="/reports"
+            to="/invoices"
             className="text-sm font-medium text-primary-blue hover:underline"
           >
-            ← Back to Reports
+            ← Back to Invoices
           </Link>
 
           <h1 className="mt-3 text-2xl font-semibold text-primary-black">
@@ -99,13 +109,25 @@ export default function InvoiceDetailsPage() {
         </div>
 
         <div className="flex flex-col gap-2 sm:flex-row lg:flex-col lg:items-end">
-          <span className="inline-flex w-fit rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700">
-            {formatStatus(invoice.status)}
-          </span>
+          <InvoiceStatusBadge status={invoice.status} />
 
           <span className="text-sm text-primary-gray">
             Created {formatDate(invoice.created_at)}
           </span>
+
+          <InvoiceActions
+            invoice={invoice}
+            hasPendingPayment={hasPendingPayment}
+            onUpdated={(updatedInvoice) => {
+              setInvoice(updatedInvoice);
+              setActionError(null);
+              setActionSuccess("Invoice action completed successfully.");
+            }}
+            onError={(message) => {
+              setActionSuccess(null);
+              setActionError(message);
+            }}
+          />
         </div>
       </div>
 
@@ -113,7 +135,7 @@ export default function InvoiceDetailsPage() {
         <div className="rounded-xl border bg-white p-4 shadow-sm">
           <p className="text-sm text-primary-gray">Total Amount</p>
           <p className="mt-2 text-2xl font-semibold text-primary-black">
-            {formatCurrency(invoice.total_amount)}
+            {formatCurrency(Number(invoice.total_amount ?? 0), undefined)}
           </p>
         </div>
 
@@ -183,9 +205,10 @@ export default function InvoiceDetailsPage() {
             <p className="text-xs font-medium uppercase tracking-wide text-primary-gray">
               Status
             </p>
-            <p className="mt-1 text-sm text-primary-black">
-              {formatStatus(invoice.status)}
-            </p>
+
+            <div className="mt-2">
+              <InvoiceStatusBadge status={invoice.status} />
+            </div>
           </div>
 
           <div>
@@ -250,10 +273,10 @@ export default function InvoiceDetailsPage() {
                     {item.invoiced_quantity}
                   </td>
                   <td className="border-b px-4 py-3 text-right tabular-nums text-gray-700">
-                    {formatCurrency(item.unit_price)}
+                    {formatCurrency(Number(item.unit_price ?? 0), undefined)}
                   </td>
                   <td className="border-b px-4 py-3 text-right tabular-nums text-gray-700">
-                    {formatCurrency(item.total_price)}
+                    {formatCurrency(Number(item.total_price ?? 0), undefined)}
                   </td>
                 </tr>
               ))}

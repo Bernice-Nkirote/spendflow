@@ -20,10 +20,14 @@ class InvoiceCreate(BaseModel):
 
     @field_validator("invoice_number")
     @classmethod
-    def validate_invoice_number(cls, value: str) -> str:
+    def validate_invoice_number(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+
         value = value.strip()
         if not value:
-            raise ValueError("Invoice number is required")
+            raise ValueError("Invoice number cannot be empty")
+
         return value
 
     @field_validator("line_items")
@@ -89,5 +93,6 @@ class InvoiceRead(BaseModel):
 class InvoiceDetailRead(InvoiceRead):
     supplier_name: Optional[str] = None
     po_number: Optional[str] = None
+    currency: Optional[str] = None
     submitted_by_user_name: Optional[str] = None
     submitted_by_supplier_user_name: Optional[str] = None

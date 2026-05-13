@@ -5,6 +5,8 @@ import ErrorState from "../../../components/ui/ErrorState";
 import LoadingState from "../../../components/ui/LoadingState";
 
 import { getPurchaseOrderById } from "../api/purchaseOrderApi";
+import { getInvoicesByPurchaseOrder } from "../../invoices/api/invoiceApi";
+
 import type { PurchaseOrderDetails } from "../types/purchaseOrder.types";
 import PurchaseOrderActions from "../components/PurchaseOrderActions";
 import { formatCurrency } from "../../../utils/formatCurrency";
@@ -35,7 +37,7 @@ export default function PurchaseOrderDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-
+  const [linkedInvoiceId, setLinkedInvoiceId] = useState<string | null>(null);
   useEffect(() => {
     async function fetchPurchaseOrder() {
       if (!id) {
@@ -48,8 +50,13 @@ export default function PurchaseOrderDetailsPage() {
         setLoading(true);
         setError(null);
 
-        const response = await getPurchaseOrderById(id);
-        setPurchaseOrder(response);
+        const [purchaseOrderResponse, invoiceResponse] = await Promise.all([
+          getPurchaseOrderById(id),
+          getInvoicesByPurchaseOrder(id),
+        ]);
+
+        setPurchaseOrder(purchaseOrderResponse);
+        setLinkedInvoiceId(invoiceResponse[0]?.id ?? null);
       } catch {
         setError("Failed to load purchase order details.");
       } finally {
@@ -113,6 +120,24 @@ export default function PurchaseOrderDetailsPage() {
             }}
             onError={setActionError}
           />
+          {["APPROVED", "SENT"].includes(purchaseOrder.status) &&
+            !linkedInvoiceId && (
+              <Link
+                to={`/invoices/new?purchaseOrderId=${purchaseOrder.id}&from=purchase-order`}
+              >
+                <button className="inline-flex items-center justify-center rounded-lg bg-primary-blue px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-blue/90">
+                  Create Invoice
+                </button>
+              </Link>
+            )}
+          {["APPROVED", "SENT"].includes(purchaseOrder.status) &&
+            linkedInvoiceId && (
+              <Link to={`/invoices/${linkedInvoiceId}`}>
+                <button className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-primary-black transition hover:bg-gray-50">
+                  View Invoice
+                </button>
+              </Link>
+            )}
         </div>
       </div>
       {actionError && <ErrorState message={actionError} />}

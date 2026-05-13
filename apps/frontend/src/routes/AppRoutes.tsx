@@ -1,12 +1,17 @@
 import { Route, Routes } from "react-router-dom";
 import AppLayout from "../components/layout/AppLayout";
 import LoginPage from "../features/auth/LoginPage";
-import ReportsPage from "../features/reports/pages/ReportsPage";
 import CompanySignupPage from "../features/auth/CompanySignupPage";
+import SetupPasswordPage from "../features/auth/SetupPasswordPage";
+import ReportsPage from "../features/reports/pages/ReportsPage";
 import PurchaseRequisitionDetailsPage from "../features/purchase_requisition/pages/PurchaseRequisitionDetailsPage";
 import PurchaseOrderDetailsPage from "../features/purchase_orders/pages/PurchaseOrderDetailsPage";
 import InvoiceDetailsPage from "../features/invoices/pages/invoiceDetailsPage";
-import PaymentDetailsPage from "../features/payments/pages/paymentDetailsPage";
+import InvoicesPage from "../features/invoices/pages/InvoicesPage";
+import CreateInvoicePage from "../features/invoices/pages/CreateInvoicePage";
+import PaymentDetailsPage from "../features/payments/pages/PaymentDetailsPage";
+import PaymentsPage from "../features/payments/pages/PaymentsPage";
+import CreatePaymentPage from "../features/payments/pages/CreatePaymentPage";
 import OutstandingInvoiceDetailsPage from "../features/outstanding_invoice/pages/OutstandingInvoiceDetailsPage";
 import SupplierSpendDetailsPage from "../features/supplier_spend/pages/SupplierSpendDetailsPage";
 import DashboardPage from "../features/dashboard/pages/DashboardPage";
@@ -20,15 +25,21 @@ import CreatePurchaseRequisitionPage from "../features/purchase_requisition/page
 import EditPurchaseRequisitionPage from "../features/purchase_requisition/pages/EditPurchaseRequisitionPage";
 import ApprovalQueuePage from "../features/approvals/pages/ApprovalQueuePage";
 import ApprovalDetailPage from "../features/approvals/pages/ApprovalDetailPage";
+import ApprovalWorkflowsPage from "../features/approval_workflows/pages/ApprovalWorkflowsPage";
+
 import SuppliersPage from "../features/suppliers/pages/SuppliersPage";
 import SupplierDetailsPage from "../features/suppliers/pages/SupplierDetailsPage";
+import DepartmentsPage from "../features/Departments/pages/DepartmentsPage";
+import RolesPage from "../features/roles/pages/RolesPage";
+import UsersPage from "../features/users/pages/UsersPage";
 import ProtectedRoute from "./ProtectedRoute";
-
+import ApprovalWorkflowDetailsPage from "../features/approval_workflows/pages/ApprovalWorkflowDetailsPage";
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/company-signup" element={<CompanySignupPage />} />
+      <Route path="/setup-password" element={<SetupPasswordPage />} />
 
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<AppLayout />}>
@@ -86,8 +97,36 @@ function AppRoutes() {
             element={<SupplierDetailsPage />}
           />
 
-          {/* INVOICE AND PAYMENT */}
+          {/* DEPARTMENTS */}
+          <Route path="/departments" element={<DepartmentsPage />} />
+
+          {/* ROLES */}
+          <Route path="/roles" element={<RolesPage />} />
+
+          {/* USERS */}
+          <Route path="/users" element={<UsersPage />} />
+
+          {/* APPROVAL WORKFLOWS */}
+          <Route
+            path="/approval-workflows"
+            element={<ApprovalWorkflowsPage />}
+          />
+          <Route
+            path="/approval-workflows/:workflowId"
+            element={<ApprovalWorkflowDetailsPage />}
+          />
+
+          {/* INVOICE */}
+          <Route path="/invoices" element={<InvoicesPage />} />
+          <Route path="/invoices/new" element={<CreateInvoicePage />} />
           <Route path="/invoices/:id" element={<InvoiceDetailsPage />} />
+
+          {/* PAYMENT */}
+          <Route
+            path="/invoices/:invoiceId/payments/new"
+            element={<CreatePaymentPage />}
+          />
+          <Route path="/payments" element={<PaymentsPage />} />
           <Route path="/payments/:id" element={<PaymentDetailsPage />} />
 
           {/* REPORTS */}

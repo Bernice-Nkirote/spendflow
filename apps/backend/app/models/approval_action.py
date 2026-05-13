@@ -78,3 +78,7 @@ class ApprovalAction(Base):
     instance = relationship("ApprovalInstance", back_populates="actions")
     level = relationship("WorkflowLevel",back_populates="approval_actions")
     user = relationship("User", back_populates="approval_actions")
+
+    @property
+    def user_name(self) -> str | None:
+        return self.user.name if self.user else None

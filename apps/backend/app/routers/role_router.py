@@ -73,4 +73,17 @@ def deactivate_role(
     service: RoleService = Depends(get_role_service),
     current_user=Depends(get_current_admin_user),
 ):
-    return service.deactivate_role(role_id, current_user.company_id)
+    return service.deactivate_role(
+    role_id=role_id,
+    company_id=current_user.company_id,
+    current_user_role_id=current_user.role_id,
+)
+
+@router.delete("/{role_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_role(
+    role_id: UUID,
+    service: RoleService = Depends(get_role_service),
+    current_user=Depends(get_current_admin_user),
+):
+    service.delete_role(role_id, current_user.company_id)
+    return None

@@ -25,6 +25,8 @@ class WorkflowLevelRoleRead(BaseModel):
     company_id: UUID
     level_id: UUID
     role_id: UUID
+    role_name: Optional[str] = None
+    level_name: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 

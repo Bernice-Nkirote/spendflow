@@ -1,7 +1,7 @@
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.approval_workflows_table import ApprovalWorkflow
 from app.models.enums import EntityTypeEnum
@@ -25,6 +25,9 @@ class ApprovalWorkflowRepository:
     ) -> list[ApprovalWorkflow]:
         return (
             self.db.query(ApprovalWorkflow)
+            .options(
+                joinedload(ApprovalWorkflow.levels)
+            )
             .filter(ApprovalWorkflow.company_id == company_id)
             .order_by(ApprovalWorkflow.created_at.desc())
             .offset(skip)
@@ -39,6 +42,9 @@ class ApprovalWorkflowRepository:
     ) -> Optional[ApprovalWorkflow]:
         return (
             self.db.query(ApprovalWorkflow)
+            .options(
+                joinedload(ApprovalWorkflow.levels)
+            )
             .filter(
                 ApprovalWorkflow.id == workflow_id,
                 ApprovalWorkflow.company_id == company_id,
@@ -67,6 +73,9 @@ class ApprovalWorkflowRepository:
     ) -> Optional[ApprovalWorkflow]:
         return (
             self.db.query(ApprovalWorkflow)
+            .options(
+                joinedload(ApprovalWorkflow.levels)
+            )
             .filter(
                 ApprovalWorkflow.company_id == company_id,
                 ApprovalWorkflow.entity_type == entity_type,

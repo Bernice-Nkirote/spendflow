@@ -44,6 +44,10 @@ class User(Base):
 
     is_active = Column(Boolean, nullable=False, default=True)
 
+    has_completed_onboarding = Column(Boolean, nullable=False, default=False)
+
+    onboarded_at = Column(DateTime(timezone=True), nullable=True)
+
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -89,3 +93,12 @@ class User(Base):
     back_populates="created_by_user",
 )
     approval_actions = relationship("ApprovalAction", back_populates="user")
+
+    # Python computed properties that give frontend human readable values.
+    @property
+    def role_name(self) -> str | None:
+        return self.role.name if self.role else None
+
+    @property
+    def department_name(self) -> str | None:
+        return self.department.name if self.department else None

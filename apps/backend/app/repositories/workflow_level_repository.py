@@ -1,7 +1,7 @@
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session,joinedload
 
 from app.models.workflow_level import WorkflowLevel
 
@@ -25,6 +25,11 @@ class WorkflowLevelRepository:
     ) -> list[WorkflowLevel]:
         return (
             self.db.query(WorkflowLevel)
+            .options(
+                joinedload(WorkflowLevel.workflow),
+                joinedload(WorkflowLevel.department),
+                joinedload(WorkflowLevel.level_roles),
+            )
             .filter(
                 WorkflowLevel.workflow_id == workflow_id,
                 WorkflowLevel.company_id == company_id,
@@ -42,6 +47,11 @@ class WorkflowLevelRepository:
     ) -> Optional[WorkflowLevel]:
         return (
             self.db.query(WorkflowLevel)
+            .options(
+                joinedload(WorkflowLevel.workflow),
+                joinedload(WorkflowLevel.department),
+                joinedload(WorkflowLevel.level_roles),
+            )
             .filter(
                 WorkflowLevel.id == level_id,
                 WorkflowLevel.company_id == company_id,

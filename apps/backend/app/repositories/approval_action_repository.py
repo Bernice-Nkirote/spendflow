@@ -1,7 +1,7 @@
 from typing import Optional
 from uuid import UUID
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.models.approval_action import ApprovalAction
 
@@ -23,6 +23,7 @@ class ApprovalActionRepository:
     ) -> Optional[ApprovalAction]:
         return (
             self.db.query(ApprovalAction)
+            .options(joinedload(ApprovalAction.user))
             .filter(
                 ApprovalAction.id == action_id,
                 ApprovalAction.company_id == company_id,
@@ -38,6 +39,7 @@ class ApprovalActionRepository:
     ) -> list[ApprovalAction]:
         return (
             self.db.query(ApprovalAction)
+            .options(joinedload(ApprovalAction.user))
             .filter(ApprovalAction.company_id == company_id)
             .order_by(ApprovalAction.created_at.desc())
             .offset(skip)
@@ -52,6 +54,7 @@ class ApprovalActionRepository:
     ) -> list[ApprovalAction]:
         return (
             self.db.query(ApprovalAction)
+            .options(joinedload(ApprovalAction.user))
             .filter(
                 ApprovalAction.instance_id == instance_id,
                 ApprovalAction.company_id == company_id,
@@ -72,6 +75,22 @@ class ApprovalActionRepository:
             .filter(
                 ApprovalAction.instance_id == instance_id,
                 ApprovalAction.level_id == level_id,
+                ApprovalAction.user_id == user_id,
+                ApprovalAction.company_id == company_id,
+            )
+            .first()
+        )
+
+    def get_by_instance_and_user(
+        self,
+        instance_id: UUID,
+        user_id: UUID,
+        company_id: UUID,
+    ) -> Optional[ApprovalAction]:
+        return (
+            self.db.query(ApprovalAction)
+            .filter(
+                ApprovalAction.instance_id == instance_id,
                 ApprovalAction.user_id == user_id,
                 ApprovalAction.company_id == company_id,
             )

@@ -94,7 +94,7 @@ class DashboardRepository:
             self.db.query(func.count(Payment.id))
             .filter(
                 Payment.company_id == company_id,
-                Payment.status == PaymentStatusEnum.PENDING,
+                Payment.status == PaymentStatusEnum.PENDING_APPROVAL,
             )
             .scalar()
             or 0
@@ -170,7 +170,7 @@ class DashboardRepository:
             self.db.query(Payment)
             .filter(
                 Payment.company_id == company_id,
-                Payment.status == PaymentStatusEnum.PENDING,
+                Payment.status == PaymentStatusEnum.PENDING_APPROVAL,
             )
             .order_by(Payment.created_at.desc())
             .limit(limit)

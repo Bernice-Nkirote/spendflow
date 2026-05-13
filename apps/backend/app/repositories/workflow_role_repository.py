@@ -1,7 +1,7 @@
 import uuid
 from typing import Optional
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session,joinedload
 
 from app.models.workflow_level_roles import WorkflowLevelRole
 
@@ -23,6 +23,10 @@ class WorkflowLevelRoleRepository:
     ) -> Optional[WorkflowLevelRole]:
         return (
             self.db.query(WorkflowLevelRole)
+            .options(
+                joinedload(WorkflowLevelRole.role),
+                joinedload(WorkflowLevelRole.level),
+            )
             .filter(
                 WorkflowLevelRole.id == workflow_level_role_id,
                 WorkflowLevelRole.company_id == company_id,
@@ -37,6 +41,10 @@ class WorkflowLevelRoleRepository:
     ) -> list[WorkflowLevelRole]:
         return (
             self.db.query(WorkflowLevelRole)
+            .options(
+                joinedload(WorkflowLevelRole.role),
+                joinedload(WorkflowLevelRole.level),
+            )
             .filter(
                 WorkflowLevelRole.level_id == level_id,
                 WorkflowLevelRole.company_id == company_id,
@@ -52,17 +60,25 @@ class WorkflowLevelRoleRepository:
     ) -> Optional[WorkflowLevelRole]:
         return (
             self.db.query(WorkflowLevelRole)
+            .options(
+                joinedload(WorkflowLevelRole.role),
+                joinedload(WorkflowLevelRole.level),
+            )
             .filter(
                 WorkflowLevelRole.level_id == level_id,
                 WorkflowLevelRole.role_id == role_id,
                 WorkflowLevelRole.company_id == company_id,
             )
             .first()
-        )
+)
 
     def get_all(self, company_id: uuid.UUID) -> list[WorkflowLevelRole]:
         return (
             self.db.query(WorkflowLevelRole)
+            .options(
+                joinedload(WorkflowLevelRole.role),
+                joinedload(WorkflowLevelRole.level),
+            )
             .filter(WorkflowLevelRole.company_id == company_id)
             .all()
         )

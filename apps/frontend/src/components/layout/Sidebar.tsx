@@ -8,6 +8,10 @@ const navItems = [
   { label: "Invoices", path: "/invoices" },
   { label: "Payments", path: "/payments" },
   { label: "Approvals", path: "/approvals" },
+  { label: "Approval Workflows", path: "/approval-workflows" },
+  { label: "Departments", path: "/departments" },
+  { label: "Roles", path: "/roles" },
+  { label: "Users", path: "/users" },
   { label: "Reports", path: "/reports" },
   { label: "Audit Logs", path: "/audit-logs" },
 ];

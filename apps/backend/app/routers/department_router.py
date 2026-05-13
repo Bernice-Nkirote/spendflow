@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.orm import Session
 
-from app.core.auth_dependancy import get_current_admin_user
+from app.core.auth_dependancy import get_current_admin_user, get_current_user
 from app.core.database import get_db
 from app.repositories.department_repository import DepartmentRepository
 from app.schemas.department_schema import DepartmentCreate, DepartmentRead, DepartmentUpdate
@@ -13,7 +13,7 @@ from app.services.department_service import DepartmentService
 router = APIRouter(
     prefix="/departments",
     tags=["Departments"],
-    dependencies=[Depends(get_current_admin_user)],
+    
 )
 
 
@@ -37,6 +37,15 @@ def get_all_departments(
     current_user=Depends(get_current_admin_user),
 ):
     return service.get_all_departments(current_user.company_id)
+
+
+@router.get("/options", response_model=list[DepartmentRead])
+def get_department_options(
+    service: DepartmentService = Depends(get_department_service),
+    current_user=Depends(get_current_user),
+):
+    departments = service.get_all_departments(current_user.company_id)
+    return [department for department in departments if department.is_active]
 
 
 @router.get("/{department_id}", response_model=DepartmentRead)

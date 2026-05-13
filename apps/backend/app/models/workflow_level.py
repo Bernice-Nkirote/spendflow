@@ -64,6 +64,7 @@ class WorkflowLevel(Base):
     # Relationships
     company = relationship("Company", back_populates="workflow_levels")
     workflow = relationship("ApprovalWorkflow", back_populates="levels")
+    department = relationship("Department")
     level_roles = relationship(
         "WorkflowLevelRole",
         back_populates="level",
@@ -71,3 +72,11 @@ class WorkflowLevel(Base):
     )
     instances = relationship("ApprovalInstance", back_populates="current_level")
     approval_actions = relationship("ApprovalAction", back_populates="level")
+    
+    @property
+    def workflow_name(self) -> str | None:
+        return self.workflow.name if self.workflow else None
+
+    @property
+    def department_name(self) -> str | None:
+        return self.department.name if self.department else None
