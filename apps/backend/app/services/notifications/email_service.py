@@ -158,3 +158,33 @@ class EmailService:
             subject=subject,
             body=body,
         )
+
+    
+    def send_supplier_onboarding_email(
+        self,
+        to_email: str,
+        supplier_name: str,
+        setup_link: str,
+    ) -> None:
+        greeting_name = (
+            supplier_name.strip()
+            if supplier_name and supplier_name.strip()
+            else "Supplier"
+        )
+
+        subject = "Your SpendFlow supplier portal account has been created"
+        body = (
+            f"Dear {greeting_name},\n\n"
+            "A supplier portal account has been created for you on SpendFlow.\n\n"
+            "Please use the link below to set your password and activate your supplier portal access:\n\n"
+            f"{setup_link}\n\n"
+            "For security, this link will expire in 24 hours. If the link expires, please contact the procurement team.\n\n"
+            "Best regards,\n"
+            "SpendFlow Team"
+        )
+
+        self.send_email(
+            to_email=to_email,
+            subject=subject,
+            body=body,
+        )

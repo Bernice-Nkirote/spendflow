@@ -21,6 +21,19 @@ function formatDate(value: string | null | undefined) {
   }).format(new Date(value));
 }
 
+function formatRate(value: string | number | null | undefined) {
+  if (!value) return "-";
+
+  const numericValue = Number(value);
+
+  if (Number.isNaN(numericValue)) return "-";
+
+  return numericValue.toLocaleString("en-KE", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 6,
+  });
+}
+
 export default function InvoiceDetailsPage() {
   const { id } = useParams<{ id: string }>();
 
@@ -48,7 +61,7 @@ export default function InvoiceDetailsPage() {
 
         const payments = await getPaymentsByInvoice(id);
         setHasPendingPayment(
-          payments.some((payment) => payment.status === "PENDING"),
+          payments.some((payment) => payment.status === "PENDING_APPROVAL"),
         );
       } catch {
         setError("Failed to load invoice details.");
@@ -131,11 +144,43 @@ export default function InvoiceDetailsPage() {
         </div>
       </div>
 
-      <section className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
         <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-sm text-primary-gray">Total Amount</p>
+          <p className="text-sm text-primary-gray">Original Amount</p>
           <p className="mt-2 text-2xl font-semibold text-primary-black">
-            {formatCurrency(Number(invoice.total_amount ?? 0), undefined)}
+            {formatCurrency(
+              Number(invoice.total_amount ?? 0),
+              invoice.currency ?? "KES",
+            )}
+          </p>
+          <p className="mt-1 text-xs text-primary-gray">
+            Transaction currency: {invoice.currency ?? "-"}
+          </p>
+        </div>
+
+        <div className="rounded-xl border bg-white p-4 shadow-sm">
+          <p className="text-sm text-primary-gray">Base Amount</p>
+          <p className="mt-2 text-2xl font-semibold text-primary-black">
+            {invoice.base_amount && invoice.base_currency
+              ? formatCurrency(
+                  Number(invoice.base_amount),
+                  invoice.base_currency,
+                )
+              : "-"}
+          </p>
+          <p className="mt-1 text-xs text-primary-gray">
+            Used for approvals and reporting
+          </p>
+        </div>
+
+        <div className="rounded-xl border bg-white p-4 shadow-sm">
+          <p className="text-sm text-primary-gray">Exchange Rate</p>
+          <p className="mt-2 text-2xl font-semibold text-primary-black">
+            {formatRate(invoice.exchange_rate)}
+          </p>
+          <p className="mt-1 text-xs text-primary-gray">
+            {invoice.currency}
+            {invoice.base_currency ? ` → ${invoice.base_currency}` : ""}
           </p>
         </div>
 
@@ -144,19 +189,18 @@ export default function InvoiceDetailsPage() {
           <p className="mt-2 truncate text-2xl font-semibold text-primary-black">
             {invoice.supplier_name ?? "-"}
           </p>
-        </div>
-
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-sm text-primary-gray">Line Items</p>
-          <p className="mt-2 text-2xl font-semibold text-primary-black">
-            {invoice.line_items.length}
+          <p className="mt-1 text-xs text-primary-gray">
+            Rate date: {formatDate(invoice.exchange_rate_date)}
           </p>
         </div>
 
         <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-sm text-primary-gray">PO Number</p>
-          <p className="mt-2 truncate text-2xl font-semibold text-primary-black">
-            {invoice.po_number ?? "-"}
+          <p className="text-sm text-primary-gray">Status</p>
+          <div className="mt-3">
+            <InvoiceStatusBadge status={invoice.status} />
+          </div>
+          <p className="mt-2 text-xs text-primary-gray">
+            Invoice lifecycle status
           </p>
         </div>
       </section>
@@ -273,10 +317,16 @@ export default function InvoiceDetailsPage() {
                     {item.invoiced_quantity}
                   </td>
                   <td className="border-b px-4 py-3 text-right tabular-nums text-gray-700">
-                    {formatCurrency(Number(item.unit_price ?? 0), undefined)}
+                    {formatCurrency(
+                      Number(item.unit_price ?? 0),
+                      invoice.currency ?? "KES",
+                    )}
                   </td>
                   <td className="border-b px-4 py-3 text-right tabular-nums text-gray-700">
-                    {formatCurrency(Number(item.total_price ?? 0), undefined)}
+                    {formatCurrency(
+                      Number(item.total_price ?? 0),
+                      invoice.currency ?? "KES",
+                    )}
                   </td>
                 </tr>
               ))}

@@ -1,14 +1,26 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, Response, status
+from fastapi import APIRouter, Depends, File, Query, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.core.auth_dependancy import get_current_user
 from app.core.database import get_db
 from app.repositories.supplier_repository import SupplierRepository
-from app.schemas.supplier_schema import SupplierCreate, SupplierRead, SupplierUpdate
-from app.services.supplier_service import SupplierService
+from app.repositories.audit_log_repository import AuditLogRepository
+from app.repositories.permission_repository import PermissionRepository
+from app.repositories.role_permission_repository import RolePermissionRepository
+from app.repositories.role_repository import RoleRepository
+from app.services.permission_service import PermissionService
 
+from app.schemas.supplier_schema import (
+    SupplierCreate,
+    SupplierImportResult,
+    SupplierRead,
+    SupplierUpdate,
+)
+from app.services.supplier_excel_import_service import SupplierExcelImportService
+from app.services.supplier_service import SupplierService
+from app.services.audit_log_service import AuditLogService
 
 router = APIRouter(prefix="/suppliers", tags=["Suppliers"])
 
@@ -16,6 +28,29 @@ router = APIRouter(prefix="/suppliers", tags=["Suppliers"])
 def get_supplier_service(db: Session = Depends(get_db)) -> SupplierService:
     repo = SupplierRepository(db)
     return SupplierService(repo)
+
+
+def get_supplier_excel_import_service(
+    db: Session = Depends(get_db),
+) -> SupplierExcelImportService:
+    repo = SupplierRepository(db)
+
+    audit_log_service = AuditLogService(
+        repo=AuditLogRepository(db),
+    )
+
+    permission_service = PermissionService(
+        permission_repo=PermissionRepository(db),
+        role_permission_repo=RolePermissionRepository(db),
+        role_repo=RoleRepository(db),
+        audit_log_service=audit_log_service,
+    )
+
+    return SupplierExcelImportService(
+        repo=repo,
+        audit_log_service=audit_log_service,
+        permission_service=permission_service,
+    )
 
 
 @router.post("/", response_model=SupplierRead, status_code=status.HTTP_201_CREATED)
@@ -39,6 +74,22 @@ def get_all_suppliers(
         skip=skip,
         limit=limit,
     )
+
+
+@router.post("/import-excel", response_model=SupplierImportResult)
+async def import_suppliers_from_excel(
+    file: UploadFile = File(...),
+    current_user=Depends(get_current_user),
+    service: SupplierExcelImportService = Depends(
+        get_supplier_excel_import_service
+    ),
+):
+   return await service.import_suppliers_from_excel(
+    file=file,
+    company_id=current_user.company_id,
+    actor_user_id=current_user.id,
+    actor_role_id=current_user.role_id,
+)
 
 
 @router.get("/{supplier_id}", response_model=SupplierRead)

@@ -54,12 +54,18 @@ class SupplierSpendReportFilter(BaseModel):
 class SupplierSpendReportRow(BaseModel):
     supplier_id: UUID
     supplier_name: str
+
     total_invoice_amount: Decimal
     total_paid_amount: Decimal
     outstanding_amount: Decimal
+
+    base_currency: str | None = None
+    base_total_invoice_amount: Decimal | None = None
+    base_total_paid_amount: Decimal | None = None
+    base_outstanding_amount: Decimal | None = None
+
     invoice_count: int
     payment_count: int
-
 
 class SupplierSpendReportResponse(BaseModel):
     rows: list[SupplierSpendReportRow]
@@ -77,6 +83,12 @@ class SupplierSpendDetailInvoiceRow(BaseModel):
     total_amount: Decimal
     amount_paid: Decimal
     outstanding_amount: Decimal
+    currency: str | None = None
+
+    base_currency: str | None = None
+    base_total_amount: Decimal | None = None
+    base_amount_paid: Decimal | None = None
+    base_outstanding_amount: Decimal | None = None
 
     status: str
     created_at: datetime
@@ -92,6 +104,11 @@ class SupplierSpendDetailPaymentRow(BaseModel):
     invoice_number: str
 
     amount: Decimal
+    currency: str | None = None
+
+    base_currency: str | None = None
+    base_amount: Decimal | None = None
+
     payment_method: str | None = None
     status: str
 
@@ -107,6 +124,11 @@ class SupplierSpendDetailResponse(BaseModel):
     total_invoice_amount: Decimal
     total_paid_amount: Decimal
     outstanding_amount: Decimal
+
+    base_currency: str | None = None
+    base_total_invoice_amount: Decimal | None = None
+    base_total_paid_amount: Decimal | None = None
+    base_outstanding_amount: Decimal | None = None
 
     invoice_count: int
     payment_count: int

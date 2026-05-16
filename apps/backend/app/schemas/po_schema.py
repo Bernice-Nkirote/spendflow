@@ -41,9 +41,21 @@ class PurchaseOrderRead(BaseModel):
     status: POStatusEnum
     total_amount: Decimal
     currency: str
+
+    exchange_rate: Optional[Decimal] = None
+    base_currency: Optional[str] = None
+    base_amount: Optional[Decimal] = None
+    exchange_rate_date: Optional[datetime] = None
+
     notes: Optional[str] = None
     submitted_at: Optional[datetime] = None
     issued_at: Optional[datetime] = None
+
+    signed_pdf_file_path: Optional[str] = None
+    signed_pdf_original_filename: Optional[str] = None
+    signed_pdf_uploaded_by: Optional[UUID] = None
+    signed_pdf_uploaded_at: Optional[datetime] = None
+
     created_at: datetime
     updated_at: datetime
     items: List[PurchaseOrderItemRead]
@@ -56,4 +68,5 @@ class PurchaseOrderDetailRead(PurchaseOrderRead):
     created_by_name: Optional[str] = None
     submitted_by_name: Optional[str] = None
     issued_by_name: Optional[str] = None
+    signed_pdf_uploaded_by_name: Optional[str] = None
     pr_number: Optional[str] = None

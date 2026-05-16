@@ -23,6 +23,7 @@ from app.schemas.invoice_schema import InvoiceCreate, InvoiceUpdate
 from app.services.permission_service import PermissionService
 from app.services.approval_instance_service import ApprovalInstanceService
 from app.services.audit_log_service import AuditLogService
+from app.services.exchange_rate_service import ExchangeRateService
 from app.utils.value_helper.enum_utils import enum_value
 
 class InvoiceService:
@@ -35,6 +36,8 @@ class InvoiceService:
         approval_instance_service: ApprovalInstanceService,
         permission_service: PermissionService,
         audit_log_service: AuditLogService,
+        exchange_rate_service: ExchangeRateService,
+
     ):
         self.invoice_repo = invoice_repo
         self.line_item_repo = line_item_repo
@@ -43,6 +46,7 @@ class InvoiceService:
         self.approval_instance_service = approval_instance_service
         self.permission_service = permission_service
         self.audit_log_service = audit_log_service
+        self.exchange_rate_service = exchange_rate_service
 
     def _generate_invoice_number(self) -> str:
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S%f")
@@ -144,6 +148,7 @@ class InvoiceService:
             submitted_by_supplier_user_id=submitted_by_supplier_user_id,
             invoice_number=invoice_number,
             total_amount=Decimal("0.00"),
+            currency=po.currency,
             status=InvoiceStatusEnum.DRAFT,
         )
 
@@ -277,20 +282,16 @@ class InvoiceService:
             else None
         )
 
-        invoice.currency = (
-            invoice.purchase_order.currency
-            if invoice.purchase_order
-            else None
-        )
+        invoice.currency = invoice.currency
 
         invoice.submitted_by_user_name = (
-            invoice.submitted_by_user.name
+            invoice.submitted_by_user.email
             if invoice.submitted_by_user
             else None
         )
 
         invoice.submitted_by_supplier_user_name = (
-            invoice.submitted_by_supplier_user.name
+            invoice.submitted_by_supplier_user.email
             if invoice.submitted_by_supplier_user
             else None
         )
@@ -342,7 +343,8 @@ class InvoiceService:
                 detail="Limit must be greater than zero",
             )
 
-        invoices = self.invoice_repo.get_all(
+        invoices = self.invoice_repo.get_by_status(
+            status=invoice_status,
             company_id=company_id,
             skip=skip,
             limit=limit,
@@ -375,7 +377,8 @@ class InvoiceService:
                 detail="Limit must be greater than zero",
             )
 
-        invoices = self.invoice_repo.get_all(
+        invoices = self.invoice_repo.get_by_supplier(
+            supplier_id=supplier_id,
             company_id=company_id,
             skip=skip,
             limit=limit,
@@ -571,6 +574,20 @@ class InvoiceService:
                 status_code=status.HTTP_409_CONFLICT,
                 detail="A pending approval instance already exists for this invoice",
             )
+
+        base_amount, exchange_rate, base_currency, exchange_rate_date = (
+            self.exchange_rate_service.convert_transaction_to_company_base_currency(
+                company_id=company_id,
+                amount=invoice.total_amount,
+                transaction_currency=invoice.currency,
+                as_of_date=invoice.created_at.date(),
+            )
+        )
+
+        invoice.exchange_rate = exchange_rate
+        invoice.base_currency = base_currency
+        invoice.base_amount = base_amount
+        invoice.exchange_rate_date = exchange_rate_date
 
         approval_instance = ApprovalInstance(
             company_id=company_id,

@@ -58,6 +58,12 @@ class PRReportRow(BaseModel):
 
     pr_total_amount: Decimal = Field(..., max_digits=14, decimal_places=2)
     currency: str
+
+    exchange_rate: Decimal | None = None
+    base_currency: str | None = None
+    base_amount: Decimal | None = None
+    exchange_rate_date: datetime | None = None
+
     status: PRStatusEnum
     created_at: datetime
 

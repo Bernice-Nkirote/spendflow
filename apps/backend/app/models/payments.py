@@ -37,6 +37,19 @@ class Payment(Base):
 
     amount = Column(Numeric(12, 2), nullable=False)
 
+    currency = Column(String(3), nullable=False, server_default="KES")
+
+    exchange_rate = Column(Numeric(18, 6), nullable=True)
+
+    base_currency = Column(String(3), nullable=True)
+
+    base_amount = Column(Numeric(14, 2), nullable=True)
+
+    exchange_rate_date = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
     payment_method = Column(
         payment_method_enum,
         nullable=False,

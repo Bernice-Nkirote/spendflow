@@ -5,7 +5,8 @@ from typing import List, Optional
 from sqlalchemy.orm import Session
 
 from app.models.audit_logs import AuditLog
-
+from app.models.user import User
+from app.models.supplier_user import SupplierUser
 
 class AuditLogRepository:
     def __init__(self, db: Session):
@@ -149,4 +150,33 @@ class AuditLogRepository:
             .offset(skip)
             .limit(limit)
             .all()
+        )
+    
+    def get_actor_user(
+        self,
+        actor_user_id: UUID,
+        company_id: UUID,
+    ) -> User | None:
+        return (
+            self.db.query(User)
+            .filter(
+                User.id == actor_user_id,
+                User.company_id == company_id,
+            )
+            .first()
+        )
+
+
+    def get_actor_supplier_user(
+        self,
+        actor_supplier_user_id: UUID,
+        company_id: UUID,
+    ) -> SupplierUser | None:
+        return (
+            self.db.query(SupplierUser)
+            .filter(
+                SupplierUser.id == actor_supplier_user_id,
+                SupplierUser.company_id == company_id,
+            )
+            .first()
         )

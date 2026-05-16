@@ -42,7 +42,6 @@ class RolePermissionRepository:
             )
             .all()
         )
-
     def get_by_permission(
         self,
         permission_id: UUID,

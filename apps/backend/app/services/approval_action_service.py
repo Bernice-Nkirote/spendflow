@@ -250,7 +250,11 @@ class ApprovalActionService:
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Purchase requisition not found for approval amount check",
                 )
-            return requisition.total_amount
+            return (
+                requisition.base_amount
+                if requisition.base_amount is not None
+                else requisition.total_amount
+            )
 
         if instance.entity_type == EntityTypeEnum.PO:
             po = self.po_repo.get_by_id(instance.entity_id, company_id)
@@ -259,8 +263,11 @@ class ApprovalActionService:
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Purchase order not found for approval amount check",
                 )
-            return po.total_amount
-
+            return (
+                po.base_amount
+                if po.base_amount is not None
+                else po.total_amount
+            )
         if instance.entity_type == EntityTypeEnum.INVOICE:
             invoice = self.invoice_repo.get_by_id(instance.entity_id, company_id)
             if not invoice:
@@ -268,8 +275,11 @@ class ApprovalActionService:
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Invoice not found for approval amount check",
                 )
-            return invoice.total_amount
-
+            return (
+                invoice.base_amount
+                if invoice.base_amount is not None
+                else invoice.total_amount
+            )
         if instance.entity_type == EntityTypeEnum.PAYMENT:
             payment = self.payment_repo.get_by_id(instance.entity_id, company_id)
             if not payment:
@@ -277,7 +287,11 @@ class ApprovalActionService:
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail="Payment not found for approval amount check",
                 )
-            return payment.amount
+            return (
+                payment.base_amount
+                if payment.base_amount is not None
+                else payment.amount
+            )
 
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

@@ -17,13 +17,16 @@ from app.repositories.role_repository import RoleRepository
 from app.repositories.audit_log_repository import AuditLogRepository
 from app.repositories.pr_repository import PurchaseRequisitionRepository
 from app.repositories.po_repository import PurchaseOrderRepository
-
-from app.services.audit_log_service import AuditLogService
+from app.repositories.company_repository import CompanyRepository
+from app.repositories.exchange_rate_repository import ExchangeRateRepository
 
 from app.schemas.payment_schema import PaymentCreate, PaymentRead, PaymentUpdate, PaymentDetailRead
+
+from app.services.audit_log_service import AuditLogService
 from app.services.approval_instance_service import ApprovalInstanceService
 from app.services.payment_service import PaymentService
 from app.services.permission_service import PermissionService
+from app.services.exchange_rate_service import ExchangeRateService
 
 router = APIRouter(prefix="/payments", tags=["Payments"])
 
@@ -34,6 +37,13 @@ def get_payment_service(
     payment_repo = PaymentRepository(db)
     invoice_repo = InvoiceRepository(db)
     workflow_repo = ApprovalWorkflowRepository(db)
+    company_repo = CompanyRepository(db)
+    exchange_rate_repo = ExchangeRateRepository(db)
+
+    exchange_rate_service = ExchangeRateService(
+        repo=exchange_rate_repo,
+        company_repo=company_repo,
+    )
 
     approval_instance_repo = ApprovalInstanceRepository(db)
     workflow_level_repo = WorkflowLevelRepository(db)
@@ -48,6 +58,7 @@ def get_payment_service(
     audit_log_service = AuditLogService(
         repo=AuditLogRepository(db),
     )
+    
     permission_service = PermissionService(
         permission_repo=PermissionRepository(db),
         role_permission_repo=RolePermissionRepository(db),
@@ -63,6 +74,7 @@ def get_payment_service(
         approval_instance_service=approval_instance_service,
         permission_service=permission_service,
         audit_log_service=audit_log_service,
+        exchange_rate_service=exchange_rate_service,
     )
 
 

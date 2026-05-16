@@ -1,12 +1,15 @@
 from uuid import UUID
 
 from fastapi import HTTPException, status
+from datetime import datetime, timedelta, timezone
+import secrets
 
-from app.models.suplier_user import SupplierUser
+from app.models.supplier_user import SupplierUser
 from app.repositories.supplier_user_repository import SupplierUserRepository
 from app.schemas.supplier_user_schema import (
     SupplierUserCreate,
     SupplierUserUpdate,
+    SupplierSetPassword,
 )
 
 
@@ -16,10 +19,12 @@ class SupplierUserService:
         supplier_user_repo: SupplierUserRepository,
         supplier_repo,
         password_service,
+        email_service=None,
     ):
         self.supplier_user_repo = supplier_user_repo
         self.supplier_repo = supplier_repo
         self.password_service = password_service
+        self.email_service = email_service
 
     def create_supplier_user(
         self,
@@ -37,30 +42,154 @@ class SupplierUserService:
             )
 
         email = user_data.email.strip().lower()
-        password = user_data.password.strip()
+        setup_token = secrets.token_urlsafe(32)
+        setup_expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
 
-        existing_user = self.supplier_user_repo.get_by_email(
-            email=email,
-            supplier_id=user_data.supplier_id,
-        )
+        existing_user = self.supplier_user_repo.get_by_email_global(email=email)
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Supplier user with this email already exists",
-            )
+                detail="A supplier portal user with this email already exists",            )
 
         supplier_user = SupplierUser(
             supplier_id=user_data.supplier_id,
             email=email,
-            hashed_password=self.password_service.hash_password(password),
+            hashed_password=None,
+            password_setup_token=setup_token,
+            password_setup_expires_at=setup_expires_at,
+            has_completed_onboarding=False,
             is_active=True,
         )
 
         created_user = self.supplier_user_repo.create(supplier_user)
         self.supplier_user_repo.db.commit()
         self.supplier_user_repo.db.refresh(created_user)
+        setup_link = f"http://localhost:5173/supplier-setup-password?token={setup_token}"
+
+        created_user.setup_link = setup_link
+
+        if self.email_service:
+            self.email_service.send_supplier_onboarding_email(
+                to_email=email,
+                supplier_name=supplier.name,
+                setup_link=setup_link,
+            )
 
         return created_user
+
+    def resend_supplier_setup_link(
+        self,
+        supplier_user_id: UUID,
+        supplier_id: UUID,
+        company_id: UUID,
+    ) -> SupplierUser:
+        supplier = self.supplier_repo.get_by_id(
+            supplier_id=supplier_id,
+            company_id=company_id,
+        )
+
+        if not supplier:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Supplier not found",
+            )
+
+        supplier_user = self.supplier_user_repo.get_by_id(
+            supplier_user_id=supplier_user_id,
+            supplier_id=supplier_id,
+        )
+
+        if not supplier_user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Supplier user not found",
+            )
+
+        if not supplier_user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Supplier user account is inactive",
+            )
+
+        if supplier_user.has_completed_onboarding:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Supplier user has already completed setup",
+            )
+
+        setup_token = secrets.token_urlsafe(32)
+        setup_expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
+
+        updated_user = self.supplier_user_repo.update(
+            supplier_user=supplier_user,
+            update_data={
+                "password_setup_token": setup_token,
+                "password_setup_expires_at": setup_expires_at,
+            },
+        )
+
+        self.supplier_user_repo.db.commit()
+        self.supplier_user_repo.db.refresh(updated_user)
+
+        setup_link = f"http://localhost:5173/supplier-setup-password?token={setup_token}"
+
+        if self.email_service:
+            self.email_service.send_supplier_onboarding_email(
+                to_email=updated_user.email,
+                supplier_name=supplier.name,
+                setup_link=setup_link,
+            )
+
+        return updated_user
+
+    def set_supplier_password(
+        self,
+        data: SupplierSetPassword,
+    ) -> SupplierUser:
+        supplier_user = self.supplier_user_repo.get_by_setup_token(data.token)
+
+        if not supplier_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired setup link",
+            )
+
+        if not supplier_user.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Supplier user account is inactive",
+            )
+
+        if not supplier_user.password_setup_expires_at:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or expired setup link",
+            )
+
+        expires_at = supplier_user.password_setup_expires_at
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+        if expires_at < datetime.now(timezone.utc):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Setup link has expired",
+            )
+
+        updated_user = self.supplier_user_repo.update(
+            supplier_user=supplier_user,
+            update_data={
+                "hashed_password": self.password_service.hash_password(data.password),
+                "password_setup_token": None,
+                "password_setup_expires_at": None,
+                "has_completed_onboarding": True,
+            },
+        )
+
+        self.supplier_user_repo.db.commit()
+        self.supplier_user_repo.db.refresh(updated_user)
+
+        return updated_user
 
     def get_supplier_user(
         self,

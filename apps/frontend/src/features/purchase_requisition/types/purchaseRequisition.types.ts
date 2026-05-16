@@ -17,6 +17,12 @@ export type PurchaseRequisitionDetails = {
   description: string | null;
   total_amount: string;
   currency: string;
+
+  exchange_rate: string | null;
+  base_currency: string | null;
+  base_amount: string | null;
+  exchange_rate_date: string | null;
+
   status: PurchaseRequisitionStatus;
   is_active: boolean;
   items: PurchaseRequisitionItem[];

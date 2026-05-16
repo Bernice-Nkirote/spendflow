@@ -13,6 +13,13 @@ export type PaymentDetails = {
   invoice_id: string;
   created_by: string | null;
   amount: string;
+  currency: string | null;
+
+  exchange_rate: string | null;
+  base_currency: string | null;
+  base_amount: string | null;
+  exchange_rate_date: string | null;
+
   payment_method: PaymentMethod;
   status: PaymentStatus;
   reference: string | null;

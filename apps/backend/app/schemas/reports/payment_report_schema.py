@@ -50,6 +50,13 @@ class PaymentReportRow(BaseModel):
     supplier_name: str | None = None
 
     amount: Decimal
+    currency: str | None = None
+
+    exchange_rate: Decimal | None = None
+    base_currency: str | None = None
+    base_amount: Decimal | None = None
+    exchange_rate_date: datetime | None = None
+
     payment_method: str | None = None
     status: str
 

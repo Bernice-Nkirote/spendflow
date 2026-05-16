@@ -124,6 +124,68 @@ class UserService:
 
         return created_user
     
+    def resend_setup_link(
+        self,
+        user_id: UUID,
+        company_id: UUID,
+        actor_user_id: UUID,
+    ) -> User:
+        user = self.repo.get_by_id(user_id, company_id)
+
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found.",
+            )
+
+        if user.has_completed_onboarding:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="This user has already completed password setup.",
+            )
+
+        raw_setup_token = generate_secure_token()
+        token_hash_value = hash_token(raw_setup_token)
+
+        onboarding_token = UserOnboardingToken(
+            id=uuid.uuid4(),
+            company_id=company_id,
+            user_id=user.id,
+            token_hash=token_hash_value,
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
+            is_used=False,
+        )
+
+        self.onboarding_token_repo.create(onboarding_token)
+
+        setup_link = f"{settings.FRONTEND_BASE_URL}/setup-password?token={raw_setup_token}"
+
+        self.email_service.send_user_onboarding_email(
+            to_email=user.email,
+            user_name=user.name,
+            setup_link=setup_link,
+        )
+
+        self.audit_log_service.log_action(
+            company_id=company_id,
+            entity_type="USER",
+            entity_id=user.id,
+            action="USER_SETUP_LINK_RESENT",
+            actor_user_id=actor_user_id,
+            description=f"Setup link resent to {user.email}",
+            details_json={
+                "entity_reference": user.email,
+                "email": user.email,
+                "name": user.name,
+                "setup_link_resent": True,
+            },
+        )
+
+        self.repo.db.commit()
+        self.repo.db.refresh(user)
+
+        return user
+
     def setup_password(self, token: str, password: str) -> User:
         raw_token = token.strip()
         if not raw_token:
@@ -241,6 +303,25 @@ class UserService:
 
         update_data = user_data.model_dump(exclude_unset=True)
 
+        is_admin_user = (
+            user.role.name.strip().lower() == "admin"
+            if user.role and user.role.name
+            else False
+        )
+
+        if is_admin_user:
+            if "role_id" in update_data and update_data["role_id"] != user.role_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="The Admin user's role cannot be changed because it protects company access.",
+                )
+
+            if "email" in update_data and update_data["email"] != user.email:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="The Admin user's email cannot be changed because it is used for secure account access.",
+                )
+
         if "name" in update_data:
             normalized_name = update_data["name"].strip()
             if not normalized_name:
@@ -337,6 +418,19 @@ class UserService:
                 detail="You cannot deactivate your own account.",
             )
 
+        is_admin_user = (
+            user.role.name.strip().lower() == "admin"
+            if user.role and user.role.name
+            else False
+        )
+
+        if is_admin_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Admin users cannot be deactivated because they protect company access.",
+            )
+
+
         if not user.is_active:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -368,6 +462,18 @@ class UserService:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="You cannot delete your own account.",
+            )
+
+        is_admin_user = (
+            user.role.name.strip().lower() == "admin"
+            if user.role and user.role.name
+            else False
+        )
+
+        if is_admin_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Admin users cannot be deleted because they protect company access.",
             )
 
         if self.repo.has_requisitions(user_id, company_id):

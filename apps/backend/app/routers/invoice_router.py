@@ -23,6 +23,8 @@ from app.schemas.invoice_line_item_schema import (
 from app.repositories.permission_repository import PermissionRepository
 from app.repositories.role_permission_repository import RolePermissionRepository
 from app.repositories.role_repository import RoleRepository
+from app.repositories.company_repository import CompanyRepository
+from app.repositories.exchange_rate_repository import ExchangeRateRepository
 from app.schemas.invoice_schema import(
 InvoiceCreate, 
 InvoiceRead, 
@@ -33,6 +35,7 @@ from app.services.approval_instance_service import ApprovalInstanceService
 from app.services.invoice_service import InvoiceService
 from app.services.permission_service import PermissionService
 from app.services.audit_log_service import AuditLogService
+from app.services.exchange_rate_service import ExchangeRateService
 
 router = APIRouter(prefix="/invoices", tags=["Invoices"])
 
@@ -47,6 +50,14 @@ def get_invoice_service(
     workflow_repo = ApprovalWorkflowRepository(db)
     approval_instance_repo = ApprovalInstanceRepository(db)
     workflow_level_repo = WorkflowLevelRepository(db)
+    company_repo = CompanyRepository(db)
+    exchange_rate_repo = ExchangeRateRepository(db)
+
+    exchange_rate_service = ExchangeRateService(
+        repo=exchange_rate_repo,
+        company_repo=company_repo,
+    )
+    
     approval_instance_service = ApprovalInstanceService(
         repo=approval_instance_repo,
         workflow_level_repo=workflow_level_repo,
@@ -75,6 +86,7 @@ def get_invoice_service(
         approval_instance_service=approval_instance_service,
         permission_service=permission_service,
         audit_log_service=audit_log_service,
+        exchange_rate_service=exchange_rate_service,
     )
 
 

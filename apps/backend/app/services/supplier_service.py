@@ -1,11 +1,16 @@
 import uuid
 from uuid import UUID
 
+
 from fastapi import HTTPException, status
 
 from app.models.supplier import Supplier
 from app.repositories.supplier_repository import SupplierRepository
-from app.schemas.supplier_schema import SupplierCreate, SupplierUpdate
+from app.schemas.supplier_schema import(
+SupplierCreate, 
+SupplierUpdate,
+)
+
 
 
 class SupplierService:

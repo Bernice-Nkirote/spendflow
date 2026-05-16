@@ -20,6 +20,19 @@ function formatDate(value: string | null | undefined) {
   }).format(new Date(value));
 }
 
+function formatRate(value: string | number | null | undefined) {
+  if (!value) return "-";
+
+  const numericValue = Number(value);
+
+  if (Number.isNaN(numericValue)) return "-";
+
+  return numericValue.toLocaleString("en-KE", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 6,
+  });
+}
+
 function formatStatus(status: string) {
   return status
     .toLowerCase()
@@ -141,14 +154,45 @@ export default function PurchaseOrderDetailsPage() {
         </div>
       </div>
       {actionError && <ErrorState message={actionError} />}
-      <section className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
         <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-sm text-primary-gray">Total Amount</p>
+          <p className="text-sm text-primary-gray">Original Amount</p>
           <p className="mt-2 text-2xl font-semibold text-primary-black">
             {formatCurrency(
               Number(purchaseOrder.total_amount ?? 0),
               purchaseOrder.currency,
             )}
+          </p>
+          <p className="mt-1 text-xs text-primary-gray">
+            Transaction currency: {purchaseOrder.currency}
+          </p>
+        </div>
+
+        <div className="rounded-xl border bg-white p-4 shadow-sm">
+          <p className="text-sm text-primary-gray">Base Amount</p>
+          <p className="mt-2 text-2xl font-semibold text-primary-black">
+            {purchaseOrder.base_amount && purchaseOrder.base_currency
+              ? formatCurrency(
+                  Number(purchaseOrder.base_amount),
+                  purchaseOrder.base_currency,
+                )
+              : "-"}
+          </p>
+          <p className="mt-1 text-xs text-primary-gray">
+            Used for approval thresholds
+          </p>
+        </div>
+
+        <div className="rounded-xl border bg-white p-4 shadow-sm">
+          <p className="text-sm text-primary-gray">Exchange Rate</p>
+          <p className="mt-2 text-2xl font-semibold text-primary-black">
+            {formatRate(purchaseOrder.exchange_rate)}
+          </p>
+          <p className="mt-1 text-xs text-primary-gray">
+            {purchaseOrder.currency}
+            {purchaseOrder.base_currency
+              ? ` → ${purchaseOrder.base_currency}`
+              : ""}
           </p>
         </div>
 
@@ -157,19 +201,43 @@ export default function PurchaseOrderDetailsPage() {
           <p className="mt-2 truncate text-2xl font-semibold text-primary-black">
             {purchaseOrder.supplier_name ?? "-"}
           </p>
-        </div>
-
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-sm text-primary-gray">Items</p>
-          <p className="mt-2 text-2xl font-semibold text-primary-black">
-            {purchaseOrder.items.length}
+          <p className="mt-1 text-xs text-primary-gray">
+            Rate date: {formatDate(purchaseOrder.exchange_rate_date)}
           </p>
         </div>
 
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-sm text-primary-gray">Currency</p>
-          <p className="mt-2 text-2xl font-semibold text-primary-black">
-            {purchaseOrder.currency}
+        <div
+          className={`rounded-xl border p-4 shadow-sm ${
+            purchaseOrder.signed_pdf_file_path
+              ? "border-green-200 bg-green-50"
+              : "border-yellow-200 bg-yellow-50"
+          }`}
+        >
+          <p
+            className={`text-sm font-medium ${
+              purchaseOrder.signed_pdf_file_path
+                ? "text-green-700"
+                : "text-yellow-700"
+            }`}
+          >
+            Signed PDF
+          </p>
+
+          <p
+            className={`mt-2 text-lg font-semibold ${
+              purchaseOrder.signed_pdf_file_path
+                ? "text-green-800"
+                : "text-yellow-800"
+            }`}
+          >
+            {purchaseOrder.signed_pdf_file_path
+              ? "Uploaded"
+              : "Required before dispatch"}
+          </p>
+
+          <p className="mt-1 text-xs text-primary-gray">
+            {purchaseOrder.signed_pdf_original_filename ??
+              "Download the PO, sign it, then upload the signed PDF."}
           </p>
         </div>
       </section>

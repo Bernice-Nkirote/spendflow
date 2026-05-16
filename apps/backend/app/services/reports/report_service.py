@@ -449,6 +449,11 @@ class ReportService:
             total_amount=row.total_amount,
             amount_paid=row.amount_paid,
             outstanding_amount=row.outstanding_amount,
+            currency=row.currency,
+            base_currency=row.base_currency,
+            base_total_amount=row.base_total_amount,
+            base_amount_paid=row.base_amount_paid,
+            base_outstanding_amount=row.base_outstanding_amount,
             status=row.status,
             created_at=row.created_at,
         )
@@ -592,9 +597,16 @@ class ReportService:
         return SupplierSpendDetailResponse(
             supplier_id=summary.supplier_id,
             supplier_name=summary.supplier_name,
+
             total_invoice_amount=summary.total_invoice_amount,
             total_paid_amount=summary.total_paid_amount,
             outstanding_amount=summary.outstanding_amount,
+
+            base_currency=summary.base_currency,
+            base_total_invoice_amount=summary.base_total_invoice_amount,
+            base_total_paid_amount=summary.base_total_paid_amount,
+            base_outstanding_amount=summary.base_outstanding_amount,
+
             invoice_count=summary.invoice_count,
             payment_count=summary.payment_count,
             invoices=[

@@ -38,7 +38,11 @@ export default function PurchaseOrderTable({
               PR Number
             </th>
             <th className="border-b px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">
-              Total
+              Original Amount
+            </th>
+
+            <th className="border-b px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">
+              Base Amount
             </th>
             <th className="border-b px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-600">
               Status
@@ -72,7 +76,27 @@ export default function PurchaseOrderTable({
               </td>
 
               <td className="border-b px-4 py-3 text-right tabular-nums text-gray-700">
-                {formatCurrency(Number(po.total_amount ?? 0), po.currency)}
+                <div className="font-medium">
+                  {formatCurrency(Number(po.total_amount ?? 0), po.currency)}
+                </div>
+
+                <div className="text-xs text-primary-gray">{po.currency}</div>
+              </td>
+
+              <td className="border-b px-4 py-3 text-right tabular-nums text-gray-700">
+                {po.base_amount && po.base_currency ? (
+                  <>
+                    <div className="font-medium">
+                      {formatCurrency(Number(po.base_amount), po.base_currency)}
+                    </div>
+
+                    <div className="text-xs text-primary-gray">
+                      Approval value
+                    </div>
+                  </>
+                ) : (
+                  <span className="text-primary-gray">-</span>
+                )}
               </td>
 
               <td className="border-b px-4 py-3">

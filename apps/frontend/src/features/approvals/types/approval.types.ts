@@ -27,6 +27,12 @@ export type ApprovalInstance = {
   requester_name?: string | null;
   total_amount?: number | null;
   currency?: string | null;
+
+  exchange_rate?: number | null;
+  base_currency?: string | null;
+  base_amount?: number | null;
+  exchange_rate_date?: string | null;
+
   workflow_name?: string | null;
   current_level_id?: string | null;
   current_level_name?: string | null;

@@ -6,16 +6,7 @@ import LoadingState from "../../../components/ui/LoadingState";
 
 import { getOutstandingInvoiceDetail } from "../api/outStandingInvoiceApi";
 import type { OutstandingInvoiceDetail } from "../types/outStandingInvoice.type";
-
-function formatCurrency(value: string | number | null | undefined) {
-  const numericValue = Number(value ?? 0);
-
-  return new Intl.NumberFormat("en-KE", {
-    style: "currency",
-    currency: "KES",
-    maximumFractionDigits: 2,
-  }).format(Number.isNaN(numericValue) ? 0 : numericValue);
-}
+import { formatCurrency } from "../../../utils/formatCurrency";
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "-";
@@ -32,6 +23,15 @@ function formatStatus(status: string) {
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
+}
+
+function formatMoneyValue(
+  value: string | number | null | undefined,
+  currency: string | null | undefined,
+) {
+  if (value === null || value === undefined || value === "") return "-";
+
+  return formatCurrency(Number(value), currency ?? "KES");
 }
 
 export default function OutstandingInvoiceDetailsPage() {
@@ -103,32 +103,74 @@ export default function OutstandingInvoiceDetailsPage() {
           </span>
         </div>
       </div>
-
-      <section className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-3">
+      <section className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-sm text-primary-gray">Invoice Total</p>
+          <p className="text-sm text-primary-gray">Original Invoice Total</p>
           <p className="mt-2 text-2xl font-semibold text-primary-black">
-            {formatCurrency(invoice.total_amount)}
+            {formatMoneyValue(invoice.total_amount, invoice.currency)}
+          </p>
+          <p className="mt-1 text-xs text-primary-gray">
+            Transaction currency: {invoice.currency ?? "-"}
           </p>
         </div>
 
         <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-sm text-primary-gray">Amount Paid</p>
+          <p className="text-sm text-primary-gray">Original Amount Paid</p>
           <p className="mt-2 text-2xl font-semibold text-primary-black">
-            {formatCurrency(invoice.amount_paid)}
+            {formatMoneyValue(invoice.amount_paid, invoice.currency)}
+          </p>
+          <p className="mt-1 text-xs text-primary-gray">
+            Paid in invoice currency
           </p>
         </div>
 
         <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4 shadow-sm">
           <p className="text-sm font-medium text-yellow-700">
-            Outstanding Balance
+            Original Outstanding Balance
           </p>
           <p className="mt-2 text-3xl font-bold text-yellow-800">
-            {formatCurrency(invoice.outstanding_amount)}
+            {formatMoneyValue(invoice.outstanding_amount, invoice.currency)}
+          </p>
+          <p className="mt-1 text-xs text-yellow-700">
+            Invoice-currency balance
+          </p>
+        </div>
+
+        <div className="rounded-xl border bg-white p-4 shadow-sm">
+          <p className="text-sm text-primary-gray">Base Invoice Total</p>
+          <p className="mt-2 text-2xl font-semibold text-primary-black">
+            {formatMoneyValue(invoice.base_total_amount, invoice.base_currency)}
+          </p>
+          <p className="mt-1 text-xs text-primary-gray">
+            Base currency: {invoice.base_currency ?? "-"}
+          </p>
+        </div>
+
+        <div className="rounded-xl border bg-white p-4 shadow-sm">
+          <p className="text-sm text-primary-gray">Base Amount Paid</p>
+          <p className="mt-2 text-2xl font-semibold text-primary-black">
+            {formatMoneyValue(invoice.base_amount_paid, invoice.base_currency)}
+          </p>
+          <p className="mt-1 text-xs text-primary-gray">
+            Paid value in base currency
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
+          <p className="text-sm font-medium text-primary-blue">
+            Base Outstanding Balance
+          </p>
+          <p className="mt-2 text-3xl font-bold text-primary-blue">
+            {formatMoneyValue(
+              invoice.base_outstanding_amount,
+              invoice.base_currency,
+            )}
+          </p>
+          <p className="mt-1 text-xs text-primary-blue">
+            Company base-currency balance
           </p>
         </div>
       </section>
-
       <section className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
         <h2 className="text-lg font-semibold text-primary-black">
           Outstanding Invoice Information

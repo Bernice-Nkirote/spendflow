@@ -81,6 +81,17 @@ class PurchaseOrder(Base):
 
     currency = Column(String, nullable=False, server_default="KES")
 
+    exchange_rate = Column(Numeric(18, 6), nullable=True)
+
+    base_currency = Column(String(3), nullable=True)
+
+    base_amount = Column(Numeric(14, 2), nullable=True)
+
+    exchange_rate_date = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
     notes = Column(Text, nullable=True)
 
     submitted_at = Column(
@@ -89,6 +100,21 @@ class PurchaseOrder(Base):
     )
     # who sent it to the supplier
     issued_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    signed_pdf_file_path = Column(String, nullable=True)
+
+    signed_pdf_original_filename = Column(String, nullable=True)
+
+    signed_pdf_uploaded_by = Column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id"),
+        nullable=True,
+    )
+
+    signed_pdf_uploaded_at = Column(
         DateTime(timezone=True),
         nullable=True,
     )
@@ -135,6 +161,12 @@ class PurchaseOrder(Base):
     issuer = relationship(
         "User",
         foreign_keys=[issued_by],
+    )
+
+    signed_pdf_uploader = relationship(
+        "User",
+        foreign_keys=[signed_pdf_uploaded_by],
+        back_populates="uploaded_signed_purchase_order_pdfs"
     )
 
     purchase_requisition = relationship(

@@ -1,8 +1,10 @@
 from datetime import datetime, timezone
 from decimal import Decimal
+from pathlib import Path
+from shutil import copyfileobj
 from uuid import UUID, uuid4
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException,UploadFile, status
 
 from app.utils.value_helper.enum_utils import enum_value
 from app.models.approval_instance import ApprovalInstance
@@ -17,6 +19,7 @@ from app.repositories.pr_repository import PurchaseRequisitionRepository
 from app.services.approval_instance_service import ApprovalInstanceService
 from app.services.permission_service import PermissionService
 from app.services.audit_log_service import AuditLogService
+from app.services.exchange_rate_service import ExchangeRateService
 
 class PurchaseOrderService:
     def __init__(
@@ -29,6 +32,7 @@ class PurchaseOrderService:
         approval_instance_service: ApprovalInstanceService,
         permission_service : PermissionService,
         audit_log_service: AuditLogService,
+        exchange_rate_service: ExchangeRateService,
         
     ):
         self.po_repo = po_repo
@@ -39,6 +43,8 @@ class PurchaseOrderService:
         self.approval_instance_service = approval_instance_service
         self.permission_service = permission_service
         self.audit_log_service = audit_log_service
+        self.exchange_rate_service = exchange_rate_service
+    
     def _normalize_currency(self, currency: str | None) -> str:
         if not currency:
             return "KES"
@@ -134,6 +140,9 @@ class PurchaseOrderService:
         po.created_by_name = po.creator.name if po.creator else None
         po.submitted_by_name = po.submitter.name if po.submitter else None
         po.issued_by_name = po.issuer.name if po.issuer else None
+        po.signed_pdf_uploaded_by_name = (
+            po.signed_pdf_uploader.name if po.signed_pdf_uploader else None
+        )
         po.pr_number = (
             po.purchase_requisition.pr_number
             if po.purchase_requisition
@@ -141,6 +150,94 @@ class PurchaseOrderService:
         )
 
         return po
+
+
+    def upload_signed_po_pdf(
+        self,
+        po_id: UUID,
+        company_id: UUID,
+        uploaded_by: UUID,
+        role_id: UUID,
+        file: UploadFile,
+    ) -> PurchaseOrder:
+        if not self.permission_service.role_has_permission(
+            role_id=role_id,
+            permission_name="po.dispatch",
+            company_id=company_id,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to upload signed purchase order PDFs",
+            )
+
+        po = self.get_po(po_id, company_id)
+
+        if po.status != POStatusEnum.APPROVED:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Signed PDF can only be uploaded for approved purchase orders",
+            )
+
+        if not file.filename:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Uploaded file must have a filename",
+            )
+
+        original_filename = file.filename.strip()
+
+        if not original_filename.lower().endswith(".pdf"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only PDF files can be uploaded",
+            )
+
+        if file.content_type not in {"application/pdf", "application/octet-stream"}:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Uploaded file must be a PDF",
+            )
+
+        upload_dir = Path("uploads") / "purchase_orders" / str(company_id) / str(po.id)
+        upload_dir.mkdir(parents=True, exist_ok=True)
+
+        stored_filename = f"signed-{po.po_number}-{uuid4().hex}.pdf"
+        file_path = upload_dir / stored_filename
+
+        with file_path.open("wb") as buffer:
+            copyfileobj(file.file, buffer)
+
+        po.signed_pdf_file_path = str(file_path)
+        po.signed_pdf_original_filename = original_filename
+        po.signed_pdf_uploaded_by = uploaded_by
+        po.signed_pdf_uploaded_at = datetime.now(timezone.utc)
+
+        updated_po = self.po_repo.update(po)
+
+        self.audit_log_service.log_action(
+            company_id=company_id,
+            entity_type="PO",
+            entity_id=po.id,
+            action="PO_SIGNED_PDF_UPLOADED",
+            actor_user_id=uploaded_by,
+            description=f"Signed PDF uploaded for purchase order {po.po_number}",
+            new_values_json={
+                "po_number": po.po_number,
+                "signed_pdf_original_filename": original_filename,
+                "signed_pdf_file_path": str(file_path),
+                "signed_pdf_uploaded_by": str(uploaded_by),
+                "signed_pdf_uploaded_at": po.signed_pdf_uploaded_at.isoformat()
+                if po.signed_pdf_uploaded_at
+                else None,
+            },
+        )
+
+        self.po_repo.db.commit()
+        self.po_repo.db.refresh(updated_po)
+
+        updated_po = self.get_po(po_id=po.id, company_id=company_id)
+
+        return updated_po
 
 # Create many PO items in one operation, internal
     def _create_po_items(
@@ -822,6 +919,20 @@ class PurchaseOrderService:
                 status_code=status.HTTP_409_CONFLICT,
                 detail="A pending approval instance already exists for this purchase order",
             )
+
+        base_amount, exchange_rate, base_currency, exchange_rate_date = (
+            self.exchange_rate_service.convert_transaction_to_company_base_currency(
+                company_id=company_id,
+                amount=po.total_amount,
+                transaction_currency=po.currency,
+                as_of_date=po.created_at.date(),
+            )
+        )
+
+        po.exchange_rate = exchange_rate
+        po.base_currency = base_currency
+        po.base_amount = base_amount
+        po.exchange_rate_date = exchange_rate_date
 
         approval_instance = ApprovalInstance(
             company_id=company_id,

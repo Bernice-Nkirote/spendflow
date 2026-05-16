@@ -17,6 +17,20 @@ import {
   formatQuantity,
 } from "../utils/reportFormatter";
 
+function renderMoneyWithCurrency(
+  amount: string | null | undefined,
+  currency: string | null | undefined,
+) {
+  return (
+    <div>
+      <div className="font-medium">
+        {formatMoney(amount ?? "0", currency ?? undefined)}
+      </div>
+      <div className="text-xs text-primary-gray">{currency ?? "-"}</div>
+    </div>
+  );
+}
+
 // PR COLUMNS
 export const prColumns: ReportTableColumn<PRReportItem>[] = [
   {
@@ -92,6 +106,14 @@ export const prColumns: ReportTableColumn<PRReportItem>[] = [
     sortable: true,
     align: "right",
     render: (value, row) => formatMoney(value as string, row.currency),
+  },
+  {
+    header: "Base Amount",
+    accessor: "base_amount",
+    sortable: true,
+    align: "right",
+    render: (value, row) =>
+      value ? renderMoneyWithCurrency(value as string, row.base_currency) : "-",
   },
   {
     header: "Status",
@@ -184,6 +206,14 @@ export const poColumns: ReportTableColumn<POReportItem>[] = [
     sortable: true,
     align: "right",
     render: (value, row) => formatMoney(value as string, row.currency),
+  },
+  {
+    header: "Base Amount",
+    accessor: "base_amount",
+    sortable: true,
+    align: "right",
+    render: (value, row) =>
+      value ? renderMoneyWithCurrency(value as string, row.base_currency) : "-",
   },
   {
     header: "Status",
@@ -284,6 +314,14 @@ export const invoiceColumns: ReportTableColumn<InvoiceReportItem>[] = [
     align: "right",
     sortable: true,
     render: (value) => formatMoney(value as string),
+  },
+  {
+    header: "Base Amount",
+    accessor: "base_amount",
+    sortable: true,
+    align: "right",
+    render: (value, row) =>
+      value ? renderMoneyWithCurrency(value as string, row.base_currency) : "-",
   },
   {
     header: "Status",
@@ -432,7 +470,16 @@ export const paymentColumns: ReportTableColumn<PaymentReportItem>[] = [
     accessor: "amount",
     align: "right",
     sortable: true,
-    render: (value) => formatMoney(value as string),
+    render: (value, row) =>
+      renderMoneyWithCurrency(value as string, row.currency),
+  },
+  {
+    header: "Base Amount",
+    accessor: "base_amount",
+    align: "right",
+    sortable: true,
+    render: (value, row) =>
+      value ? renderMoneyWithCurrency(value as string, row.base_currency) : "-",
   },
   {
     header: "Method",

@@ -44,6 +44,12 @@ class SupplierAuthService:
                 detail="Supplier account is inactive",
             )
 
+        if not supplier_user.hashed_password or not supplier_user.has_completed_onboarding:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Please set your password before logging in",
+            )
+
         if not self.password_service.verify_password(
             password,
             supplier_user.hashed_password,

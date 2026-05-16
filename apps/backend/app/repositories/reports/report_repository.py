@@ -47,6 +47,13 @@ class ReportRepository:
                 Supplier.name.label("supplier_name"),
 
                 Payment.amount.label("amount"),
+                Payment.currency.label("currency"),
+
+                Payment.exchange_rate.label("exchange_rate"),
+                Payment.base_currency.label("base_currency"),
+                Payment.base_amount.label("base_amount"),
+                Payment.exchange_rate_date.label("exchange_rate_date"),
+
                 Payment.payment_method.label("payment_method"),
                 Payment.status.label("status"),
 
@@ -171,6 +178,13 @@ class ReportRepository:
                 InvoiceLineItem.total_price.label("line_total"),
 
                 Invoice.total_amount.label("invoice_total_amount"),
+                Invoice.currency.label("currency"),
+
+                Invoice.exchange_rate.label("exchange_rate"),
+                Invoice.base_currency.label("base_currency"),
+                Invoice.base_amount.label("base_amount"),
+                Invoice.exchange_rate_date.label("exchange_rate_date"),
+
                 Invoice.status.label("status"),
                 Invoice.created_at.label("created_at"),
             )
@@ -286,6 +300,19 @@ class ReportRepository:
                 Invoice.total_amount.label("total_amount"),
                 amount_paid.label("amount_paid"),
                 outstanding_amount.label("outstanding_amount"),
+                Invoice.currency.label("currency"),
+                Invoice.base_currency.label("base_currency"),
+                Invoice.base_amount.label("base_total_amount"),
+
+                func.coalesce(func.sum(Payment.base_amount), 0).label(
+                    "base_amount_paid"
+                ),
+
+                (
+                    Invoice.base_amount
+                    - func.coalesce(func.sum(Payment.base_amount), 0)
+                ).label("base_outstanding_amount"),
+
                 Invoice.status.label("status"),
                 Invoice.created_at.label("created_at"),
             )
@@ -313,6 +340,9 @@ class ReportRepository:
                 Invoice.purchase_order_id,
                 PurchaseOrder.po_number,
                 Invoice.total_amount,
+                Invoice.currency,
+                Invoice.base_currency,
+                Invoice.base_amount,
                 Invoice.status,
                 Invoice.created_at,
             )
@@ -422,6 +452,20 @@ class ReportRepository:
                 Invoice.total_amount.label("total_amount"),
                 amount_paid.label("amount_paid"),
                 outstanding_amount.label("outstanding_amount"),
+                Invoice.currency.label("currency"),
+
+                Invoice.base_currency.label("base_currency"),
+                Invoice.base_amount.label("base_total_amount"),
+
+                func.coalesce(func.sum(Payment.base_amount), 0).label(
+                    "base_amount_paid"
+                ),
+
+                (
+                    Invoice.base_amount
+                    - func.coalesce(func.sum(Payment.base_amount), 0)
+                ).label("base_outstanding_amount"),
+
                 Invoice.status.label("status"),
                 Invoice.created_at.label("created_at"),
             )
@@ -453,6 +497,9 @@ class ReportRepository:
                 Invoice.purchase_order_id,
                 PurchaseOrder.po_number,
                 Invoice.total_amount,
+                Invoice.currency,
+                Invoice.base_currency,
+                Invoice.base_amount,
                 Invoice.status,
                 Invoice.created_at,
             )
@@ -469,47 +516,95 @@ class ReportRepository:
         company_id: UUID,
         filters: SupplierSpendReportFilter,
     ):
-        total_invoice_amount = func.coalesce(func.sum(Invoice.total_amount), 0)
-        total_paid_amount = func.coalesce(func.sum(Payment.amount), 0)
-        outstanding_amount = total_invoice_amount - total_paid_amount
-        invoice_count = func.count(func.distinct(Invoice.id))
-        payment_count = func.count(func.distinct(Payment.id))
+        invoice_totals_subquery = (
+            self.db.query(
+                Invoice.supplier_id.label("supplier_id"),
+                func.coalesce(func.sum(Invoice.total_amount), 0).label("total_invoice_amount"),
+                func.coalesce(func.sum(Invoice.base_amount), 0).label("base_total_invoice_amount"),
+                func.max(Invoice.base_currency).label("base_currency"),
+                func.count(Invoice.id).label("invoice_count"),
+            )
+            .filter(
+                Invoice.company_id == company_id,
+                Invoice.status != InvoiceStatusEnum.DRAFT,
+            )
+            .group_by(Invoice.supplier_id)
+            .subquery()
+        )
+
+        payment_totals_subquery = (
+            self.db.query(
+                Invoice.supplier_id.label("supplier_id"),
+                func.coalesce(func.sum(Payment.amount), 0).label("total_paid_amount"),
+                func.coalesce(func.sum(Payment.base_amount), 0).label("base_total_paid_amount"),
+                func.count(Payment.id).label("payment_count"),
+            )
+            .join(
+                Invoice,
+                (Payment.invoice_id == Invoice.id)
+                & (Invoice.company_id == company_id),
+            )
+            .filter(Payment.company_id == company_id)
+            .group_by(Invoice.supplier_id)
+            .subquery()
+        )
+
+        total_invoice_amount = func.coalesce(
+            invoice_totals_subquery.c.total_invoice_amount,
+            0,
+        )
+        total_paid_amount = func.coalesce(
+            payment_totals_subquery.c.total_paid_amount,
+            0,
+        )
+        base_total_invoice_amount = func.coalesce(
+            invoice_totals_subquery.c.base_total_invoice_amount,
+            0,
+        )
+        base_total_paid_amount = func.coalesce(
+            payment_totals_subquery.c.base_total_paid_amount,
+            0,
+        )
 
         query = (
             self.db.query(
                 Supplier.id.label("supplier_id"),
                 Supplier.name.label("supplier_name"),
+
                 total_invoice_amount.label("total_invoice_amount"),
                 total_paid_amount.label("total_paid_amount"),
-                outstanding_amount.label("outstanding_amount"),
-                invoice_count.label("invoice_count"),
-                payment_count.label("payment_count"),
+                (total_invoice_amount - total_paid_amount).label("outstanding_amount"),
+
+                invoice_totals_subquery.c.base_currency.label("base_currency"),
+                base_total_invoice_amount.label("base_total_invoice_amount"),
+                base_total_paid_amount.label("base_total_paid_amount"),
+                (
+                    base_total_invoice_amount - base_total_paid_amount
+                ).label("base_outstanding_amount"),
+
+                func.coalesce(invoice_totals_subquery.c.invoice_count, 0).label("invoice_count"),
+                func.coalesce(payment_totals_subquery.c.payment_count, 0).label("payment_count"),
             )
-            .join(Invoice, Invoice.supplier_id == Supplier.id)
+            .join(
+                invoice_totals_subquery,
+                invoice_totals_subquery.c.supplier_id == Supplier.id,
+            )
             .outerjoin(
-                Payment,
-                (Payment.invoice_id == Invoice.id)
-                & (Payment.company_id == company_id),
+                payment_totals_subquery,
+                payment_totals_subquery.c.supplier_id == Supplier.id,
             )
-            .filter(
-                Supplier.company_id == company_id,
-                Invoice.company_id == company_id,
-            )
-            .group_by(
-                Supplier.id,
-                Supplier.name,
-            )
+            .filter(Supplier.company_id == company_id)
         )
 
         query = self._apply_supplier_spend_filters(
             query=query,
             filters=filters,
-            total_invoice_amount=total_invoice_amount,
-            total_paid_amount=total_paid_amount,
+            total_invoice_amount=base_total_invoice_amount,
+            total_paid_amount=base_total_paid_amount,
         )
 
         return (
-            query.order_by(total_invoice_amount.desc())
+            query.order_by(base_total_invoice_amount.desc())
             .offset(filters.skip)
             .limit(filters.limit)
             .all()
@@ -521,33 +616,68 @@ class ReportRepository:
         company_id: UUID,
         filters: SupplierSpendReportFilter,
     ) -> int:
-        total_invoice_amount = func.coalesce(func.sum(Invoice.total_amount), 0)
-        total_paid_amount = func.coalesce(func.sum(Payment.amount), 0)
-
-        subquery = (
-            self.db.query(Supplier.id.label("supplier_id"))
-            .join(Invoice, Invoice.supplier_id == Supplier.id)
-            .outerjoin(
-                Payment,
-                (Payment.invoice_id == Invoice.id)
-                & (Payment.company_id == company_id),
+        invoice_totals_subquery = (
+            self.db.query(
+                Invoice.supplier_id.label("supplier_id"),
+                func.coalesce(func.sum(Invoice.base_amount), 0).label(
+                    "base_total_invoice_amount"
+                ),
             )
             .filter(
-                Supplier.company_id == company_id,
                 Invoice.company_id == company_id,
+                Invoice.status != InvoiceStatusEnum.DRAFT,
             )
-            .group_by(Supplier.id)
+            .group_by(Invoice.supplier_id)
+            .subquery()
         )
 
-        subquery = self._apply_supplier_spend_filters(
-            query=subquery,
+        payment_totals_subquery = (
+            self.db.query(
+                Invoice.supplier_id.label("supplier_id"),
+                func.coalesce(func.sum(Payment.base_amount), 0).label(
+                    "base_total_paid_amount"
+                ),
+            )
+            .join(
+                Invoice,
+                (Payment.invoice_id == Invoice.id)
+                & (Invoice.company_id == company_id),
+            )
+            .filter(Payment.company_id == company_id)
+            .group_by(Invoice.supplier_id)
+            .subquery()
+        )
+
+        base_total_invoice_amount = func.coalesce(
+            invoice_totals_subquery.c.base_total_invoice_amount,
+            0,
+        )
+        base_total_paid_amount = func.coalesce(
+            payment_totals_subquery.c.base_total_paid_amount,
+            0,
+        )
+
+        query = (
+            self.db.query(Supplier.id.label("supplier_id"))
+            .join(
+                invoice_totals_subquery,
+                invoice_totals_subquery.c.supplier_id == Supplier.id,
+            )
+            .outerjoin(
+                payment_totals_subquery,
+                payment_totals_subquery.c.supplier_id == Supplier.id,
+            )
+            .filter(Supplier.company_id == company_id)
+        )
+
+        query = self._apply_supplier_spend_filters(
+            query=query,
             filters=filters,
-            total_invoice_amount=total_invoice_amount,
-            total_paid_amount=total_paid_amount,
+            total_invoice_amount=base_total_invoice_amount,
+            total_paid_amount=base_total_paid_amount,
         ).subquery()
 
-        return self.db.query(func.count()).select_from(subquery).scalar() or 0
-
+        return self.db.query(func.count()).select_from(query).scalar() or 0
 
     def _apply_supplier_spend_filters(
         self,
@@ -592,11 +722,16 @@ class ReportRepository:
                 func.coalesce(func.sum(Invoice.total_amount), 0).label(
                     "total_invoice_amount"
                 ),
+                func.coalesce(func.sum(Invoice.base_amount), 0).label(
+                    "base_total_invoice_amount"
+                ),
+                func.max(Invoice.base_currency).label("base_currency"),
                 func.count(Invoice.id).label("invoice_count"),
             )
             .filter(
                 Invoice.company_id == company_id,
                 Invoice.supplier_id == supplier_id,
+                Invoice.status != InvoiceStatusEnum.DRAFT,
             )
             .group_by(Invoice.supplier_id)
             .subquery()
@@ -606,6 +741,9 @@ class ReportRepository:
             self.db.query(
                 Invoice.supplier_id.label("supplier_id"),
                 func.coalesce(func.sum(Payment.amount), 0).label("total_paid_amount"),
+                func.coalesce(func.sum(Payment.base_amount), 0).label(
+                    "base_total_paid_amount"
+                ),
                 func.count(Payment.id).label("payment_count"),
             )
             .join(
@@ -631,13 +769,32 @@ class ReportRepository:
             0,
         )
 
+        base_total_invoice_amount = func.coalesce(
+            invoice_totals_subquery.c.base_total_invoice_amount,
+            0,
+        )
+
+        base_total_paid_amount = func.coalesce(
+            payment_totals_subquery.c.base_total_paid_amount,
+            0,
+        )
+
         return (
             self.db.query(
                 Supplier.id.label("supplier_id"),
                 Supplier.name.label("supplier_name"),
+
                 total_invoice_amount.label("total_invoice_amount"),
                 total_paid_amount.label("total_paid_amount"),
                 (total_invoice_amount - total_paid_amount).label("outstanding_amount"),
+
+                invoice_totals_subquery.c.base_currency.label("base_currency"),
+                base_total_invoice_amount.label("base_total_invoice_amount"),
+                base_total_paid_amount.label("base_total_paid_amount"),
+                (
+                    base_total_invoice_amount - base_total_paid_amount
+                ).label("base_outstanding_amount"),
+
                 func.coalesce(invoice_totals_subquery.c.invoice_count, 0).label(
                     "invoice_count"
                 ),
@@ -668,15 +825,26 @@ class ReportRepository:
         amount_paid = func.coalesce(func.sum(Payment.amount), 0)
         outstanding_amount = Invoice.total_amount - amount_paid
 
+        base_amount_paid = func.coalesce(func.sum(Payment.base_amount), 0)
+        base_outstanding_amount = Invoice.base_amount - base_amount_paid
+
         return (
             self.db.query(
                 Invoice.id.label("invoice_id"),
                 Invoice.invoice_number.label("invoice_number"),
                 Invoice.purchase_order_id.label("purchase_order_id"),
                 PurchaseOrder.po_number.label("po_number"),
+
                 Invoice.total_amount.label("total_amount"),
                 amount_paid.label("amount_paid"),
                 outstanding_amount.label("outstanding_amount"),
+                Invoice.currency.label("currency"),
+
+                Invoice.base_currency.label("base_currency"),
+                Invoice.base_amount.label("base_total_amount"),
+                base_amount_paid.label("base_amount_paid"),
+                base_outstanding_amount.label("base_outstanding_amount"),
+
                 Invoice.status.label("status"),
                 Invoice.created_at.label("created_at"),
             )
@@ -701,13 +869,17 @@ class ReportRepository:
                 Invoice.purchase_order_id,
                 PurchaseOrder.po_number,
                 Invoice.total_amount,
+                Invoice.currency,
+                Invoice.base_currency,
+                Invoice.base_amount,
                 Invoice.status,
                 Invoice.created_at,
             )
             .order_by(Invoice.created_at.desc())
             .all()
         )
-    
+
+
     def get_supplier_spend_detail_payments(
         self,
         company_id: UUID,
@@ -717,11 +889,21 @@ class ReportRepository:
             self.db.query(
                 Payment.id.label("payment_id"),
                 Payment.reference.label("payment_reference"),
+
                 Payment.invoice_id.label("invoice_id"),
                 Invoice.invoice_number.label("invoice_number"),
+
                 Payment.amount.label("amount"),
+                Payment.currency.label("currency"),
+
+                Payment.exchange_rate.label("exchange_rate"),
+                Payment.base_currency.label("base_currency"),
+                Payment.base_amount.label("base_amount"),
+                Payment.exchange_rate_date.label("exchange_rate_date"),
+
                 Payment.payment_method.label("payment_method"),
                 Payment.status.label("status"),
+
                 Payment.paid_at.label("paid_at"),
                 Payment.created_at.label("created_at"),
             )
@@ -737,7 +919,6 @@ class ReportRepository:
             .order_by(Payment.created_at.desc())
             .all()
         )
-
     # ----------------------
     # PR REPO REPORT
     # ---------------------
@@ -758,6 +939,12 @@ class ReportRepository:
                 User.name.label("requested_by_name"),
                 PurchaseRequisition.total_amount.label("pr_total_amount"),
                 PurchaseRequisition.currency.label("currency"),
+
+                PurchaseRequisition.exchange_rate.label("exchange_rate"),
+                PurchaseRequisition.base_currency.label("base_currency"),
+                PurchaseRequisition.base_amount.label("base_amount"),
+                PurchaseRequisition.exchange_rate_date.label("exchange_rate_date"),
+
                 PurchaseRequisition.status.label("status"),
                 PurchaseRequisition.created_at.label("created_at"),
 
@@ -893,6 +1080,12 @@ class ReportRepository:
                 ).label("line_total"),
                 PurchaseOrder.total_amount.label("po_total_amount"),
                 PurchaseOrder.currency.label("currency"),
+
+                PurchaseOrder.exchange_rate.label("exchange_rate"),
+                PurchaseOrder.base_currency.label("base_currency"),
+                PurchaseOrder.base_amount.label("base_amount"),
+                PurchaseOrder.exchange_rate_date.label("exchange_rate_date"),
+
                 PurchaseOrder.status.label("status"),
 
                 PurchaseOrder.created_at.label("created_at"),

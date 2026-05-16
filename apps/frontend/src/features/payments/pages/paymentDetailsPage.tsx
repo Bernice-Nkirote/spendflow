@@ -24,6 +24,19 @@ function formatDate(value: string | null | undefined) {
   }).format(new Date(value));
 }
 
+function formatRate(value: string | number | null | undefined) {
+  if (!value) return "-";
+
+  const numericValue = Number(value);
+
+  if (Number.isNaN(numericValue)) return "-";
+
+  return numericValue.toLocaleString("en-KE", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 6,
+  });
+}
+
 function formatPaymentMethod(value: string) {
   return value.replaceAll("_", " ");
 }
@@ -98,7 +111,7 @@ export default function PaymentDetailsPage() {
     return <ErrorState message="Payment was not found." />;
   }
 
-  const invoiceCurrency = invoice?.currency ?? undefined;
+  const paymentCurrency = payment.currency ?? invoice?.currency ?? undefined;
   const invoiceTotal = Number(invoice?.total_amount ?? 0);
   const reservedTotal = getReservedPaymentTotal(invoicePayments);
   const balanceRemaining = Math.max(invoiceTotal - reservedTotal, 0);
@@ -198,30 +211,48 @@ export default function PaymentDetailsPage() {
       </div>
       <section className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-sm text-primary-gray">Payment Amount</p>
+          <p className="text-sm text-primary-gray">Original Payment</p>
           <p className="mt-2 text-2xl font-semibold text-primary-black">
-            {formatCurrency(Number(payment.amount ?? 0), invoiceCurrency)}
+            {formatCurrency(Number(payment.amount ?? 0), paymentCurrency)}
+          </p>
+          <p className="mt-1 text-xs text-primary-gray">
+            Transaction currency: {paymentCurrency ?? "-"}
           </p>
         </div>
 
         <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-sm text-primary-gray">Invoice Total</p>
+          <p className="text-sm text-primary-gray">Base Amount</p>
           <p className="mt-2 text-2xl font-semibold text-primary-black">
-            {formatCurrency(invoiceTotal, invoiceCurrency)}
+            {payment.base_amount && payment.base_currency
+              ? formatCurrency(
+                  Number(payment.base_amount),
+                  payment.base_currency,
+                )
+              : "-"}
+          </p>
+          <p className="mt-1 text-xs text-primary-gray">
+            Used for approval thresholds
           </p>
         </div>
 
-        <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4 shadow-sm">
-          <p className="text-sm font-medium text-yellow-700">Reserved/Paid</p>
-          <p className="mt-2 text-2xl font-semibold text-yellow-800">
-            {formatCurrency(reservedTotal, invoiceCurrency)}
+        <div className="rounded-xl border bg-white p-4 shadow-sm">
+          <p className="text-sm text-primary-gray">Exchange Rate</p>
+          <p className="mt-2 text-2xl font-semibold text-primary-black">
+            {formatRate(payment.exchange_rate)}
+          </p>
+          <p className="mt-1 text-xs text-primary-gray">
+            {payment.currency ?? invoice?.currency ?? "-"}
+            {payment.base_currency ? ` → ${payment.base_currency}` : ""}
           </p>
         </div>
 
-        <div className="rounded-xl border border-red-200 bg-red-50 p-4 shadow-sm">
-          <p className="text-sm font-medium text-red-700">Balance Remaining</p>
-          <p className="mt-2 text-2xl font-semibold text-red-800">
-            {formatCurrency(balanceRemaining, invoiceCurrency)}
+        <div className="rounded-xl border bg-white p-4 shadow-sm">
+          <p className="text-sm text-primary-gray">Balance Remaining</p>
+          <p className="mt-2 text-2xl font-semibold text-primary-black">
+            {formatCurrency(balanceRemaining, paymentCurrency)}
+          </p>
+          <p className="mt-1 text-xs text-primary-gray">
+            Rate date: {formatDate(payment.exchange_rate_date)}
           </p>
         </div>
       </section>
@@ -264,7 +295,7 @@ export default function PaymentDetailsPage() {
               Amount
             </p>
             <p className="mt-1 text-sm text-primary-black">
-              {formatCurrency(Number(payment.amount ?? 0), invoiceCurrency)}
+              {formatCurrency(Number(payment.amount ?? 0), paymentCurrency)}
             </p>
           </div>
 

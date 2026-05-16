@@ -34,9 +34,21 @@ export type PurchaseOrderDetails = {
   status: PurchaseOrderStatus;
   total_amount: string;
   currency: string;
+
+  exchange_rate: string | null;
+  base_currency: string | null;
+  base_amount: string | null;
+  exchange_rate_date: string | null;
+
   notes: string | null;
   submitted_at: string | null;
   issued_at: string | null;
+
+  signed_pdf_file_path: string | null;
+  signed_pdf_original_filename: string | null;
+  signed_pdf_uploaded_by: string | null;
+  signed_pdf_uploaded_at: string | null;
+
   created_at: string;
   updated_at: string;
   items: PurchaseOrderItem[];
@@ -46,6 +58,7 @@ export type PurchaseOrderDetails = {
   created_by_name: string | null;
   submitted_by_name: string | null;
   issued_by_name: string | null;
+  signed_pdf_uploaded_by_name: string | null;
   pr_number: string | null;
 };
 

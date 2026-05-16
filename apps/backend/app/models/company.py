@@ -65,6 +65,7 @@ class Company(Base):
 )
     # payments
     payments = relationship("Payment", back_populates="company")
+    exchange_rates = relationship("ExchangeRate", back_populates="company")
     permissions = relationship("Permission", back_populates="company")
 
     role_permissions = relationship("RolePermission", back_populates="company") 

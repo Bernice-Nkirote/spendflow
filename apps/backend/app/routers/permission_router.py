@@ -15,6 +15,11 @@ from app.schemas.permission_schema import (
     PermissionRead,
     PermissionUpdate,
 )
+from app.schemas.role_permission_schema import(
+    RolePermissionCreate,
+    RolePermissionRead,
+    RolePermissionDetailRead,
+)
 from app.services.permission_service import PermissionService
 from app.services.audit_log_service import AuditLogService
 
@@ -112,3 +117,41 @@ def deactivate_permission(
         company_id=current_user.company_id,
         actor_user_id=current_user.id,
     )
+
+@router.get("/roles/{role_id}", response_model=list[RolePermissionDetailRead])
+def get_permissions_for_role(
+    role_id: UUID,
+    current_user: User = Depends(get_current_admin_user),
+    service: PermissionService = Depends(get_permission_service),
+):
+    return service.get_permissions_for_role(
+        role_id=role_id,
+        company_id=current_user.company_id,
+    )
+
+
+@router.post("/roles/assign", response_model=RolePermissionRead)
+def assign_permission_to_role(
+    data: RolePermissionCreate,
+    current_user: User = Depends(get_current_admin_user),
+    service: PermissionService = Depends(get_permission_service),
+):
+    return service.assign_permission_to_role(
+        data=data,
+        company_id=current_user.company_id,
+        actor_user_id=current_user.id,
+    )
+
+
+@router.delete("/roles/{role_permission_id}", status_code=204)
+def remove_permission_from_role(
+    role_permission_id: UUID,
+    current_user: User = Depends(get_current_admin_user),
+    service: PermissionService = Depends(get_permission_service),
+):
+    service.remove_permission_from_role(
+        role_permission_id=role_permission_id,
+        company_id=current_user.company_id,
+        actor_user_id=current_user.id,
+    )
+    return None

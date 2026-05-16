@@ -30,6 +30,13 @@ export type InvoiceDetails = {
   submitted_by_supplier_user_id: string | null;
   invoice_number: string;
   total_amount: string;
+
+  currency: string | null;
+  exchange_rate: string | null;
+  base_currency: string | null;
+  base_amount: string | null;
+  exchange_rate_date: string | null;
+
   status: InvoiceStatus;
   created_at: string;
   updated_at: string;
@@ -37,7 +44,6 @@ export type InvoiceDetails = {
 
   supplier_name: string | null;
   po_number: string | null;
-  currency?: string | null;
   submitted_by_user_name: string | null;
   submitted_by_supplier_user_name: string | null;
 };

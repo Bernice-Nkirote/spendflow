@@ -53,6 +53,13 @@ class InvoiceReportRow(BaseModel):
     line_total: Decimal
 
     invoice_total_amount: Decimal
+    currency: str | None = None
+
+    exchange_rate: Decimal | None = None
+    base_currency: str | None = None
+    base_amount: Decimal | None = None
+    exchange_rate_date: datetime | None = None
+
     status: str
     created_at: datetime
 

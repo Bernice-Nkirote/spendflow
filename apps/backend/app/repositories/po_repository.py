@@ -29,6 +29,7 @@ class PurchaseOrderRepository:
             joinedload(PurchaseOrder.creator),
             joinedload(PurchaseOrder.submitter),
             joinedload(PurchaseOrder.issuer),
+            joinedload(PurchaseOrder.signed_pdf_uploader),
             joinedload(PurchaseOrder.purchase_requisition),
             joinedload(PurchaseOrder.items),
         )
@@ -53,6 +54,7 @@ class PurchaseOrderRepository:
                 joinedload(PurchaseOrder.creator),
                 joinedload(PurchaseOrder.submitter),
                 joinedload(PurchaseOrder.issuer),
+                joinedload(PurchaseOrder.signed_pdf_uploader),
                 joinedload(PurchaseOrder.purchase_requisition),
                 joinedload(PurchaseOrder.items),
             )

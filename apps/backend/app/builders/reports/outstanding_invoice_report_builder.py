@@ -13,9 +13,17 @@ class OutstandingInvoiceReportBuilder:
                 supplier_name=row.supplier_name,
                 purchase_order_id=row.purchase_order_id,
                 po_number=row.po_number,
+
                 total_amount=row.total_amount,
                 amount_paid=row.amount_paid,
                 outstanding_amount=row.outstanding_amount,
+                currency=row.currency,
+
+                base_currency=row.base_currency,
+                base_total_amount=row.base_total_amount,
+                base_amount_paid=row.base_amount_paid,
+                base_outstanding_amount=row.base_outstanding_amount,
+
                 status=row.status,
                 created_at=row.created_at,
             )
@@ -27,9 +35,17 @@ class OutstandingInvoiceReportBuilder:
             "Invoice Number",
             "Supplier",
             "PO Number",
+
             "Total Amount",
             "Amount Paid",
             "Outstanding Amount",
+            "Currency",
+
+            "Base Currency",
+            "Base Total Amount",
+            "Base Amount Paid",
+            "Base Outstanding Amount",
+
             "Status",
             "Created At",
         ]
@@ -43,9 +59,17 @@ class OutstandingInvoiceReportBuilder:
                 row.invoice_number,
                 row.supplier_name or "N/A",
                 row.po_number or "N/A",
+
                 row.total_amount,
                 row.amount_paid,
                 row.outstanding_amount,
+                row.currency,
+
+                row.base_currency,
+                row.base_total_amount,
+                row.base_amount_paid,
+                row.base_outstanding_amount,
+
                 row.status,
                 row.created_at,
             ]

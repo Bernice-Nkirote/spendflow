@@ -53,7 +53,10 @@ export default function PaymentRecordsTable({ payments }: Props) {
                 Supplier
               </th>
               <th className="whitespace-nowrap border-b px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">
-                Amount
+                Original Amount
+              </th>
+              <th className="whitespace-nowrap border-b px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">
+                Base Amount
               </th>
               <th className="whitespace-nowrap border-b px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-600">
                 Method
@@ -86,7 +89,35 @@ export default function PaymentRecordsTable({ payments }: Props) {
                   {payment.supplier_name ?? "-"}
                 </td>
                 <td className="whitespace-nowrap border-b px-4 py-3 text-right tabular-nums text-gray-700">
-                  {formatCurrency(Number(payment.amount ?? 0), undefined)}
+                  <div className="font-medium">
+                    {formatCurrency(
+                      Number(payment.amount ?? 0),
+                      payment.currency ?? undefined,
+                    )}
+                  </div>
+
+                  <div className="text-xs text-primary-gray">
+                    {payment.currency ?? "-"}
+                  </div>
+                </td>
+
+                <td className="whitespace-nowrap border-b px-4 py-3 text-right tabular-nums text-gray-700">
+                  {payment.base_amount && payment.base_currency ? (
+                    <>
+                      <div className="font-medium">
+                        {formatCurrency(
+                          Number(payment.base_amount),
+                          payment.base_currency,
+                        )}
+                      </div>
+
+                      <div className="text-xs text-primary-gray">
+                        Approval value
+                      </div>
+                    </>
+                  ) : (
+                    <span className="text-primary-gray">-</span>
+                  )}
                 </td>
                 <td className="whitespace-nowrap border-b px-4 py-3 text-gray-700">
                   {formatPaymentMethod(payment.payment_method)}

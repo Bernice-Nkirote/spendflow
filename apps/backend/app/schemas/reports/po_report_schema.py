@@ -62,6 +62,12 @@ class POReportRow(BaseModel):
 
     po_total_amount: Decimal
     currency: str
+
+    exchange_rate: Decimal | None = None
+    base_currency: str | None = None
+    base_amount: Decimal | None = None
+    exchange_rate_date: datetime | None = None
+
     status: POStatusEnum
 
     created_at: datetime

@@ -40,6 +40,10 @@ class ApprovalInstanceService:
         instance.requester_name = None
         instance.total_amount = None
         instance.currency = None
+        instance.exchange_rate = None
+        instance.base_currency = None
+        instance.base_amount = None
+        instance.exchange_rate_date = None
         instance.workflow_name = instance.workflow.name if instance.workflow else None
         instance.current_level_name = (
             instance.current_level.name if instance.current_level else None
@@ -69,7 +73,18 @@ class ApprovalInstanceService:
                     if requisition.total_amount is not None
                     else None
                 )
-                instance.currency = requisition.currency
+                instance.exchange_rate = (
+                    float(requisition.exchange_rate)
+                    if requisition.exchange_rate is not None
+                    else None
+                )
+                instance.base_currency = requisition.base_currency
+                instance.base_amount = (
+                    float(requisition.base_amount)
+                    if requisition.base_amount is not None
+                    else None
+                )
+                instance.exchange_rate_date = requisition.exchange_rate_date
 
         if instance.entity_type == EntityTypeEnum.PO:
             purchase_order = self.po_repo.get_by_id(
@@ -104,7 +119,18 @@ class ApprovalInstanceService:
                     else None
                 )
 
-                instance.currency = purchase_order.currency
+                instance.exchange_rate = (
+                    float(purchase_order.exchange_rate)
+                    if purchase_order.exchange_rate is not None
+                    else None
+                )
+                instance.base_currency = purchase_order.base_currency
+                instance.base_amount = (
+                    float(purchase_order.base_amount)
+                    if purchase_order.base_amount is not None
+                    else None
+                )
+                instance.exchange_rate_date = purchase_order.exchange_rate_date
 
         if instance.entity_type == EntityTypeEnum.INVOICE:
             invoice = self.invoice_repo.get_by_id(
@@ -148,11 +174,19 @@ class ApprovalInstanceService:
                     else None
                 )
 
-                instance.currency = (
-                    invoice.purchase_order.currency
-                    if invoice.purchase_order
+                instance.currency = invoice.currency
+                instance.exchange_rate = (
+                    float(invoice.exchange_rate)
+                    if invoice.exchange_rate is not None
                     else None
                 )
+                instance.base_currency = invoice.base_currency
+                instance.base_amount = (
+                    float(invoice.base_amount)
+                    if invoice.base_amount is not None
+                    else None
+                )
+                instance.exchange_rate_date = invoice.exchange_rate_date
 
         if instance.entity_type == EntityTypeEnum.PAYMENT:
             payment = self.payment_repo.get_by_id(
@@ -200,11 +234,19 @@ class ApprovalInstanceService:
                     else None
                 )
 
-                instance.currency = (
-                    invoice.purchase_order.currency
-                    if invoice and invoice.purchase_order
+                instance.currency = payment.currency
+                instance.exchange_rate = (
+                    float(payment.exchange_rate)
+                    if payment.exchange_rate is not None
                     else None
                 )
+                instance.base_currency = payment.base_currency
+                instance.base_amount = (
+                    float(payment.base_amount)
+                    if payment.base_amount is not None
+                    else None
+                )
+                instance.exchange_rate_date = payment.exchange_rate_date
 
         return instance
     

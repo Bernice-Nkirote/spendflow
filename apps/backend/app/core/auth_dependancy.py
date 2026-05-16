@@ -8,7 +8,7 @@ from app.core.database import get_db
 from app.core.security import ALGORITHM, SECRET_KEY
 from app.models.company import Company
 from app.models.role import Role
-from app.models.suplier_user import SupplierUser
+from app.models.supplier_user import SupplierUser
 from app.models.user import User
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 

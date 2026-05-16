@@ -4,76 +4,67 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.auth_dependancy import get_current_supplier
-from app.core.database import get_db
 from app.models.enums import InvoiceStatusEnum
-from app.repositories.approval_instance_repository import ApprovalInstanceRepository
-from app.repositories.approval_workflow_repository import ApprovalWorkflowRepository
-from app.repositories.invoice_line_item_repository import InvoiceLineItemRepository
-from app.repositories.invoice_repository import InvoiceRepository
-from app.repositories.po_repository import PurchaseOrderRepository
-from app.repositories.workflow_level_repository import WorkflowLevelRepository
-from app.repositories.permission_repository import PermissionRepository
-from app.repositories.role_permission_repository import RolePermissionRepository
-from app.repositories.role_repository import RoleRepository
-from app.repositories.audit_log_repository import AuditLogRepository
-
+from app.core.database import get_db
+from app.repositories.supplier_repository import SupplierRepository
+from app.routers.invoice_router import get_invoice_service
 from app.schemas.invoice_line_item_schema import (
     InvoiceLineItemCreate,
     InvoiceLineItemRead,
     InvoiceLineItemUpdate,
 )
-from app.schemas.invoice_schema import InvoiceCreate, InvoiceRead, InvoiceUpdate
-from app.services.approval_instance_service import ApprovalInstanceService
+from app.schemas.invoice_schema import (
+    InvoiceCreate,
+    InvoiceDetailRead,
+    InvoiceRead,
+    InvoiceUpdate,
+)
 from app.services.invoice_service import InvoiceService
-from app.services.permission_service import PermissionService
-from app.services.audit_log_service import AuditLogService
 
 router = APIRouter(prefix="/supplier/invoices", tags=["Supplier Invoices"])
 
 
-def get_supplier_invoice_service(
-    db: Session = Depends(get_db),
-) -> InvoiceService:
-    invoice_repo = InvoiceRepository(db)
-    line_item_repo = InvoiceLineItemRepository(db)
-    purchase_order_repo = PurchaseOrderRepository(db)
-    workflow_repo = ApprovalWorkflowRepository(db)
+def get_supplier_repo(db: Session = Depends(get_db)) -> SupplierRepository:
+    return SupplierRepository(db)
 
-    approval_instance_repo = ApprovalInstanceRepository(db)
-    workflow_level_repo = WorkflowLevelRepository(db)
-    approval_instance_service = ApprovalInstanceService(
-        repo=approval_instance_repo,
-        workflow_level_repo=workflow_level_repo,
-    )
-    permission_service = PermissionService(
-        permission_repo=PermissionRepository(db),
-        role_permission_repo=RolePermissionRepository(db),
-        role_repo=RoleRepository(db),
+
+def _get_supplier_company_id(
+    current_supplier,
+    supplier_repo: SupplierRepository,
+):
+    supplier = supplier_repo.get_by_id_for_portal(
+        supplier_id=current_supplier.supplier_id,
     )
 
-    audit_log_service = AuditLogService(
-        repo=AuditLogRepository(db),
-    )
+    if not supplier:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Supplier profile not found",
+        )
 
-    return InvoiceService(
-        invoice_repo=invoice_repo,
-        line_item_repo=line_item_repo,
-        purchase_order_repo=purchase_order_repo,
-        workflow_repo=workflow_repo,
-        approval_instance_service=approval_instance_service,
-        permission_service=permission_service,
-        audit_log_service=audit_log_service,
-    )
+    if not supplier.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Supplier profile is inactive",
+        )
+
+    return supplier.company_id
 
 
 def _ensure_supplier_owns_invoice(
     invoice_id: UUID,
     current_supplier,
+    supplier_repo: SupplierRepository,
     service: InvoiceService,
 ):
+    company_id = _get_supplier_company_id(
+        current_supplier=current_supplier,
+        supplier_repo=supplier_repo,
+    )
+
     invoice = service.get_invoice(
         invoice_id=invoice_id,
-        company_id=current_supplier.supplier.company_id,
+        company_id=company_id,
     )
 
     if invoice.supplier_id != current_supplier.supplier_id:
@@ -93,55 +84,53 @@ def _ensure_supplier_owns_invoice(
 def create_supplier_invoice(
     invoice_data: InvoiceCreate,
     current_supplier=Depends(get_current_supplier),
-    service: InvoiceService = Depends(get_supplier_invoice_service),
+    supplier_repo: SupplierRepository = Depends(get_supplier_repo),
+    service: InvoiceService = Depends(get_invoice_service),
 ):
+    company_id = _get_supplier_company_id(
+        current_supplier=current_supplier,
+        supplier_repo=supplier_repo,
+    )
+
     return service.create_invoice(
         invoice_data=invoice_data,
-        company_id=current_supplier.supplier.company_id,
+        company_id=company_id,
         submitting_user=current_supplier,
     )
 
 
-@router.get("/", response_model=list[InvoiceRead])
+@router.get("/", response_model=list[InvoiceDetailRead])
 def get_all_supplier_invoices(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1),
     current_supplier=Depends(get_current_supplier),
-    service: InvoiceService = Depends(get_supplier_invoice_service),
+    supplier_repo: SupplierRepository = Depends(get_supplier_repo),
+    service: InvoiceService = Depends(get_invoice_service),
 ):
+    company_id = _get_supplier_company_id(
+        current_supplier=current_supplier,
+        supplier_repo=supplier_repo,
+    )
+
     return service.get_all_invoices_by_supplier(
         supplier_id=current_supplier.supplier_id,
-        company_id=current_supplier.supplier.company_id,
+        company_id=company_id,
         skip=skip,
         limit=limit,
     )
 
 
-@router.get("/status/{status}", response_model=list[InvoiceRead])
-def get_supplier_invoices_by_status(
-    status: InvoiceStatusEnum,
-    skip: int = Query(0, ge=0),
-    limit: int = Query(20, ge=1),
-    current_supplier=Depends(get_current_supplier),
-    service: InvoiceService = Depends(get_supplier_invoice_service),
-):
-    return service.get_all_invoices_by_status(
-        invoice_status=status,
-        company_id=current_supplier.supplier.company_id,
-        skip=skip,
-        limit=limit,
-    )
-
-
-@router.get("/{invoice_id}", response_model=InvoiceRead)
+@router.get("/{invoice_id}", response_model=InvoiceDetailRead)
 def get_supplier_invoice(
     invoice_id: UUID,
     current_supplier=Depends(get_current_supplier),
-    service: InvoiceService = Depends(get_supplier_invoice_service),
+    supplier_repo: SupplierRepository = Depends(get_supplier_repo),
+    service: InvoiceService = Depends(get_invoice_service),
 ):
     return _ensure_supplier_owns_invoice(
         invoice_id=invoice_id,
         current_supplier=current_supplier,
+        supplier_repo=supplier_repo,
         service=service,
     )
 
@@ -151,37 +140,73 @@ def update_supplier_invoice(
     invoice_id: UUID,
     invoice_data: InvoiceUpdate,
     current_supplier=Depends(get_current_supplier),
-    service: InvoiceService = Depends(get_supplier_invoice_service),
+    supplier_repo: SupplierRepository = Depends(get_supplier_repo),
+    service: InvoiceService = Depends(get_invoice_service),
 ):
-    _ensure_supplier_owns_invoice(
+    company_id = _get_supplier_company_id(
+        current_supplier=current_supplier,
+        supplier_repo=supplier_repo,
+    )
+
+    invoice = _ensure_supplier_owns_invoice(
         invoice_id=invoice_id,
         current_supplier=current_supplier,
+        supplier_repo=supplier_repo,
         service=service,
     )
+
+    invoice_status = getattr(invoice.status, "value", str(invoice.status))
+
+    if invoice_status not in {
+        InvoiceStatusEnum.DRAFT.value,
+        InvoiceStatusEnum.REJECTED.value,
+    }:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only draft or rejected invoices can be updated.",
+        )
 
     return service.update_invoice(
         invoice_id=invoice_id,
         invoice_data=invoice_data,
-        company_id=current_supplier.supplier.company_id,
+        company_id=company_id,
         actor_supplier_user_id=current_supplier.id,
     )
 
 
-@router.patch("/{invoice_id}/submit", response_model=InvoiceRead)
+@router.patch("/{invoice_id}/submit", response_model=InvoiceDetailRead)
 def submit_supplier_invoice(
     invoice_id: UUID,
     current_supplier=Depends(get_current_supplier),
-    service: InvoiceService = Depends(get_supplier_invoice_service),
+    supplier_repo: SupplierRepository = Depends(get_supplier_repo),
+    service: InvoiceService = Depends(get_invoice_service),
 ):
-    _ensure_supplier_owns_invoice(
+    company_id = _get_supplier_company_id(
+        current_supplier=current_supplier,
+        supplier_repo=supplier_repo,
+    )
+
+    invoice = _ensure_supplier_owns_invoice(
         invoice_id=invoice_id,
         current_supplier=current_supplier,
+        supplier_repo=supplier_repo,
         service=service,
     )
 
+    invoice_status = getattr(invoice.status, "value", str(invoice.status))
+
+    if invoice_status not in {
+        InvoiceStatusEnum.DRAFT.value,
+        InvoiceStatusEnum.REJECTED.value,
+    }:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only draft or rejected invoices can be submitted.",
+        )
+
     return service.submit_invoice(
         invoice_id=invoice_id,
-        company_id=current_supplier.supplier.company_id,
+        company_id=company_id,
         actor_supplier_user_id=current_supplier.id,
     )
 
@@ -190,19 +215,38 @@ def submit_supplier_invoice(
 def delete_supplier_invoice(
     invoice_id: UUID,
     current_supplier=Depends(get_current_supplier),
-    service: InvoiceService = Depends(get_supplier_invoice_service),
+    supplier_repo: SupplierRepository = Depends(get_supplier_repo),
+    service: InvoiceService = Depends(get_invoice_service),
 ):
-    _ensure_supplier_owns_invoice(
+    company_id = _get_supplier_company_id(
+        current_supplier=current_supplier,
+        supplier_repo=supplier_repo,
+    )
+
+    invoice = _ensure_supplier_owns_invoice(
         invoice_id=invoice_id,
         current_supplier=current_supplier,
+        supplier_repo=supplier_repo,
         service=service,
     )
 
+    invoice_status = getattr(invoice.status, "value", str(invoice.status))
+
+    if invoice_status not in {
+        InvoiceStatusEnum.DRAFT.value,
+        InvoiceStatusEnum.REJECTED.value,
+    }:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only draft or rejected invoices can be deleted.",
+        )
+
     service.delete_invoice(
         invoice_id=invoice_id,
-        company_id=current_supplier.supplier.company_id,
+        company_id=company_id,
         actor_supplier_user_id=current_supplier.id,
     )
+
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -215,18 +259,35 @@ def create_supplier_invoice_line_item(
     invoice_id: UUID,
     item_data: InvoiceLineItemCreate,
     current_supplier=Depends(get_current_supplier),
-    service: InvoiceService = Depends(get_supplier_invoice_service),
+    supplier_repo: SupplierRepository = Depends(get_supplier_repo),
+    service: InvoiceService = Depends(get_invoice_service),
 ):
-    _ensure_supplier_owns_invoice(
+    company_id = _get_supplier_company_id(
+        current_supplier=current_supplier,
+        supplier_repo=supplier_repo,
+    )
+
+    invoice = _ensure_supplier_owns_invoice(
         invoice_id=invoice_id,
         current_supplier=current_supplier,
+        supplier_repo=supplier_repo,
         service=service,
     )
 
+    invoice_status = getattr(invoice.status, "value", str(invoice.status))
+
+    if invoice_status not in {
+        InvoiceStatusEnum.DRAFT.value,
+        InvoiceStatusEnum.REJECTED.value,
+    }:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only draft or rejected invoice line items can be changed.",
+        )
     return service.create_invoice_line_item(
         invoice_id=invoice_id,
         item_data=item_data,
-        company_id=current_supplier.supplier.company_id,
+        company_id=company_id,
     )
 
 
@@ -237,17 +298,24 @@ def create_supplier_invoice_line_item(
 def get_all_supplier_invoice_line_items(
     invoice_id: UUID,
     current_supplier=Depends(get_current_supplier),
-    service: InvoiceService = Depends(get_supplier_invoice_service),
+    supplier_repo: SupplierRepository = Depends(get_supplier_repo),
+    service: InvoiceService = Depends(get_invoice_service),
 ):
+    company_id = _get_supplier_company_id(
+        current_supplier=current_supplier,
+        supplier_repo=supplier_repo,
+    )
+
     _ensure_supplier_owns_invoice(
         invoice_id=invoice_id,
         current_supplier=current_supplier,
+        supplier_repo=supplier_repo,
         service=service,
     )
 
     return service.get_all_invoice_line_items(
         invoice_id=invoice_id,
-        company_id=current_supplier.supplier.company_id,
+        company_id=company_id,
     )
 
 
@@ -260,18 +328,36 @@ def update_supplier_invoice_line_item(
     item_id: UUID,
     item_data: InvoiceLineItemUpdate,
     current_supplier=Depends(get_current_supplier),
-    service: InvoiceService = Depends(get_supplier_invoice_service),
+    supplier_repo: SupplierRepository = Depends(get_supplier_repo),
+    service: InvoiceService = Depends(get_invoice_service),
 ):
-    _ensure_supplier_owns_invoice(
+    company_id = _get_supplier_company_id(
+        current_supplier=current_supplier,
+        supplier_repo=supplier_repo,
+    )
+
+    invoice = _ensure_supplier_owns_invoice(
         invoice_id=invoice_id,
         current_supplier=current_supplier,
+        supplier_repo=supplier_repo,
         service=service,
     )
+
+    invoice_status = getattr(invoice.status, "value", str(invoice.status))
+
+    if invoice_status not in {
+        InvoiceStatusEnum.DRAFT.value,
+        InvoiceStatusEnum.REJECTED.value,
+    }:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only draft or rejected invoice line items can be changed.",
+        )
 
     return service.update_invoice_line_item(
         item_id=item_id,
         item_data=item_data,
-        company_id=current_supplier.supplier.company_id,
+        company_id=company_id,
     )
 
 
@@ -283,16 +369,35 @@ def delete_supplier_invoice_line_item(
     invoice_id: UUID,
     item_id: UUID,
     current_supplier=Depends(get_current_supplier),
-    service: InvoiceService = Depends(get_supplier_invoice_service),
+    supplier_repo: SupplierRepository = Depends(get_supplier_repo),
+    service: InvoiceService = Depends(get_invoice_service),
 ):
-    _ensure_supplier_owns_invoice(
+    company_id = _get_supplier_company_id(
+        current_supplier=current_supplier,
+        supplier_repo=supplier_repo,
+    )
+
+    invoice = _ensure_supplier_owns_invoice(
         invoice_id=invoice_id,
         current_supplier=current_supplier,
+        supplier_repo=supplier_repo,
         service=service,
     )
 
+    invoice_status = getattr(invoice.status, "value", str(invoice.status))
+
+    if invoice_status not in {
+        InvoiceStatusEnum.DRAFT.value,
+        InvoiceStatusEnum.REJECTED.value,
+    }:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only draft or rejected invoice line items can be changed.",
+        )
+
     service.delete_invoice_line_item(
         item_id=item_id,
-        company_id=current_supplier.supplier.company_id,
+        company_id=company_id,
     )
+
     return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -46,8 +46,7 @@ class PDFService:
 
     def _build_company_header(self, company, po, styles):
         company_name = self._safe_text(getattr(company, "name", None))
-        company_currency = self._safe_text(getattr(company, "currency", None))
-
+        po_currency = self._safe_text(getattr(po, "currency", None))
         return Table(
             [
                 [
@@ -55,7 +54,7 @@ class PDFService:
                     Paragraph("PURCHASE ORDER", styles["DocumentTitle"]),
                 ],
                 [
-                    Paragraph(f"Base Currency: {company_currency}", styles["Muted"]),
+                    Paragraph(f"Base Currency: {po_currency}", styles["Muted"]),
                     Paragraph(f"PO No: {po.po_number}", styles["RightMuted"]),
                 ],
             ],
@@ -79,10 +78,9 @@ class PDFService:
         rows = [
             ["PO Number", self._safe_text(po.po_number)],
             ["Status", self._safe_text(enum_value(po.status))],
-            ["Issue Date", self._format_date(po.issued_at)],
-            ["Department", self._safe_text(getattr(po, "department_name", None))],
+            ["Prepared Date", self._format_date(po.created_at)],
             ["Prepared By", self._safe_text(getattr(po, "created_by_name", None))],
-            ["Authorized By", self._safe_text(getattr(po, "issued_by_name", None))],
+            ["Department", self._safe_text(getattr(po, "department_name", None))],
         ]
 
         table = Table(rows, colWidths=[38 * mm, 140 * mm])

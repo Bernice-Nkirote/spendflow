@@ -75,7 +75,7 @@ class RoleService:
                 detail="Role cannot be modified because it is assigned to users.",
             )
 
-        if self.repo.has_workflow_levels(role.id, company_id):
+        if self.repo.has_workflow_level_roles(role.id, company_id):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Role cannot be modified because it is used in approval workflows.",
@@ -196,7 +196,7 @@ class RoleService:
                 detail="Role cannot be deleted because it is assigned to users.",
             )
 
-        if self.repo.has_workflow_levels(role.id, company_id):
+        if self.repo.has_workflow_level_roles(role.id, company_id):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Role cannot be deleted because it is used in approval workflows.",

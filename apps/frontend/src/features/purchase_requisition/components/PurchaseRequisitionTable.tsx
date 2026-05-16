@@ -35,10 +35,10 @@ export default function PurchaseRequisitionTable({
               Title
             </th>
             <th className="px-4 py-3 text-right font-medium text-primary-gray">
-              Total Amount
+              Original Amount
             </th>
-            <th className="px-4 py-3 text-left font-medium text-primary-gray">
-              Currency
+            <th className="px-4 py-3 text-right font-medium text-primary-gray">
+              Base Amount
             </th>
             <th className="px-4 py-3 text-left font-medium text-primary-gray">
               Status
@@ -69,11 +69,27 @@ export default function PurchaseRequisitionTable({
               </td>
 
               <td className="whitespace-nowrap px-4 py-3 text-right text-primary-black">
-                {formatCurrency(Number(pr.total_amount ?? 0), pr.currency)}
+                <div className="font-medium">
+                  {formatCurrency(Number(pr.total_amount ?? 0), pr.currency)}
+                </div>
+                <div className="text-xs text-primary-gray">
+                  {normalizeCurrencyCode(pr.currency)}
+                </div>
               </td>
 
-              <td className="whitespace-nowrap px-4 py-3 text-primary-black">
-                {normalizeCurrencyCode(pr.currency)}
+              <td className="whitespace-nowrap px-4 py-3 text-right text-primary-black">
+                {pr.base_amount && pr.base_currency ? (
+                  <>
+                    <div className="font-medium">
+                      {formatCurrency(Number(pr.base_amount), pr.base_currency)}
+                    </div>
+                    <div className="text-xs text-primary-gray">
+                      Approval value
+                    </div>
+                  </>
+                ) : (
+                  <span className="text-primary-gray">-</span>
+                )}
               </td>
 
               <td className="whitespace-nowrap px-4 py-3">

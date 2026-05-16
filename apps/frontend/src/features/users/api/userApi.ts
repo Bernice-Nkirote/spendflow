@@ -39,3 +39,12 @@ export async function deactivateUser(userId: string) {
 export async function deleteUser(userId: string) {
   await axiosInstance.delete(`/users/${userId}`);
 }
+
+// RESEND LINK
+export async function resendUserSetupLink(userId: string) {
+  const response = await axiosInstance.post<User>(
+    `/users/${userId}/resend-setup-link`,
+  );
+
+  return response.data;
+}

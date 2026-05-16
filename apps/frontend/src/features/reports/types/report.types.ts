@@ -52,6 +52,10 @@ export type PRReportItem = {
   line_total: string;
   pr_total_amount: string;
   currency: string;
+  exchange_rate: string | null;
+  base_currency: string | null;
+  base_amount: string | null;
+  exchange_rate_date: string | null;
   status: string;
   created_at: string;
 };
@@ -69,6 +73,10 @@ export type POReportItem = {
   line_total: string | null;
   po_total_amount: string | null;
   currency: string;
+  exchange_rate: string | null;
+  base_currency: string | null;
+  base_amount: string | null;
+  exchange_rate_date: string | null;
   status: string;
   created_at: string;
 };
@@ -91,6 +99,11 @@ export type InvoiceReportItem = {
   line_total: string;
 
   invoice_total_amount: string;
+  currency: string | null;
+  exchange_rate: string | null;
+  base_currency: string | null;
+  base_amount: string | null;
+  exchange_rate_date: string | null;
   status: string;
   created_at: string;
 };
@@ -126,6 +139,11 @@ export type PaymentReportItem = {
   supplier_name: string | null;
 
   amount: string;
+  currency: string | null;
+  exchange_rate: string | null;
+  base_currency: string | null;
+  base_amount: string | null;
+  exchange_rate_date: string | null;
   payment_method: string | null;
   status: string;
 
@@ -140,9 +158,16 @@ export type PaymentReportItem = {
 export type SupplierSpendReportItem = {
   supplier_id: string;
   supplier_name: string;
+
   total_invoice_amount: string;
   total_paid_amount: string;
   outstanding_amount: string;
+
+  base_currency: string | null;
+  base_total_invoice_amount: string | null;
+  base_total_paid_amount: string | null;
+  base_outstanding_amount: string | null;
+
   invoice_count: number;
   payment_count: number;
 };

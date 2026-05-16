@@ -26,6 +26,7 @@ import EditPurchaseRequisitionPage from "../features/purchase_requisition/pages/
 import ApprovalQueuePage from "../features/approvals/pages/ApprovalQueuePage";
 import ApprovalDetailPage from "../features/approvals/pages/ApprovalDetailPage";
 import ApprovalWorkflowsPage from "../features/approval_workflows/pages/ApprovalWorkflowsPage";
+import ExchangeRatesPage from "../features/exchange_rates/pages/ExchangeRatesPage";
 
 import SuppliersPage from "../features/suppliers/pages/SuppliersPage";
 import SupplierDetailsPage from "../features/suppliers/pages/SupplierDetailsPage";
@@ -34,12 +35,30 @@ import RolesPage from "../features/roles/pages/RolesPage";
 import UsersPage from "../features/users/pages/UsersPage";
 import ProtectedRoute from "./ProtectedRoute";
 import ApprovalWorkflowDetailsPage from "../features/approval_workflows/pages/ApprovalWorkflowDetailsPage";
+import SupplierProtectedRoute from "./SupplierProtectedRoute";
+import SupplierLoginPage from "../features/supplier_auth/pages/SupplierLoginPage";
+import SupplierPurchaseOrdersPage from "../features/supplier_portal/pages/SupplierPurchaseOrdersPage";
+import SupplierPurchaseOrderDetailsPage from "../features/supplier_portal/pages/SupplierPurchaseOrderDetailsPage";
+import SupplierCreateInvoicePage from "../features/supplier_portal/pages/SupplierCreateInvoicePage";
+import SupplierSetupPasswordPage from "../features/supplier_auth/pages/SupplierSetupPasswordPage";
+import SupplierPortalLayout from "../features/supplier_portal/components/SupplierPortalLayout";
+import SupplierInvoicesPage from "../features/supplier_portal/pages/SupplierInvoicesPage";
+import SupplierInvoiceDetailsPage from "../features/supplier_portal/pages/SupplierInvoiceDetailsPage";
+import SupplierPaymentsPage from "../features/supplier_portal/pages/SupplierPaymentsPage";
+import PermissionsPage from "../features/permission/pages/PermissionPage";
+import AuditLogsPage from "../features/audit_logs/pages/AuditLogsPage";
+
 function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/company-signup" element={<CompanySignupPage />} />
       <Route path="/setup-password" element={<SetupPasswordPage />} />
+      <Route path="/supplier-login" element={<SupplierLoginPage />} />
+      <Route
+        path="/supplier-setup-password"
+        element={<SupplierSetupPasswordPage />}
+      />
 
       <Route element={<ProtectedRoute />}>
         <Route path="/" element={<AppLayout />}>
@@ -100,8 +119,14 @@ function AppRoutes() {
           {/* DEPARTMENTS */}
           <Route path="/departments" element={<DepartmentsPage />} />
 
+          {/* EXCHANGE RATES */}
+          <Route path="/exchange-rates" element={<ExchangeRatesPage />} />
+
           {/* ROLES */}
           <Route path="/roles" element={<RolesPage />} />
+
+          {/* PERMISSIONS */}
+          <Route path="/permissions" element={<PermissionsPage />} />
 
           {/* USERS */}
           <Route path="/users" element={<UsersPage />} />
@@ -142,6 +167,29 @@ function AppRoutes() {
             path="/reports/supplier-lead-time/:poId"
             element={<SupplierLeadTimeDetailsPage />}
           />
+          {/* AUDIT LOGS */}
+          <Route path="/audit-logs" element={<AuditLogsPage />} />
+        </Route>
+      </Route>
+
+      {/* SUPPLIER AUTH PROTECTED ROUTE */}
+      <Route element={<SupplierProtectedRoute />}>
+        <Route path="/supplier-portal" element={<SupplierPortalLayout />}>
+          <Route
+            path="purchase-orders"
+            element={<SupplierPurchaseOrdersPage />}
+          />
+          <Route
+            path="purchase-orders/:id"
+            element={<SupplierPurchaseOrderDetailsPage />}
+          />
+          <Route
+            path="purchase-orders/:id/create-invoice"
+            element={<SupplierCreateInvoicePage />}
+          />
+          <Route path="invoices" element={<SupplierInvoicesPage />} />
+          <Route path="invoices/:id" element={<SupplierInvoiceDetailsPage />} />
+          <Route path="payments" element={<SupplierPaymentsPage />} />
         </Route>
       </Route>
     </Routes>

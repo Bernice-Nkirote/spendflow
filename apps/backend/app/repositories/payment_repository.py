@@ -69,6 +69,30 @@ class PaymentRepository:
             .all()
         )
 
+    def get_by_supplier(
+        self,
+        supplier_id: UUID,
+        company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> list[Payment]:
+        return (
+            self.db.query(Payment)
+            .join(Payment.invoice)
+            .options(
+                joinedload(Payment.invoice),
+                joinedload(Payment.created_by_user),
+            )
+            .filter(
+                Payment.company_id == company_id,
+                Payment.invoice.has(supplier_id=supplier_id),
+            )
+            .order_by(Payment.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+
     def get_by_status(
         self,
         payment_status: PaymentStatusEnum,

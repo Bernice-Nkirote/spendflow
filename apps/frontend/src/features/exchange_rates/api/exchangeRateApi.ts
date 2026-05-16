@@ -1,0 +1,47 @@
+import axiosInstance from "../../../api/axiosInstance";
+import type {
+  ExchangeRate,
+  ExchangeRateCreatePayload,
+  ExchangeRateUpdatePayload,
+} from "../types/exchangeRate.types";
+
+export async function getExchangeRates(): Promise<ExchangeRate[]> {
+  const response = await axiosInstance.get<ExchangeRate[]>("/exchange-rates/");
+  return response.data;
+}
+
+export async function getExchangeRate(
+  exchangeRateId: string,
+): Promise<ExchangeRate> {
+  const response = await axiosInstance.get<ExchangeRate>(
+    `/exchange-rates/${exchangeRateId}`,
+  );
+  return response.data;
+}
+
+export async function createExchangeRate(
+  payload: ExchangeRateCreatePayload,
+): Promise<ExchangeRate> {
+  const response = await axiosInstance.post<ExchangeRate>(
+    "/exchange-rates/",
+    payload,
+  );
+  return response.data;
+}
+
+export async function updateExchangeRate(
+  exchangeRateId: string,
+  payload: ExchangeRateUpdatePayload,
+): Promise<ExchangeRate> {
+  const response = await axiosInstance.put<ExchangeRate>(
+    `/exchange-rates/${exchangeRateId}`,
+    payload,
+  );
+  return response.data;
+}
+
+export async function deleteExchangeRate(
+  exchangeRateId: string,
+): Promise<void> {
+  await axiosInstance.delete(`/exchange-rates/${exchangeRateId}`);
+}

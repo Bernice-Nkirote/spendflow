@@ -216,7 +216,28 @@ class PermissionService:
             role_permission_id,
             company_id,
         )
+        role_name = (
+            role_permission.role.name.strip().lower()
+            if role_permission.role and role_permission.role.name
+            else ""
+        )
 
+        if role_name == "admin":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Permissions cannot be removed from the Admin role because it protects system access.",
+            )
+
+        role_name = (
+            role_permission.role.name 
+            if role_permission.role 
+            else "Unknown Role"
+        )
+        permission_name = (
+            role_permission.permission.name
+            if role_permission.permission
+            else "Unknown Permission"
+        )
         self.role_permission_repo.delete(role_permission)
 
         # AUDIT LOG
@@ -228,8 +249,9 @@ class PermissionService:
             actor_user_id=actor_user_id,
             description="Permission removed from role",
             details_json={
-                "role_id": str(role_permission.role_id),
-                "permission_id": str(role_permission.permission_id),
+                "entity_reference": f"{role_name} - {permission_name}",
+                "role_name": role_name,
+                "permission_name": permission_name,
             },
         )
 
@@ -287,8 +309,9 @@ class PermissionService:
             actor_user_id=actor_user_id,
             description=f"Permission {permission.name} assigned to role {role.name}",
             details_json={
-                "role_id": str(role.id),
-                "permission_id": str(permission.id),
+                "entity_reference": f"{role.name} - {permission.name}",
+                "role_name": role.name,
+                "permission_name": permission.name,
             },
         )
 
@@ -299,8 +322,31 @@ class PermissionService:
         self,
         role_id: UUID,
         company_id: UUID,
-    ):
-        return self.role_permission_repo.get_by_role(role_id, company_id)
+    ) -> list[dict]:
+        role = self.role_repo.get_by_id(role_id, company_id)
+        if not role:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Role not found",
+            )
+
+        role_permissions = self.role_permission_repo.get_by_role(
+            role_id=role_id,
+            company_id=company_id,
+        )
+
+        return [
+            {
+                "id": role_permission.id,
+                "role_id": role.id,
+                "role_name": role.name,
+                "permission_id": role_permission.permission.id,
+                "permission_name": role_permission.permission.name,
+                "permission_description": role_permission.permission.description,
+                "permission_is_active": role_permission.permission.is_active,
+            }
+            for role_permission in role_permissions
+        ]
 
     # -------------------------
     # PERMISSION CHECK

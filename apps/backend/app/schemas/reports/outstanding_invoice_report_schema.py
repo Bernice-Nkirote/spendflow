@@ -50,6 +50,13 @@ class OutstandingInvoiceReportRow(BaseModel):
     total_amount: Decimal
     amount_paid: Decimal
     outstanding_amount: Decimal
+    currency: str | None = None
+
+    base_currency: str | None = None
+    base_total_amount: Decimal | None = None
+    base_amount_paid: Decimal | None = None
+    base_outstanding_amount: Decimal | None = None
+
     status: str
     created_at: datetime
 

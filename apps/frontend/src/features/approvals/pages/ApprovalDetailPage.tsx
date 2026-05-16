@@ -18,6 +18,28 @@ import ErrorState from "../../../components/ui/ErrorState";
 import LoadingState from "../../../components/ui/LoadingState";
 import FloatingAlert from "../../../components/ui/FloatingAlert";
 
+function formatDate(value: string | null | undefined) {
+  if (!value) return "-";
+
+  return new Intl.DateTimeFormat("en-KE", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function formatRate(value: string | number | null | undefined) {
+  if (!value) return "-";
+
+  const numericValue = Number(value);
+
+  if (Number.isNaN(numericValue)) return "-";
+
+  return numericValue.toLocaleString("en-KE", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 6,
+  });
+}
+
 function ApprovalDetailPage() {
   const { instanceId } = useParams();
 
@@ -228,7 +250,7 @@ function ApprovalDetailPage() {
 
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Amount
+                  Original Amount
                 </p>
                 <p className="mt-1 text-base font-semibold text-primary-black">
                   {instance.total_amount !== null &&
@@ -238,6 +260,50 @@ function ApprovalDetailPage() {
                         instance.currency || "KES",
                       )
                     : "Not available"}
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Transaction currency: {instance.currency ?? "-"}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Base Amount for Approval
+                </p>
+                <p className="mt-1 text-base font-semibold text-primary-black">
+                  {instance.base_amount !== null &&
+                  instance.base_amount !== undefined &&
+                  instance.base_currency
+                    ? formatCurrency(
+                        instance.base_amount,
+                        instance.base_currency,
+                      )
+                    : "Not available"}
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Used to evaluate approval thresholds
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Exchange Rate
+                </p>
+                <p className="mt-1 text-base font-semibold text-primary-black">
+                  {formatRate(instance.exchange_rate)}
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  {instance.currency ?? "-"}
+                  {instance.base_currency ? ` → ${instance.base_currency}` : ""}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Exchange Rate Date
+                </p>
+                <p className="mt-1 text-base font-semibold text-primary-black">
+                  {formatDate(instance.exchange_rate_date)}
                 </p>
               </div>
 

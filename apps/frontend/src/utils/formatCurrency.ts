@@ -24,13 +24,6 @@ export function normalizeCurrencyCode(
   return "KES";
 }
 
-const currencySymbolOverrides: Record<string, string> = {
-  USD: "$",
-  EUR: "€",
-  GBP: "£",
-  KES: "Ksh",
-};
-
 export function formatCurrency(
   amount: number,
   currency: string = "KES",
@@ -39,23 +32,8 @@ export function formatCurrency(
   const safeCurrency = normalizeCurrencyCode(currency);
   const safeAmount = Number.isNaN(amount) ? 0 : amount;
 
-  const symbolOverride = currencySymbolOverrides[safeCurrency];
-
-  if (symbolOverride) {
-    return `${symbolOverride}${safeAmount.toLocaleString(locale, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`;
-  }
-
-  try {
-    return new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency: safeCurrency,
-      currencyDisplay: "narrowSymbol",
-      maximumFractionDigits: 2,
-    }).format(safeAmount);
-  } catch {
-    return `${safeCurrency} ${safeAmount.toLocaleString(locale)}`;
-  }
+  return `${safeCurrency} ${safeAmount.toLocaleString(locale, {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 }

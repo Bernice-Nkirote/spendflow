@@ -7,16 +7,7 @@ import LoadingState from "../../../components/ui/LoadingState";
 
 import { getSupplierSpendDetail } from "../api/supplierSpendApi";
 import type { SupplierSpendDetail } from "../types/supplierSpendDetail.types";
-
-function formatCurrency(value: string | number | null | undefined) {
-  const numericValue = Number(value ?? 0);
-
-  return new Intl.NumberFormat("en-KE", {
-    style: "currency",
-    currency: "KES",
-    maximumFractionDigits: 2,
-  }).format(Number.isNaN(numericValue) ? 0 : numericValue);
-}
+import { formatCurrency } from "../../../utils/formatCurrency";
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "-";
@@ -35,6 +26,15 @@ function formatStatus(status: string | null | undefined) {
     .split("_")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
     .join(" ");
+}
+
+function formatMoneyValue(
+  value: string | number | null | undefined,
+  currency: string | null | undefined,
+) {
+  if (value === null || value === undefined || value === "") return "-";
+
+  return formatCurrency(Number(value), currency ?? "KES");
 }
 
 export default function SupplierSpendDetailsPage() {
@@ -104,25 +104,45 @@ export default function SupplierSpendDetailsPage() {
         </div>
       </div>
 
-      <section className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-4">
+      <section className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-sm text-primary-gray">Invoice Total</p>
+          <p className="text-sm text-primary-gray">Base Invoice Total</p>
           <p className="mt-2 text-2xl font-semibold text-primary-black">
-            {formatCurrency(supplierSpend.total_invoice_amount)}
+            {formatMoneyValue(
+              supplierSpend.base_total_invoice_amount,
+              supplierSpend.base_currency,
+            )}
+          </p>
+          <p className="mt-1 text-xs text-primary-gray">
+            Base currency: {supplierSpend.base_currency ?? "-"}
           </p>
         </div>
 
         <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-sm text-primary-gray">Paid Total</p>
+          <p className="text-sm text-primary-gray">Base Paid Total</p>
           <p className="mt-2 text-2xl font-semibold text-primary-black">
-            {formatCurrency(supplierSpend.total_paid_amount)}
+            {formatMoneyValue(
+              supplierSpend.base_total_paid_amount,
+              supplierSpend.base_currency,
+            )}
+          </p>
+          <p className="mt-1 text-xs text-primary-gray">
+            Paid value normalized for reporting
           </p>
         </div>
 
         <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4 shadow-sm">
-          <p className="text-sm font-medium text-yellow-700">Outstanding</p>
+          <p className="text-sm font-medium text-yellow-700">
+            Base Outstanding
+          </p>
           <p className="mt-2 text-2xl font-bold text-yellow-800">
-            {formatCurrency(supplierSpend.outstanding_amount)}
+            {formatMoneyValue(
+              supplierSpend.base_outstanding_amount,
+              supplierSpend.base_currency,
+            )}
+          </p>
+          <p className="mt-1 text-xs text-yellow-700">
+            Company base-currency balance
           </p>
         </div>
 
@@ -148,13 +168,12 @@ export default function SupplierSpendDetailsPage() {
               {supplierSpend.supplier_name}
             </p>
           </div>
-
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-primary-gray">
-              Supplier ID
+              Base Currency
             </p>
-            <p className="mt-1 break-all text-sm text-primary-black">
-              {supplierSpend.supplier_id}
+            <p className="mt-1 text-sm text-primary-black">
+              {supplierSpend.base_currency ?? "-"}
             </p>
           </div>
 
@@ -216,6 +235,9 @@ export default function SupplierSpendDetailsPage() {
                   <th className="px-4 py-3 text-right font-medium text-primary-gray">
                     Outstanding
                   </th>
+                  <th className="px-4 py-3 text-right font-medium text-primary-gray">
+                    Base Outstanding
+                  </th>
                   <th className="px-4 py-3 text-left font-medium text-primary-gray">
                     Status
                   </th>
@@ -238,13 +260,22 @@ export default function SupplierSpendDetailsPage() {
                       {invoice.po_number ?? "-"}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right text-primary-black">
-                      {formatCurrency(invoice.total_amount)}
+                      {formatMoneyValue(invoice.total_amount, invoice.currency)}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right text-primary-black">
-                      {formatCurrency(invoice.amount_paid)}
+                      {formatMoneyValue(invoice.amount_paid, invoice.currency)}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-primary-black">
-                      {formatCurrency(invoice.outstanding_amount)}
+                      {formatMoneyValue(
+                        invoice.outstanding_amount,
+                        invoice.currency,
+                      )}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-primary-black">
+                      {formatMoneyValue(
+                        invoice.base_outstanding_amount,
+                        invoice.base_currency,
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-primary-black">
                       {formatStatus(invoice.status)}
@@ -300,6 +331,9 @@ export default function SupplierSpendDetailsPage() {
                   <th className="px-4 py-3 text-right font-medium text-primary-gray">
                     Amount
                   </th>
+                  <th className="px-4 py-3 text-right font-medium text-primary-gray">
+                    Base Amount
+                  </th>
                   <th className="px-4 py-3 text-left font-medium text-primary-gray">
                     Method
                   </th>
@@ -328,7 +362,13 @@ export default function SupplierSpendDetailsPage() {
                       {payment.invoice_number}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-right text-primary-black">
-                      {formatCurrency(payment.amount)}
+                      {formatMoneyValue(payment.amount, payment.currency)}
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-right text-primary-black">
+                      {formatMoneyValue(
+                        payment.base_amount,
+                        payment.base_currency,
+                      )}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3 text-primary-black">
                       {payment.payment_method ?? "-"}

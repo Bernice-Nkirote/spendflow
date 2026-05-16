@@ -72,6 +72,17 @@ def get_all_users(
         limit=limit,
     )
 
+@router.post("/{user_id}/resend-setup-link", response_model=UserRead)
+def resend_user_setup_link(
+    user_id: UUID,
+    service: UserService = Depends(get_user_service),
+    current_user=Depends(get_current_admin_user),
+):
+    return service.resend_setup_link(
+        user_id=user_id,
+        company_id=current_user.company_id,
+        actor_user_id=current_user.id,
+    )
 
 @router.get("/{user_id}", response_model=UserRead)
 def get_user(

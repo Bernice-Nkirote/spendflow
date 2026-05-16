@@ -19,6 +19,10 @@ class PRReportBuilder:
                 line_total=row.line_total,
                 pr_total_amount=row.pr_total_amount,
                 currency=row.currency,
+                exchange_rate=row.exchange_rate,
+                base_currency=row.base_currency,
+                base_amount=row.base_amount,
+                exchange_rate_date=row.exchange_rate_date,
                 status=row.status,
                 created_at=row.created_at,
             )
@@ -37,6 +41,10 @@ class PRReportBuilder:
             "Line Total",
             "PR Total Amount",
             "Currency",
+            "Exchange Rate",
+            "Base Currency",
+            "Base Amount",
+            "Exchange Rate Date",
             "Status",
             "Created At",
         ]
@@ -54,6 +62,10 @@ class PRReportBuilder:
                 row.line_total,
                 row.pr_total_amount,
                 row.currency,
+                row.exchange_rate,
+                row.base_currency,
+                row.base_amount,
+                row.exchange_rate_date,
                 enum_value(row.status),
                 row.created_at,
             ]

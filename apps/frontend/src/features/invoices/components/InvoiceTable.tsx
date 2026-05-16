@@ -35,7 +35,8 @@ export default function InvoiceTable({ invoices }: InvoiceTableProps) {
             <th className="border-b px-4 py-3">Supplier</th>
             <th className="border-b px-4 py-3">PO Number</th>
             <th className="border-b px-4 py-3">Submitted By</th>
-            <th className="border-b px-4 py-3 text-right">Total Amount</th>
+            <th className="border-b px-4 py-3 text-right">Original Amount</th>
+            <th className="border-b px-4 py-3 text-right">Base Amount</th>{" "}
             <th className="border-b px-4 py-3">Status</th>
             <th className="border-b px-4 py-3">Created</th>
             <th className="border-b px-4 py-3 text-right">Actions</th>
@@ -62,7 +63,35 @@ export default function InvoiceTable({ invoices }: InvoiceTableProps) {
               </td>
 
               <td className="border-b px-4 py-3 text-right tabular-nums text-primary-black">
-                {formatCurrency(Number(invoice.total_amount ?? 0), undefined)}
+                <div className="font-medium">
+                  {formatCurrency(
+                    Number(invoice.total_amount ?? 0),
+                    invoice.currency ?? undefined,
+                  )}
+                </div>
+
+                <div className="text-xs text-primary-gray">
+                  {invoice.currency ?? "-"}
+                </div>
+              </td>
+
+              <td className="border-b px-4 py-3 text-right tabular-nums text-primary-black">
+                {invoice.base_amount && invoice.base_currency ? (
+                  <>
+                    <div className="font-medium">
+                      {formatCurrency(
+                        Number(invoice.base_amount),
+                        invoice.base_currency,
+                      )}
+                    </div>
+
+                    <div className="text-xs text-primary-gray">
+                      Approval value
+                    </div>
+                  </>
+                ) : (
+                  <span className="text-primary-gray">-</span>
+                )}
               </td>
 
               <td className="border-b px-4 py-3">

@@ -16,6 +16,14 @@ class AuditLogRead(BaseModel):
     actor_user_id: UUID | None = None
     actor_supplier_user_id: UUID | None = None
 
+    actor_name: str | None = None
+    actor_email: str | None = None
+    actor_type: str | None = None
+
+    entity_reference: str | None = None
+    entity_label: str | None = None
+    action_label: str | None = None
+
     description: str | None = None
 
     details_json: dict[str, Any] | None = None

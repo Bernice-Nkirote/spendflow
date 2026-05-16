@@ -14,6 +14,7 @@ import {
   deactivateUser,
   deleteUser,
   getUsers,
+  resendUserSetupLink,
   updateUser,
 } from "../api/userApi";
 import type { User } from "../types/user.types";
@@ -46,6 +47,10 @@ function UsersPage() {
     () => roles.filter((role) => role.is_active),
     [roles],
   );
+
+  function isAdminUser(user: User | null) {
+    return user?.role_name?.trim().toLowerCase() === "admin";
+  }
 
   async function loadPageData() {
     try {
@@ -99,6 +104,12 @@ function UsersPage() {
     setPhoneNumber((user.phone_number ?? undefined) as Value);
     setDepartmentId(user.department_id ?? "");
     setRoleId(user.role_id);
+
+    if (isAdminUser(user)) {
+      setSuccessMessage(
+        "Admin access is protected. Email and role cannot be changed.",
+      );
+    }
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -191,6 +202,29 @@ function UsersPage() {
     }
   }
 
+  async function handleResendSetupLink(user: User) {
+    const confirmed = window.confirm(
+      `Resend setup link to "${user.email}"? The new link will be valid for 24 hours.`,
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setActionUserId(user.id);
+      setError("");
+      setSuccessMessage("");
+
+      await resendUserSetupLink(user.id);
+
+      setSuccessMessage(`Setup link resent to ${user.email}.`);
+      await loadPageData();
+    } catch (err: any) {
+      setError(err?.response?.data?.detail ?? "Failed to resend setup link.");
+    } finally {
+      setActionUserId(null);
+    }
+  }
+
   async function handleDelete(user: User) {
     const confirmed = window.confirm(
       `Delete user "${user.name}"? This will only work if the user has no linked procurement, approval, invoice, or payment records.`,
@@ -277,7 +311,8 @@ function UsersPage() {
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="user@company.com"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-blue"
+                disabled={isAdminUser(editingUser)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-blue disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
               />
             </div>
 
@@ -314,7 +349,8 @@ function UsersPage() {
               <select
                 value={roleId}
                 onChange={(event) => setRoleId(event.target.value)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-blue"
+                disabled={isAdminUser(editingUser)}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-blue disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-500"
               >
                 <option value="">Select role</option>
                 {activeRoles.map((role) => (
@@ -323,6 +359,11 @@ function UsersPage() {
                   </option>
                 ))}
               </select>
+              {isAdminUser(editingUser) && (
+                <p className="mt-1 text-xs text-yellow-700">
+                  Admin role is protected and cannot be changed.
+                </p>
+              )}
             </div>
           </div>
 
@@ -335,6 +376,7 @@ function UsersPage() {
               <Button
                 type="button"
                 variant="secondary"
+                className="whitespace-nowrap px-3 py-1.5 text-xs"
                 onClick={resetForm}
                 disabled={isSaving}
               >
@@ -368,17 +410,17 @@ function UsersPage() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
+            <table className="min-w-[980px] table-fixed text-left text-sm">
+              {" "}
               <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
                 <tr>
-                  <th className="px-4 py-3">User</th>
-                  <th className="px-4 py-3">Role</th>
-                  <th className="px-4 py-3">Department</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
+                  <th className="w-[24%] px-4 py-3">User</th>
+                  <th className="w-[15%] px-4 py-3">Role</th>
+                  <th className="w-[15%] px-4 py-3">Department</th>
+                  <th className="w-[12%] px-4 py-3">Status</th>
+                  <th className="w-[34%] px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-
               <tbody className="divide-y">
                 {users.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50">
@@ -398,50 +440,79 @@ function UsersPage() {
                     </td>
 
                     <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium ${
-                          user.is_active
-                            ? "bg-green-50 text-green-700"
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`inline-flex whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium ${
+                            user.is_active
+                              ? "bg-green-50 text-green-700"
+                              : user.has_completed_onboarding
+                                ? "bg-gray-100 text-gray-600"
+                                : "bg-yellow-50 text-yellow-700"
+                          }`}
+                        >
+                          {user.is_active
+                            ? "Active"
                             : user.has_completed_onboarding
-                              ? "bg-gray-100 text-gray-600"
-                              : "bg-yellow-50 text-yellow-700"
-                        }`}
-                      >
-                        {user.is_active
-                          ? "Active"
-                          : user.has_completed_onboarding
-                            ? "Inactive"
-                            : "Pending setup"}
-                      </span>
+                              ? "Inactive"
+                              : "Pending setup"}
+                        </span>
+
+                        {isAdminUser(user) && (
+                          <span className="inline-flex whitespace-nowrap rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+                            Protected Admin
+                          </span>
+                        )}
+                      </div>
                     </td>
 
                     <td className="px-4 py-3">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+                        {" "}
                         <Button
                           type="button"
                           variant="secondary"
+                          className="whitespace-nowrap px-3 py-1.5 text-xs"
                           onClick={() => startEdit(user)}
                         >
                           Edit
                         </Button>
+                        {!user.has_completed_onboarding &&
+                          !isAdminUser(user) && (
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              className="whitespace-nowrap px-3 py-1.5 text-xs"
+                              onClick={() => handleResendSetupLink(user)}
+                              disabled={actionUserId === user.id}
+                            >
+                              {actionUserId === user.id
+                                ? "Sending..."
+                                : "Resend Link"}
+                            </Button>
+                          )}
+                        {!isAdminUser(user) && (
+                          <>
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              onClick={() => handleToggleStatus(user)}
+                              disabled={actionUserId === user.id}
+                              className="whitespace-nowrap px-3 py-1.5 text-xs"
+                            >
+                              {user.is_active ? "Deactivate" : "Activate"}
+                            </Button>
 
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          onClick={() => handleToggleStatus(user)}
-                          disabled={actionUserId === user.id}
-                        >
-                          {user.is_active ? "Deactivate" : "Activate"}
-                        </Button>
-
-                        <Button
-                          type="button"
-                          variant="danger"
-                          onClick={() => handleDelete(user)}
-                          disabled={actionUserId === user.id}
-                        >
-                          Delete
-                        </Button>
+                            <Button
+                              type="button"
+                              variant="danger"
+                              onClick={() => handleDelete(user)}
+                              disabled={actionUserId === user.id}
+                              className="whitespace-nowrap px-3 py-1.5 text-xs"
+                            >
+                              Delete
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>

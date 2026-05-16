@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { type ChangeEvent, useState } from "react";
 import { Link } from "react-router-dom";
 
 import Button from "../../../components/ui/Button";
 import {
   downloadPurchaseOrderPdf,
+  sendPurchaseOrderToSupplier,
   submitPurchaseOrder,
+  uploadSignedPurchaseOrderPdf,
 } from "../api/purchaseOrderApi";
 import type { PurchaseOrderDetails } from "../types/purchaseOrder.types";
 
@@ -21,6 +23,8 @@ export default function PurchaseOrderActions({
 }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [sending, setSending] = useState(false);
 
   async function handleSubmitForApproval() {
     try {
@@ -56,6 +60,59 @@ export default function PurchaseOrderActions({
       onError("Failed to download purchase order PDF.");
     } finally {
       setDownloading(false);
+    }
+  }
+
+  async function handleUploadSignedPdf(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    if (file.type !== "application/pdf") {
+      onError("Please upload a PDF file.");
+      return;
+    }
+
+    try {
+      setUploading(true);
+      onError("");
+
+      const updatedPurchaseOrder = await uploadSignedPurchaseOrderPdf(
+        purchaseOrder.id,
+        file,
+      );
+
+      onUpdated(updatedPurchaseOrder);
+    } catch {
+      onError("Failed to upload signed purchase order PDF.");
+    } finally {
+      setUploading(false);
+      event.target.value = "";
+    }
+  }
+
+  async function handleSendToSupplier() {
+    const confirmed = window.confirm(
+      "Please confirm the supplier email is correct before dispatching this signed purchase order.",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setSending(true);
+      onError("");
+
+      const updatedPurchaseOrder = await sendPurchaseOrderToSupplier(
+        purchaseOrder.id,
+      );
+
+      onUpdated(updatedPurchaseOrder);
+    } catch {
+      onError("Failed to send signed purchase order to supplier.");
+    } finally {
+      setSending(false);
     }
   }
 
@@ -95,6 +152,29 @@ export default function PurchaseOrderActions({
         >
           {downloading ? "Downloading..." : "Download PDF"}
         </Button>
+      )}
+
+      {purchaseOrder.status === "APPROVED" && (
+        <>
+          <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-primary-black transition hover:bg-gray-50">
+            {uploading ? "Uploading..." : "Upload Signed PDF"}
+            <input
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              onChange={handleUploadSignedPdf}
+              disabled={uploading}
+            />
+          </label>
+
+          <Button
+            type="button"
+            onClick={handleSendToSupplier}
+            disabled={sending || !purchaseOrder.signed_pdf_file_path}
+          >
+            {sending ? "Sending..." : "Send to Supplier"}
+          </Button>
+        </>
       )}
     </div>
   );

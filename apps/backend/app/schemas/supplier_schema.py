@@ -35,3 +35,15 @@ class SupplierRead(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+# SUPPLIER IMPORT 
+class SupplierImportError(BaseModel):
+    row: int
+    message: str
+
+
+class SupplierImportResult(BaseModel):
+    created_count: int
+    failed_count: int
+    errors: list[SupplierImportError]
+    created_suppliers: list[SupplierRead]

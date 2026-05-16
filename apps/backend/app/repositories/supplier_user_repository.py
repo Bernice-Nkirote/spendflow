@@ -2,7 +2,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.models.suplier_user import SupplierUser
+from app.models.supplier_user import SupplierUser
 
 
 class SupplierUserRepository:
@@ -65,6 +65,16 @@ class SupplierUserRepository:
         return (
             self.db.query(SupplierUser)
             .filter(SupplierUser.email == email)
+            .first()
+        )
+
+    def get_by_setup_token(
+        self,
+        token: str,
+    ) -> SupplierUser | None:
+        return (
+            self.db.query(SupplierUser)
+            .filter(SupplierUser.password_setup_token == token)
             .first()
         )
 

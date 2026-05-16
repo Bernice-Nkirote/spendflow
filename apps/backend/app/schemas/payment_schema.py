@@ -50,6 +50,13 @@ class PaymentRead(BaseModel):
     invoice_id: UUID
     created_by: Optional[UUID]
     amount: Decimal
+    currency: str
+
+    exchange_rate: Optional[Decimal] = None
+    base_currency: Optional[str] = None
+    base_amount: Optional[Decimal] = None
+    exchange_rate_date: Optional[datetime] = None
+
     payment_method: PaymentMethodEnum
     status: PaymentStatusEnum
     reference: Optional[str]
@@ -62,3 +69,4 @@ class PaymentDetailRead(PaymentRead):
     invoice_number: Optional[str] = None
     supplier_name: Optional[str] = None
     created_by_name: Optional[str] = None
+    currency: Optional[str] = None

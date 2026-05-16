@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 from app.core.auth_dependancy import get_current_user
 from app.core.database import get_db
 from app.models.enums import PRStatusEnum
+from app.repositories.company_repository import CompanyRepository
+from app.repositories.exchange_rate_repository import ExchangeRateRepository
 from app.repositories.approval_instance_repository import ApprovalInstanceRepository
 from app.repositories.approval_workflow_repository import ApprovalWorkflowRepository
 from app.repositories.pr_item_repository import PurchaseRequisitionItemRepository
@@ -30,6 +32,7 @@ from app.schemas.pr_schema import (
     PurchaseRequisitionDetailRead,
     PurchaseRequisitionUpdate,
 )
+from app.services.exchange_rate_service import ExchangeRateService
 from app.services.approval_instance_service import ApprovalInstanceService
 from app.services.pr_service import PurchaseRequisitionService
 from app.services.permission_service import PermissionService
@@ -48,6 +51,13 @@ def get_purchase_requisition_service(
     requisition_repo = PurchaseRequisitionRepository(db)
     item_repo = PurchaseRequisitionItemRepository(db)
     workflow_repo = ApprovalWorkflowRepository(db)
+    company_repo = CompanyRepository(db)
+    exchange_rate_repo = ExchangeRateRepository(db)
+
+    exchange_rate_service = ExchangeRateService(
+        repo=exchange_rate_repo,
+        company_repo=company_repo,
+    )
 
     approval_instance_repo = ApprovalInstanceRepository(db)
     workflow_level_repo = WorkflowLevelRepository(db)
@@ -79,6 +89,7 @@ def get_purchase_requisition_service(
         approval_instance_service=approval_instance_service,
         permission_service=permission_service,
         audit_log_service=audit_log_service,
+        exchange_rate_service=exchange_rate_service,
     )
 
 

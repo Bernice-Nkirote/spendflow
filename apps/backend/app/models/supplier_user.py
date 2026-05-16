@@ -21,7 +21,16 @@ class SupplierUser(Base):
     )
 
     email = Column(String, nullable=False, index=True)
-    hashed_password = Column(String, nullable=False)
+    hashed_password = Column(String, nullable=True)
+
+    password_setup_token = Column(String, nullable=True, index=True)
+
+    password_setup_expires_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+    has_completed_onboarding = Column(Boolean, nullable=False, default=False)
 
     is_active = Column(Boolean, nullable=False, default=True)
 

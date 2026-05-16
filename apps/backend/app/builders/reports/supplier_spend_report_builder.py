@@ -7,9 +7,16 @@ class SupplierSpendReportBuilder:
             SupplierSpendReportRow(
                 supplier_id=row.supplier_id,
                 supplier_name=row.supplier_name,
+
                 total_invoice_amount=row.total_invoice_amount,
                 total_paid_amount=row.total_paid_amount,
                 outstanding_amount=row.outstanding_amount,
+
+                base_currency=row.base_currency,
+                base_total_invoice_amount=row.base_total_invoice_amount,
+                base_total_paid_amount=row.base_total_paid_amount,
+                base_outstanding_amount=row.base_outstanding_amount,
+
                 invoice_count=row.invoice_count,
                 payment_count=row.payment_count,
             )
@@ -19,9 +26,16 @@ class SupplierSpendReportBuilder:
     def headers(self) -> list[str]:
         return [
             "Supplier",
+
             "Total Invoice Amount",
             "Total Paid Amount",
             "Outstanding Amount",
+
+            "Base Currency",
+            "Base Total Invoice Amount",
+            "Base Total Paid Amount",
+            "Base Outstanding Amount",
+
             "Invoice Count",
             "Payment Count",
         ]
@@ -33,9 +47,16 @@ class SupplierSpendReportBuilder:
         return [
             [
                 row.supplier_name or "N/A",
+
                 row.total_invoice_amount,
                 row.total_paid_amount,
                 row.outstanding_amount,
+
+                row.base_currency or "N/A",
+                row.base_total_invoice_amount,
+                row.base_total_paid_amount,
+                row.base_outstanding_amount,
+
                 row.invoice_count,
                 row.payment_count,
             ]

@@ -1,4 +1,5 @@
 import type { ReportSummaryCardConfig } from "../types/report.types";
+import { formatCurrency } from "../../../utils/formatCurrency";
 
 type Props<T> = {
   data: T[];
@@ -13,13 +14,13 @@ function toNumber(value: unknown): number {
   return Number.isNaN(numberValue) ? 0 : numberValue;
 }
 
-function formatValue(value: number, format?: "number" | "currency" | "days") {
+function formatValue(
+  value: number,
+  format?: "number" | "currency" | "days",
+  currency = "KES",
+) {
   if (format === "currency") {
-    return new Intl.NumberFormat("en-KE", {
-      style: "currency",
-      currency: "KES",
-      maximumFractionDigits: 2,
-    }).format(value);
+    return formatCurrency(value, currency);
   }
 
   if (format === "days") {
@@ -28,7 +29,6 @@ function formatValue(value: number, format?: "number" | "currency" | "days") {
 
   return new Intl.NumberFormat("en-KE").format(value);
 }
-
 export default function ReportSummaryCards<T>({
   data,
   totalCount,
@@ -59,10 +59,25 @@ export default function ReportSummaryCards<T>({
     return values.reduce((sum, value) => sum + value, 0);
   }
 
+  function getSummaryCurrency(): string {
+    const firstRow = data[0] as Record<string, unknown> | undefined;
+
+    if (firstRow?.base_currency && typeof firstRow.base_currency === "string") {
+      return firstRow.base_currency;
+    }
+
+    if (firstRow?.currency && typeof firstRow.currency === "string") {
+      return firstRow.currency;
+    }
+
+    return "KES";
+  }
+
   return (
     <section className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
       {cards.map((card) => {
         const value = calculateCardValue(card);
+        const summaryCurrency = getSummaryCurrency();
 
         return (
           <div
@@ -73,8 +88,13 @@ export default function ReportSummaryCards<T>({
               {card.label}
             </p>
             <p className="mt-2 truncate text-2xl font-semibold text-primary-black">
-              {formatValue(value, card.format)}
+              {formatValue(value, card.format, summaryCurrency)}
             </p>
+            {card.format === "currency" && (
+              <p className="mt-1 text-xs text-primary-gray">
+                Currency: {summaryCurrency}
+              </p>
+            )}
           </div>
         );
       })}

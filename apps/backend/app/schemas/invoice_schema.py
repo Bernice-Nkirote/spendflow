@@ -81,8 +81,15 @@ class InvoiceRead(BaseModel):
 
     invoice_number: str
     total_amount: Decimal
-    status: InvoiceStatusEnum
 
+    currency: str
+
+    exchange_rate: Optional[Decimal] = None
+    base_currency: Optional[str] = None
+    base_amount: Optional[Decimal] = None
+    exchange_rate_date: Optional[datetime] = None
+
+    status: InvoiceStatusEnum
     created_at: datetime
     updated_at: datetime
 

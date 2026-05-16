@@ -83,10 +83,51 @@ export async function cancelPurchaseOrder(
   return response.data;
 }
 
+// PDF DOWNLOAD AND PLOAD
 export async function downloadPurchaseOrderPdf(id: string): Promise<Blob> {
   const response = await axiosInstance.get(`/purchase-orders/${id}/pdf`, {
     responseType: "blob",
   });
+
+  return response.data;
+}
+
+export async function uploadSignedPurchaseOrderPdf(
+  id: string,
+  file: File,
+): Promise<PurchaseOrderDetails> {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await axiosInstance.post<PurchaseOrderDetails>(
+    `/purchase-orders/${id}/signed-pdf`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+
+  return response.data;
+}
+
+export async function sendPurchaseOrderToSupplier(
+  id: string,
+): Promise<PurchaseOrderDetails> {
+  const response = await axiosInstance.patch<PurchaseOrderDetails>(
+    `/purchase-orders/${id}/send`,
+  );
+
+  return response.data;
+}
+
+export async function resendPurchaseOrderToSupplier(
+  id: string,
+): Promise<PurchaseOrderDetails> {
+  const response = await axiosInstance.patch<PurchaseOrderDetails>(
+    `/purchase-orders/${id}/resend`,
+  );
 
   return response.data;
 }

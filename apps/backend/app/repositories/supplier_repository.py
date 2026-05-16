@@ -28,6 +28,13 @@ class SupplierRepository:
             .first()
         )
 
+    def get_by_id_for_portal(self, supplier_id: UUID) -> Optional[Supplier]:
+        return (
+            self.db.query(Supplier)
+            .filter(Supplier.id == supplier_id)
+            .first()
+        )
+
     def get_all(self, company_id: UUID, skip: int = 0, limit: int = 20) -> list[Supplier]:
         return (
             self.db.query(Supplier)

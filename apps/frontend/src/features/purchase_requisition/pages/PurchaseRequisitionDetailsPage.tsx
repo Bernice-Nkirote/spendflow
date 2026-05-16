@@ -26,6 +26,19 @@ function formatDate(value: string | null | undefined) {
   }).format(new Date(value));
 }
 
+function formatRate(value: string | number | null | undefined) {
+  if (!value) return "-";
+
+  const numericValue = Number(value);
+
+  if (Number.isNaN(numericValue)) return "-";
+
+  return numericValue.toLocaleString("en-KE", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 6,
+  });
+}
+
 function formatQuantity(value: string | number | null | undefined) {
   const numericValue = Number(value ?? 0);
 
@@ -143,14 +156,47 @@ export default function PurchaseRequisitionDetailsPage() {
         </div>
       </div>
       {actionError && <ErrorState message={actionError} />}
-      <section className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-3">
+      <section className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-sm text-primary-gray">Total Amount</p>
+          <p className="text-sm text-primary-gray">Original Amount</p>
           <p className="mt-2 text-2xl font-semibold text-primary-black">
             {formatCurrency(
               Number(purchaseRequisition.total_amount ?? 0),
               normalizeCurrencyCode(purchaseRequisition.currency),
             )}
+          </p>
+          <p className="mt-1 text-xs text-primary-gray">
+            Transaction currency:{" "}
+            {normalizeCurrencyCode(purchaseRequisition.currency)}
+          </p>
+        </div>
+
+        <div className="rounded-xl border bg-white p-4 shadow-sm">
+          <p className="text-sm text-primary-gray">Base Amount</p>
+          <p className="mt-2 text-2xl font-semibold text-primary-black">
+            {purchaseRequisition.base_amount &&
+            purchaseRequisition.base_currency
+              ? formatCurrency(
+                  Number(purchaseRequisition.base_amount),
+                  normalizeCurrencyCode(purchaseRequisition.base_currency),
+                )
+              : "-"}
+          </p>
+          <p className="mt-1 text-xs text-primary-gray">
+            Used for approval thresholds
+          </p>
+        </div>
+
+        <div className="rounded-xl border bg-white p-4 shadow-sm">
+          <p className="text-sm text-primary-gray">Exchange Rate</p>
+          <p className="mt-2 text-2xl font-semibold text-primary-black">
+            {formatRate(purchaseRequisition.exchange_rate)}
+          </p>
+          <p className="mt-1 text-xs text-primary-gray">
+            {purchaseRequisition.currency}
+            {purchaseRequisition.base_currency
+              ? ` → ${purchaseRequisition.base_currency}`
+              : ""}
           </p>
         </div>
 
@@ -159,12 +205,8 @@ export default function PurchaseRequisitionDetailsPage() {
           <p className="mt-2 text-2xl font-semibold text-primary-black">
             {purchaseRequisition.items.length}
           </p>
-        </div>
-
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-sm text-primary-gray">Currency</p>
-          <p className="mt-2 text-2xl font-semibold text-primary-black">
-            {normalizeCurrencyCode(purchaseRequisition.currency)}
+          <p className="mt-1 text-xs text-primary-gray">
+            Rate date: {formatDate(purchaseRequisition.exchange_rate_date)}
           </p>
         </div>
       </section>

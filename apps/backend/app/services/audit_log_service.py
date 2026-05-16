@@ -48,6 +48,111 @@ class AuditLogService:
 
         return created_log
 
+    def _humanize_label(self, value: str | None) -> str | None:
+        if not value:
+            return None
+
+        return value.replace("_", " ").replace(".", " ").title()
+
+
+    def _get_object_email(self, obj) -> str | None:
+        return getattr(obj, "email", None)
+
+
+    def _get_object_name(self, obj) -> str | None:
+        if not obj:
+            return None
+
+        full_name = getattr(obj, "full_name", None)
+        if full_name:
+            return full_name
+
+        name = getattr(obj, "name", None)
+        if name:
+            return name
+
+        first_name = getattr(obj, "first_name", None)
+        last_name = getattr(obj, "last_name", None)
+
+        combined_name = " ".join(
+            part for part in [first_name, last_name] if part
+        ).strip()
+
+        if combined_name:
+            return combined_name
+
+        return getattr(obj, "email", None)
+
+
+    def _get_entity_reference(self, log: AuditLog) -> str | None:
+        details = log.details_json or {}
+
+        reference_keys = [
+            "entity_reference",
+            "reference",
+            "pr_number",
+            "po_number",
+            "invoice_number",
+            "payment_reference",
+            "supplier_name",
+            "role_name",
+            "permission_name",
+            "department_name",
+            "user_email",
+        ]
+
+        for key in reference_keys:
+            value = details.get(key)
+            if value:
+                return str(value)
+
+        return None
+
+
+    def _serialize_log(self, log: AuditLog) -> dict:
+        actor_name = None
+        actor_email = None
+        actor_type = None
+
+        if log.actor_user_id:
+            actor = self.repo.get_actor_user(
+                actor_user_id=log.actor_user_id,
+                company_id=log.company_id,
+            )
+            actor_name = self._get_object_name(actor)
+            actor_email = self._get_object_email(actor)
+            actor_type = "Internal User"
+
+        elif log.actor_supplier_user_id:
+            actor = self.repo.get_actor_supplier_user(
+                actor_supplier_user_id=log.actor_supplier_user_id,
+                company_id=log.company_id,
+            )
+            actor_name = self._get_object_name(actor)
+            actor_email = self._get_object_email(actor)
+            actor_type = "Supplier User"
+
+        return {
+            "id": log.id,
+            "company_id": log.company_id,
+            "entity_type": log.entity_type,
+            "entity_id": log.entity_id,
+            "action": log.action,
+            "actor_user_id": log.actor_user_id,
+            "actor_supplier_user_id": log.actor_supplier_user_id,
+            "actor_name": actor_name,
+            "actor_email": actor_email,
+            "actor_type": actor_type,
+            "entity_reference": self._get_entity_reference(log),
+            "entity_label": self._humanize_label(log.entity_type),
+            "action_label": self._humanize_label(log.action),
+            "description": log.description,
+            "details_json": log.details_json,
+            "old_values_json": log.old_values_json,
+            "new_values_json": log.new_values_json,
+            "created_at": log.created_at,
+        }
+
     def get_audit_log(
         self,
         log_id: UUID,
@@ -61,19 +166,39 @@ class AuditLogService:
                 detail="Audit log not found",
             )
 
-        return log
+        return self._serialize_log(log)
 
     def get_audit_logs(
         self,
         company_id: UUID,
         skip: int = 0,
         limit: int = 100,
-    ) -> list[AuditLog]:
-        return self.repo.get_all(
+    ) -> list[dict]:
+        logs = self.repo.get_all(
             company_id=company_id,
             skip=skip,
             limit=limit,
         )
+
+        return [self._serialize_log(log) for log in logs]
+
+    def get_entity_logs(
+        self,
+        company_id: UUID,
+        entity_type: str,
+        entity_id: UUID,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[dict]:
+        logs = self.repo.get_by_entity(
+            company_id=company_id,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            skip=skip,
+            limit=limit,
+        )
+
+        return [self._serialize_log(log) for log in logs]
 
     def get_entity_logs(
         self,
@@ -97,13 +222,15 @@ class AuditLogService:
         actor_user_id: UUID,
         skip: int = 0,
         limit: int = 100,
-    ) -> list[AuditLog]:
-        return self.repo.get_by_actor_user(
+    ) -> list[dict]:
+        logs = self.repo.get_by_actor_user(
             company_id=company_id,
             actor_user_id=actor_user_id,
             skip=skip,
             limit=limit,
         )
+
+        return [self._serialize_log(log) for log in logs]
 
     def get_actor_supplier_user_logs(
         self,
@@ -111,14 +238,16 @@ class AuditLogService:
         actor_supplier_user_id: UUID,
         skip: int = 0,
         limit: int = 100,
-    ) -> list[AuditLog]:
-        return self.repo.get_by_actor_supplier_user(
+    ) -> list[dict]:
+        logs = self.repo.get_by_actor_supplier_user(
             company_id=company_id,
             actor_supplier_user_id=actor_supplier_user_id,
             skip=skip,
             limit=limit,
         )
-    
+
+        return [self._serialize_log(log) for log in logs]
+        
     def search_audit_logs(
         self,
         company_id: UUID,
@@ -156,7 +285,7 @@ class AuditLogService:
         if action:
             action = action.strip().upper() or None
 
-        return self.repo.search(
+        logs = self.repo.search(
             company_id=company_id,
             entity_type=entity_type,
             entity_id=entity_id,
@@ -168,3 +297,5 @@ class AuditLogService:
             skip=skip,
             limit=limit,
         )
+
+        return [self._serialize_log(log) for log in logs]

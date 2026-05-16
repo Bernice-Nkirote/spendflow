@@ -17,6 +17,7 @@ from app.schemas.pr_schema import PurchaseRequisitionCreate, PurchaseRequisition
 from app.services.approval_instance_service import ApprovalInstanceService
 from app.services.permission_service import PermissionService
 from app.services.audit_log_service import AuditLogService
+from app.services.exchange_rate_service import ExchangeRateService
 
 class PurchaseRequisitionService:
     def __init__(
@@ -27,6 +28,7 @@ class PurchaseRequisitionService:
         approval_instance_service: ApprovalInstanceService,
         permission_service: PermissionService,
         audit_log_service: AuditLogService,
+        exchange_rate_service: ExchangeRateService,
     ):
         self.requisition_repo = requisition_repo
         self.item_repo = item_repo
@@ -34,6 +36,7 @@ class PurchaseRequisitionService:
         self.approval_instance_service = approval_instance_service
         self.permission_service = permission_service
         self.audit_log_service = audit_log_service
+        self.exchange_rate_service = exchange_rate_service
 
     def _normalize_currency(self, currency: str | None) -> str:
         if not currency:
@@ -665,6 +668,20 @@ class PurchaseRequisitionService:
                 status_code=status.HTTP_409_CONFLICT,
                 detail="A pending approval instance already exists for this requisition.",
             )
+
+        base_amount, exchange_rate, base_currency, exchange_rate_date = (
+            self.exchange_rate_service.convert_transaction_to_company_base_currency(
+                company_id=company_id,
+                amount=requisition.total_amount,
+                transaction_currency=requisition.currency,
+                as_of_date=requisition.created_at.date(),
+            )
+        )
+
+        requisition.exchange_rate = exchange_rate
+        requisition.base_currency = base_currency
+        requisition.base_amount = base_amount
+        requisition.exchange_rate_date = exchange_rate_date
 
         approval_instance = ApprovalInstance(
             company_id=company_id,

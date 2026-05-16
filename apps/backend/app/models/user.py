@@ -77,11 +77,18 @@ class User(Base):
     foreign_keys="PurchaseOrder.created_by",
     back_populates="creator",
 )
+    
     sent_po_email_logs = relationship(
     "POEmailLog",
     foreign_keys="POEmailLog.sent_by",
     back_populates="sender",
 )
+
+    uploaded_signed_purchase_order_pdfs = relationship(
+    "PurchaseOrder",
+    foreign_keys="PurchaseOrder.signed_pdf_uploaded_by",
+    back_populates="signed_pdf_uploader"
+) 
     invoices_submitted = relationship(
         "Invoice",
         foreign_keys="Invoice.submitted_by_user_id",

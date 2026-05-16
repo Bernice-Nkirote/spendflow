@@ -1,5 +1,6 @@
 # This module handles send and resend of emails
 from datetime import datetime, timezone
+from pathlib import Path
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -65,6 +66,30 @@ class PODispatchService:
             )
         return items
 
+
+    def _get_signed_pdf_attachment(
+        self,
+        po,
+    ) -> tuple[bytes, str]:
+        if not po.signed_pdf_file_path:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Upload a signed PO PDF before dispatching to supplier.",
+            )
+
+        file_path = Path(po.signed_pdf_file_path)
+
+        if not file_path.exists() or not file_path.is_file():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Signed PO PDF file was not found. Please upload it again before dispatch.",
+            )
+
+        return (
+            file_path.read_bytes(),
+            po.signed_pdf_original_filename or f"{po.po_number}-signed.pdf",
+        )
+
     def _create_email_log(
         self,
         company_id: UUID,
@@ -95,6 +120,7 @@ class PODispatchService:
         po_id: UUID,
         company_id: UUID,
         issued_by: UUID,
+        role_id: UUID,
     ):
         po = self.po_service.get_po(po_id, company_id)
 
@@ -106,13 +132,10 @@ class PODispatchService:
 
         supplier = self.supplier_repo.get_by_id(po.supplier_id, company_id)
         supplier_email = self._validate_supplier_email(supplier)
-        items = self._get_po_items(po.id, company_id)
+        
+        self._get_po_items(po.id, company_id)
 
-        pdf_bytes = self.pdf_service.generate_po_pdf(
-            po=po,
-            supplier=supplier,
-            items=items,
-        )
+        pdf_bytes, attachment_filename = self._get_signed_pdf_attachment(po)
 
         subject = f"Purchase Order {po.po_number}"
 
@@ -122,7 +145,7 @@ class PODispatchService:
                 supplier_name=supplier.name,
                 po_number=po.po_number,
                 attachment_bytes=pdf_bytes,
-                attachment_filename=f"{po.po_number}.pdf",
+                attachment_filename=attachment_filename,
             )
 
             sent_at = datetime.now(timezone.utc)
@@ -142,6 +165,7 @@ class PODispatchService:
                 po_id=po.id,
                 company_id=company_id,
                 issued_by=issued_by,
+                role_id=role_id,
             )
 
         except HTTPException as exc:
@@ -189,29 +213,26 @@ class PODispatchService:
 
         supplier = self.supplier_repo.get_by_id(po.supplier_id, company_id)
         supplier_email = self._validate_supplier_email(supplier)
-        items = self._get_po_items(po.id, company_id)
+        
+        self._get_po_items(po.id, company_id)
 
-        pdf_bytes = self.pdf_service.generate_po_pdf(
-            po=po,
-            supplier=supplier,
-            items=items,
-        )
+        pdf_bytes, attachment_filename = self._get_signed_pdf_attachment(po)
 
         subject = f"Purchase Order {po.po_number} - Resend"
 
         try:
-            self.email_service.send_po_email(
+            self.email_service.send_email(
                 to_email=supplier_email,
                 subject=subject,
                 body=(
                     f"Dear {supplier.name},\n\n"
-                    f"Please find attached Purchase Order {po.po_number}.\n\n"
+                    f"Please find attached signed Purchase Order {po.po_number}.\n\n"
                     "This is a resend copy.\n\n"
                     "Best regards,\n"
                     "Procurement Team"
                 ),
                 attachment_bytes=pdf_bytes,
-                attachment_filename=f"{po.po_number}.pdf",
+                attachment_filename=attachment_filename,
             )
 
             self._create_email_log(

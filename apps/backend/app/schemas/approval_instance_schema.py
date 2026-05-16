@@ -24,6 +24,12 @@ class ApprovalInstanceRead(BaseModel):
     requester_name: Optional[str] = None
     total_amount: Optional[float] = None
     currency: Optional[str] = None
+
+    exchange_rate: Optional[float] = None
+    base_currency: Optional[str] = None
+    base_amount: Optional[float] = None
+    exchange_rate_date: Optional[datetime] = None
+
     workflow_name: Optional[str] = None
     current_level_id: Optional[UUID]
     current_level_name: Optional[str] = None

@@ -18,6 +18,7 @@ from app.schemas.payment_schema import PaymentCreate, PaymentUpdate
 from app.services.approval_instance_service import ApprovalInstanceService
 from app.services.permission_service import PermissionService
 from app.services.audit_log_service import AuditLogService
+from app.services.exchange_rate_service import ExchangeRateService
 from app.utils.value_helper.enum_utils import enum_value
 
 class PaymentService:
@@ -29,6 +30,7 @@ class PaymentService:
         approval_instance_service: ApprovalInstanceService,
         permission_service: PermissionService,
         audit_log_service: AuditLogService,
+        exchange_rate_service: ExchangeRateService,
     ):
         self.payment_repo = payment_repo
         self.invoice_repo = invoice_repo
@@ -36,6 +38,7 @@ class PaymentService:
         self.approval_instance_service = approval_instance_service
         self.permission_service = permission_service
         self.audit_log_service = audit_log_service
+        self.exchange_rate_service = exchange_rate_service
         
     def create_payment(
         self,
@@ -98,6 +101,7 @@ class PaymentService:
             company_id=company_id,
             invoice_id=payment_data.invoice_id,
             amount=payment_data.amount,
+            currency=invoice.currency,
             payment_method=payment_data.payment_method,
             reference=payment_data.reference,
             status=PaymentStatusEnum.DRAFT,
@@ -164,6 +168,8 @@ class PaymentService:
             payment.created_by_user.name if payment.created_by_user else None
         )
 
+        payment.currency = payment.currency
+
         return payment
 
     def get_all_payments(
@@ -211,6 +217,40 @@ class PaymentService:
 
         payments = self.payment_repo.get_by_invoice(
             invoice_id=invoice_id,
+            company_id=company_id,
+            skip=skip,
+            limit=limit,
+        )
+
+        return [self._enrich_payment(payment) for payment in payments]
+
+    def get_all_payments_by_supplier(
+        self,
+        supplier_id: UUID,
+        company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> list[Payment]:
+        if not supplier_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Supplier id is required",
+            )
+
+        if skip < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Skip must be zero or greater",
+            )
+
+        if limit < 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Limit must be greater than zero",
+            )
+
+        payments = self.payment_repo.get_by_supplier(
+            supplier_id=supplier_id,
             company_id=company_id,
             skip=skip,
             limit=limit,
@@ -444,6 +484,20 @@ class PaymentService:
                 status_code=status.HTTP_409_CONFLICT,
                 detail="A pending approval instance already exists for this payment",
             )
+
+        base_amount, exchange_rate, base_currency, exchange_rate_date = (
+            self.exchange_rate_service.convert_transaction_to_company_base_currency(
+                company_id=company_id,
+                amount=payment.amount,
+                transaction_currency=payment.currency,
+                as_of_date=payment.created_at.date(),
+            )
+        )
+
+        payment.exchange_rate = exchange_rate
+        payment.base_currency = base_currency
+        payment.base_amount = base_amount
+        payment.exchange_rate_date = exchange_rate_date
 
         approval_instance = ApprovalInstance(
             company_id=company_id,

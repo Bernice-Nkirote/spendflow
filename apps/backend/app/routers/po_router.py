@@ -1,7 +1,7 @@
 from io import BytesIO
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, File, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
@@ -25,6 +25,7 @@ from app.repositories.audit_log_repository import AuditLogRepository
 from app.repositories.company_repository import CompanyRepository
 from app.repositories.invoice_repository import InvoiceRepository
 from app.repositories.payment_repository import PaymentRepository
+from app.repositories.exchange_rate_repository import ExchangeRateRepository
 from app.schemas.po_items_schema import (
     PurchaseOrderItemCreate,
     PurchaseOrderItemRead,
@@ -47,6 +48,7 @@ from app.services.orchestration.po_email_log_service import POEmailLogService
 from app.services.po_service import PurchaseOrderService
 from app.services.permission_service import PermissionService
 from app.services.audit_log_service import AuditLogService
+from app.services.exchange_rate_service import ExchangeRateService
 
 router = APIRouter(prefix="/purchase-orders", tags=["Purchase Orders"])
 
@@ -61,6 +63,13 @@ def get_purchase_order_service(
     invoice_repo = InvoiceRepository(db)
     payment_repo = PaymentRepository(db)
     workflow_repo = ApprovalWorkflowRepository(db)
+    company_repo = CompanyRepository(db)
+    exchange_rate_repo = ExchangeRateRepository(db)
+
+    exchange_rate_service = ExchangeRateService(
+        repo=exchange_rate_repo,
+        company_repo=company_repo,
+    )
 
     approval_instance_repo = ApprovalInstanceRepository(db)
     workflow_level_repo = WorkflowLevelRepository(db)
@@ -93,6 +102,7 @@ def get_purchase_order_service(
         approval_instance_service=approval_instance_service,
         permission_service=permission_service,
         audit_log_service=audit_log_service,
+        exchange_rate_service=exchange_rate_service,
     )
 
 # Get PO PDF SERVICE 
@@ -274,6 +284,22 @@ def download_purchase_order_pdf(
         },
     )
 
+@router.post("/{po_id}/signed-pdf", response_model=PurchaseOrderDetailRead)
+def upload_signed_purchase_order_pdf(
+    po_id: UUID,
+    file: UploadFile = File(...),
+    current_user=Depends(get_current_user),
+    service: PurchaseOrderService = Depends(get_purchase_order_service),
+):
+    return service.upload_signed_po_pdf(
+        po_id=po_id,
+        company_id=current_user.company_id,
+        uploaded_by=current_user.id,
+        role_id=current_user.role_id,
+        file=file,
+    )
+
+
 @router.put("/{po_id}", response_model=PurchaseOrderRead)
 def update_purchase_order(
     po_id: UUID,
@@ -409,6 +435,8 @@ def send_purchase_order(
         po_id=po_id,
         company_id=current_user.company_id,
         issued_by=current_user.id,
+        role_id=current_user.role_id,
+
     )
 
 @router.patch("/{po_id}/resend", response_model=PurchaseOrderRead)

@@ -38,6 +38,12 @@ class PurchaseRequisitionRead(BaseModel):
     description: Optional[str] = None
     total_amount: Decimal = Field(..., max_digits=14, decimal_places=2)
     currency: str
+
+    exchange_rate: Optional[Decimal] = None
+    base_currency: Optional[str] = None
+    base_amount: Optional[Decimal] = None
+    exchange_rate_date: Optional[datetime] = None
+
     status: PRStatusEnum
     is_active: bool
     items: list[PurchaseRequisitionItemRead]
