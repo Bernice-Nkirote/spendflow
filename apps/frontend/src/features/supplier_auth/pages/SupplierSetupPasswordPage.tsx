@@ -4,7 +4,10 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import Button from "../../../components/ui/Button";
 import Card from "../../../components/ui/Card";
+import FloatingAlert from "../../../components/ui/FloatingAlert";
 import PasswordInput from "../../../components/ui/PasswordInput";
+import { useFloatingAlert } from "../../../components/ui/useFloatingAlert";
+
 import { setSupplierPassword } from "../api/supplierAuthApi";
 
 function SupplierSetupPasswordPage() {
@@ -13,13 +16,13 @@ function SupplierSetupPasswordPage() {
 
   const token = searchParams.get("token") || "";
 
+  const { alert, showAlert, clearAlert } = useFloatingAlert();
+
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const [passwordError, setPasswordError] = useState("");
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
-  const [formError, setFormError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState("");
 
   const [loading, setLoading] = useState(false);
 
@@ -28,11 +31,14 @@ function SupplierSetupPasswordPage() {
 
     setPasswordError("");
     setConfirmPasswordError("");
-    setFormError(null);
-    setSuccessMessage("");
+    clearAlert();
 
     if (!token) {
-      setFormError("Setup token is missing. Please use the link sent to you.");
+      showAlert(
+        "error",
+        "Setup token is missing. Please use the link sent to you.",
+      );
+
       isValid = false;
     }
 
@@ -71,11 +77,15 @@ function SupplierSetupPasswordPage() {
         password,
       });
 
-      setSuccessMessage("Password set successfully. You can now sign in.");
+      showAlert(
+        "success",
+        "Password set successfully. Redirecting to sign in...",
+      );
+
       setPassword("");
       setConfirmPassword("");
 
-      setTimeout(() => {
+      window.setTimeout(() => {
         navigate("/supplier-login");
       }, 1200);
     } catch (err: unknown) {
@@ -83,22 +93,34 @@ function SupplierSetupPasswordPage() {
         const detail = err.response?.data?.detail;
 
         if (typeof detail === "string") {
-          setFormError(detail);
+          showAlert("error", detail);
           return;
         }
       }
 
-      setFormError("Failed to set password. Please request a new setup link.");
+      showAlert(
+        "error",
+        "Failed to set password. Please request a new setup link.",
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-primary-white px-4">
+    <div className="flex min-h-screen items-center justify-center bg-primary-white px-4 py-8">
+      {alert && (
+        <FloatingAlert
+          type={alert.type}
+          message={alert.message}
+          onClose={clearAlert}
+        />
+      )}
+
       <Card className="w-full max-w-md">
         <div className="mb-6 text-center">
           <h1 className="text-3xl font-bold text-primary-blue">SpendFlow</h1>
+
           <p className="mt-2 text-sm text-primary-gray">
             Set your supplier portal password
           </p>
@@ -122,18 +144,6 @@ function SupplierSetupPasswordPage() {
             placeholder="Confirm your password"
             error={confirmPasswordError}
           />
-
-          {formError && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-center text-sm text-accent-error">
-              {formError}
-            </p>
-          )}
-
-          {successMessage && (
-            <p className="rounded-lg bg-green-50 px-3 py-2 text-center text-sm text-green-700">
-              {successMessage}
-            </p>
-          )}
 
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Setting Password..." : "Set Password"}

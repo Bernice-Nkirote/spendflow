@@ -25,6 +25,8 @@ class Role(Base):
 
     is_active = Column(Boolean, nullable=False, default=True)
 
+    is_system_role = Column(Boolean, nullable=False, default=False)
+
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,

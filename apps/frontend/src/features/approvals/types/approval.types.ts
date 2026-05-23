@@ -49,3 +49,8 @@ export type CreateApprovalActionPayload = {
   action: ActionType;
   comment?: string | null;
 };
+
+export type PaginatedApprovalInstancesResponse = {
+  rows: ApprovalInstance[];
+  total_count: number;
+};

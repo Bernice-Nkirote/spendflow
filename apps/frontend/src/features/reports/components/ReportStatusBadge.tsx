@@ -1,14 +1,7 @@
-type Props = {
-  status: string;
-};
+import StatusBadge from "../../../components/ui/StatusBadge";
 
-const statusStyles: Record<string, string> = {
-  DRAFT: "bg-gray-100 text-gray-700 border-gray-200",
-  PENDING_APPROVAL: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  APPROVED: "bg-green-100 text-green-700 border-green-200",
-  REJECTED: "bg-red-100 text-red-700 border-red-200",
-  CANCELLED: "bg-gray-200 text-gray-700 border-gray-300",
-  CONVERTED_TO_PO: "bg-blue-100 text-blue-700 border-blue-200",
+type Props = {
+  status: string | null | undefined;
 };
 
 function formatStatus(status: string) {
@@ -19,14 +12,41 @@ function formatStatus(status: string) {
     .join(" ");
 }
 
+function getStatusVariant(status: string) {
+  switch (status) {
+    case "APPROVED":
+    case "PAID":
+    case "COMPLETED":
+    case "SENT":
+    case "CONVERTED_TO_PO":
+      return "success";
+
+    case "PENDING":
+    case "PENDING_APPROVAL":
+    case "PARTIALLY_PAID":
+    case "DRAFT":
+      return "warning";
+
+    case "REJECTED":
+    case "CANCELLED":
+    case "FAILED":
+      return "danger";
+
+    case "ISSUED":
+    case "ACTIVE":
+      return "info";
+
+    default:
+      return "neutral";
+  }
+}
+
 export default function ReportStatusBadge({ status }: Props) {
+  const normalizedStatus = status || "UNKNOWN";
+
   return (
-    <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium whitespace-nowrap ${
-        statusStyles[status] ?? "bg-gray-100 text-gray-700 border-gray-200"
-      }`}
-    >
-      {formatStatus(status)}
-    </span>
+    <StatusBadge variant={getStatusVariant(normalizedStatus)}>
+      {formatStatus(normalizedStatus)}
+    </StatusBadge>
   );
 }

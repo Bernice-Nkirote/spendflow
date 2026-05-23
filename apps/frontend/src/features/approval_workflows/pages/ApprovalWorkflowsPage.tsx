@@ -1,7 +1,20 @@
+import axios from "axios";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+import ErrorState from "../../../components/ui/ErrorState";
+import { getStoredUser } from "../../../utils/permissions";
 import Button from "../../../components/ui/Button";
+import Card from "../../../components/ui/Card";
+import ConfirmDialog from "../../../components/ui/ConfirmDialog";
+import EmptyState from "../../../components/ui/EmptyState";
+import FloatingAlert from "../../../components/ui/FloatingAlert";
+import Input from "../../../components/ui/Input";
+import LoadingState from "../../../components/ui/LoadingState";
+import PageContainer from "../../../components/ui/PageContainer";
+import PageHeader from "../../../components/ui/PageHeader";
+import StatusBadge from "../../../components/ui/StatusBadge";
+import TableWrapper from "../../../components/ui/TableWrapper";
 import {
   activateApprovalWorkflow,
   createApprovalWorkflow,
@@ -15,11 +28,30 @@ import type {
 } from "../types/approvalWorkflow.types";
 import { approvalEntityTypeOptions } from "../types/approvalWorkflow.types";
 
+function getApiErrorMessage(error: unknown, fallback: string) {
+  if (axios.isAxiosError(error)) {
+    const detail = error.response?.data?.detail;
+
+    if (typeof detail === "string") {
+      return detail;
+    }
+  }
+
+  return fallback;
+}
+
 function ApprovalWorkflowsPage() {
   const navigate = useNavigate();
+  const currentUser = getStoredUser();
+
+  const canAccessAdminPage =
+    currentUser?.role_name === "Admin" ||
+    currentUser?.is_company_owner === true;
 
   const [workflows, setWorkflows] = useState<ApprovalWorkflow[]>([]);
   const [editingWorkflow, setEditingWorkflow] =
+    useState<ApprovalWorkflow | null>(null);
+  const [workflowToToggle, setWorkflowToToggle] =
     useState<ApprovalWorkflow | null>(null);
 
   const [name, setName] = useState("");
@@ -32,16 +64,18 @@ function ApprovalWorkflowsPage() {
   const [successMessage, setSuccessMessage] = useState("");
 
   async function loadWorkflows() {
+    if (!canAccessAdminPage) {
+      setIsLoading(false);
+      return;
+    }
     try {
       setIsLoading(true);
       setError("");
 
       const data = await getApprovalWorkflows();
       setWorkflows(data);
-    } catch (err: any) {
-      setError(
-        err?.response?.data?.detail ?? "Failed to load approval workflows.",
-      );
+    } catch (error) {
+      setError(getApiErrorMessage(error, "Failed to load approval workflows."));
     } finally {
       setIsLoading(false);
     }
@@ -49,18 +83,7 @@ function ApprovalWorkflowsPage() {
 
   useEffect(() => {
     loadWorkflows();
-  }, []);
-
-  useEffect(() => {
-    if (!error && !successMessage) return;
-
-    const timer = window.setTimeout(() => {
-      setError("");
-      setSuccessMessage("");
-    }, 5000);
-
-    return () => window.clearTimeout(timer);
-  }, [error, successMessage]);
+  }, [canAccessAdminPage]);
 
   function resetForm() {
     setEditingWorkflow(null);
@@ -114,104 +137,100 @@ function ApprovalWorkflowsPage() {
 
       resetForm();
       await loadWorkflows();
-    } catch (err: any) {
-      setError(
-        err?.response?.data?.detail ?? "Failed to save approval workflow.",
-      );
+    } catch (error) {
+      setError(getApiErrorMessage(error, "Failed to save approval workflows."));
     } finally {
       setIsSaving(false);
     }
   }
 
-  async function handleToggleStatus(workflow: ApprovalWorkflow) {
-    const action = workflow.is_active ? "deactivate" : "activate";
-
-    const confirmed = window.confirm(
-      `${action === "deactivate" ? "Deactivate" : "Activate"} workflow "${workflow.name}"?`,
-    );
-
-    if (!confirmed) return;
+  async function handleConfirmToggleStatus() {
+    if (!workflowToToggle) return;
 
     try {
-      setActionWorkflowId(workflow.id);
+      setActionWorkflowId(workflowToToggle.id);
       setError("");
       setSuccessMessage("");
 
-      if (workflow.is_active) {
-        await deactivateApprovalWorkflow(workflow.id);
+      if (workflowToToggle.is_active) {
+        await deactivateApprovalWorkflow(workflowToToggle.id);
         setSuccessMessage("Approval workflow deactivated successfully.");
       } else {
-        await activateApprovalWorkflow(workflow.id);
+        await activateApprovalWorkflow(workflowToToggle.id);
         setSuccessMessage("Approval workflow activated successfully.");
       }
 
+      setWorkflowToToggle(null);
       await loadWorkflows();
-    } catch (err: any) {
+    } catch (error) {
       setError(
-        err?.response?.data?.detail ??
-          "Failed to update approval workflow status.",
+        getApiErrorMessage(error, "Failed to update approval workflow status."),
       );
     } finally {
       setActionWorkflowId(null);
     }
   }
 
+  if (!canAccessAdminPage) {
+    return (
+      <PageContainer>
+        <PageHeader
+          title="Approval Workflows"
+          description="Create, update, activate, and configure approval workflows for procurement documents."
+        />
+
+        <ErrorState message="Admin access is required to manage approval workflows." />
+      </PageContainer>
+    );
+  }
+
   return (
-    <div className="relative flex min-w-0 flex-col gap-6">
-      {(error || successMessage) && (
-        <div
-          className={`fixed right-4 top-20 z-[9999] max-w-md rounded-xl border p-4 text-sm shadow-lg ${
-            error
-              ? "border-red-200 bg-red-50 text-red-700"
-              : "border-green-200 bg-green-50 text-green-700"
-          }`}
-        >
-          <div className="flex items-start justify-between gap-3">
-            <p>{error || successMessage}</p>
-            <button
-              type="button"
-              onClick={() => {
-                setError("");
-                setSuccessMessage("");
-              }}
-              className={error ? "text-red-700" : "text-green-700"}
-              aria-label="Dismiss alert"
-            >
-              ×
-            </button>
-          </div>
-        </div>
+    <PageContainer>
+      {successMessage && (
+        <FloatingAlert
+          type="success"
+          message={successMessage}
+          onClose={() => setSuccessMessage("")}
+        />
       )}
 
-      <section className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
+      {error && (
+        <FloatingAlert
+          type="error"
+          message={error}
+          onClose={() => setError("")}
+        />
+      )}
+
+      <PageHeader
+        title="Approval Workflows"
+        description="Create, update, activate, and configure approval workflows for procurement documents."
+      />
+
+      <Card>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <h2 className="text-lg font-semibold text-primary-black">
               {editingWorkflow
-                ? "Edit approval workflow"
-                : "Add approval workflow"}
+                ? "Edit Approval Workflow"
+                : "Add Approval Workflow"}
             </h2>
-            <p className="mt-1 text-sm text-primary-gray">
-              Create approval workflows for purchase requisitions, purchase
-              orders, invoices, and payments.
+            <p className="mt-1 text-sm text-gray-600">
+              Define the document type this workflow applies to before
+              configuring approval levels.
             </p>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr_auto] lg:items-end">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-primary-black">
-                Workflow name
-              </label>
-              <input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="e.g. PR Approval Workflow"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-blue"
-              />
-            </div>
+            <Input
+              label="Workflow name"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="e.g. PR Approval Workflow"
+            />
 
-            <div>
-              <label className="mb-1 block text-sm font-medium text-primary-black">
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-primary-black">
                 Entity type
               </label>
               <select
@@ -219,7 +238,7 @@ function ApprovalWorkflowsPage() {
                 onChange={(event) =>
                   setEntityType(event.target.value as ApprovalEntityType)
                 }
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-blue"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
               >
                 {approvalEntityTypeOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -229,7 +248,7 @@ function ApprovalWorkflowsPage() {
               </select>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row lg:justify-end">
               <Button type="submit" disabled={isSaving}>
                 {isSaving ? "Saving..." : editingWorkflow ? "Update" : "Create"}
               </Button>
@@ -247,42 +266,46 @@ function ApprovalWorkflowsPage() {
             </div>
           </div>
         </form>
-      </section>
+      </Card>
 
-      <section className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
-        <div className="mb-4">
+      <Card className="space-y-4">
+        <div>
           <h2 className="text-lg font-semibold text-primary-black">
-            Approval workflow list
+            Approval Workflow List
           </h2>
-          <p className="mt-1 text-sm text-primary-gray">
-            Manage workflow status here. Configure levels and approver roles
-            from the workflow details page next.
+          <p className="mt-1 text-sm text-gray-600">
+            Manage workflow status and open workflow details to configure levels
+            and approver roles.
           </p>
         </div>
 
         {isLoading ? (
-          <p className="text-sm text-primary-gray">
-            Loading approval workflows...
-          </p>
+          <LoadingState message="Loading approval workflows..." />
         ) : workflows.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center">
-            <p className="text-sm font-medium text-primary-black">
-              No approval workflows found
-            </p>
-            <p className="mt-1 text-sm text-primary-gray">
-              Add your first workflow before configuring approval levels.
-            </p>
-          </div>
+          <EmptyState
+            title="No approval workflows found"
+            message="Add your first workflow before configuring approval levels."
+          />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-[900px] divide-y divide-gray-200 text-left text-sm">
-              <thead className="bg-gray-50 text-xs uppercase text-primary-gray">
+          <TableWrapper minWidth="1000px">
+            <table className="w-full divide-y divide-gray-200 bg-white text-sm">
+              <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-4">Workflow</th>
-                  <th className="px-4 py-4">Entity type</th>
-                  <th className="px-4 py-4">Levels</th>
-                  <th className="px-4 py-4">Status</th>
-                  <th className="px-4 py-4 text-right">Actions</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                    Workflow
+                  </th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                    Entity Type
+                  </th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                    Levels
+                  </th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                    Status
+                  </th>
+                  <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                    Actions
+                  </th>
                 </tr>
               </thead>
 
@@ -293,50 +316,48 @@ function ApprovalWorkflowsPage() {
                       {workflow.name}
                     </td>
 
-                    <td className="px-4 py-3 text-primary-black">
+                    <td className="whitespace-nowrap px-4 py-3 text-primary-black">
                       {getEntityTypeLabel(workflow.entity_type)}
                     </td>
 
-                    <td className="px-4 py-3 text-primary-black">
+                    <td className="whitespace-nowrap px-4 py-3 text-primary-black">
                       {workflow.levels?.length ?? 0}
                     </td>
 
-                    <td className="px-4 py-4">
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                          workflow.is_active
-                            ? "bg-green-50 text-green-700"
-                            : "bg-gray-100 text-primary-gray"
-                        }`}
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <StatusBadge
+                        variant={workflow.is_active ? "success" : "neutral"}
                       >
                         {workflow.is_active ? "Active" : "Inactive"}
-                      </span>
+                      </StatusBadge>
                     </td>
 
-                    <td className="px-4 py-4">
-                      <div className="flex items-center justify-end gap-3 whitespace-nowrap">
-                        <button
+                    <td className="whitespace-nowrap px-4 py-3 text-right">
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <Button
                           type="button"
+                          size="sm"
                           onClick={() =>
                             navigate(`/approval-workflows/${workflow.id}`)
                           }
-                          className="text-sm font-medium text-primary-blue hover:underline"
                         >
-                          View details
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => startEdit(workflow)}
-                          className="text-sm font-medium text-primary-blue hover:underline"
-                        >
-                          Edit
-                        </button>
+                          View Details
+                        </Button>
 
                         <Button
                           type="button"
                           variant="secondary"
-                          onClick={() => handleToggleStatus(workflow)}
+                          size="sm"
+                          onClick={() => startEdit(workflow)}
+                        >
+                          Edit
+                        </Button>
+
+                        <Button
+                          type="button"
+                          variant={workflow.is_active ? "secondary" : "success"}
+                          size="sm"
+                          onClick={() => setWorkflowToToggle(workflow)}
                           disabled={actionWorkflowId === workflow.id}
                         >
                           {workflow.is_active ? "Deactivate" : "Activate"}
@@ -347,10 +368,29 @@ function ApprovalWorkflowsPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableWrapper>
         )}
-      </section>
-    </div>
+      </Card>
+
+      <ConfirmDialog
+        isOpen={workflowToToggle !== null}
+        title={
+          workflowToToggle?.is_active
+            ? "Deactivate approval workflow?"
+            : "Activate approval workflow?"
+        }
+        message={
+          workflowToToggle?.is_active
+            ? `This will deactivate "${workflowToToggle.name}". Existing records will remain unchanged, but this workflow should not be used for new approval routing while inactive.`
+            : `This will activate "${workflowToToggle?.name}". Make sure its levels and approver roles are configured correctly.`
+        }
+        confirmLabel={workflowToToggle?.is_active ? "Deactivate" : "Activate"}
+        variant={workflowToToggle?.is_active ? "warning" : "info"}
+        isLoading={actionWorkflowId === workflowToToggle?.id}
+        onConfirm={handleConfirmToggleStatus}
+        onCancel={() => setWorkflowToToggle(null)}
+      />
+    </PageContainer>
   );
 }
 

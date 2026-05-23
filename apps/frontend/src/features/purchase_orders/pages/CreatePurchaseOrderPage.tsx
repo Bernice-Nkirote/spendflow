@@ -1,26 +1,48 @@
+import axios from "axios";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+import BackButton from "../../../components/ui/BackButton";
 import Button from "../../../components/ui/Button";
+import Card from "../../../components/ui/Card";
 import ErrorState from "../../../components/ui/ErrorState";
-
 import LoadingState from "../../../components/ui/LoadingState";
+import PageContainer from "../../../components/ui/PageContainer";
+import PageHeader from "../../../components/ui/PageHeader";
+import PurchaseOrderStatusBadge from "../components/PurchaseOrderStatusBadge";
 
+import { getDepartmentOptions } from "../../Departments/api/departmentApi";
+import type { Department } from "../../Departments/types/department.types";
 import { getSuppliers } from "../../suppliers/api/supplierApi";
 import type { Supplier } from "../../suppliers/types/supplier.types";
 
-import { getDepartments } from "../../Departments/api/departmentApi";
-import type { Department } from "../../Departments/types/department.types";
-
 import { createPurchaseOrder } from "../api/purchaseOrderApi";
+import {
+  clearCreatePurchaseOrderDraft,
+  useCreatePurchaseOrderDraft,
+} from "../hooks/useCreatePurchaseOrderDraft";
 import PurchaseOrderItemsForm from "../components/PurchaseOrderItemsForm";
 import type { PurchaseOrderItemCreate } from "../types/purchaseOrder.types";
 
 import { currencyOptions } from "../../../utils/currencyOptions";
+import { userHasPermission } from "../../../utils/permissions";
+
+function getApiErrorMessage(error: unknown, fallback: string) {
+  if (axios.isAxiosError(error)) {
+    const detail = error.response?.data?.detail;
+
+    if (typeof detail === "string") {
+      return detail;
+    }
+  }
+
+  return fallback;
+}
 
 export default function CreatePurchaseOrderPage() {
   const navigate = useNavigate();
+  const canCreatePO = userHasPermission("po.create");
 
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -41,30 +63,54 @@ export default function CreatePurchaseOrderPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useCreatePurchaseOrderDraft({
+    supplierId,
+    departmentId,
+    currency,
+    notes,
+    items,
+    setSupplierId,
+    setDepartmentId,
+    setCurrency,
+    setNotes,
+    setItems,
+  });
+
   useEffect(() => {
     async function fetchFormOptions() {
+      if (!canCreatePO) {
+        setError("You do not have permission to create purchase orders.");
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
 
-        const [supplierResponse, departmentResponse] = await Promise.all([
-          getSuppliers(),
-          getDepartments(),
-        ]);
+        const supplierResponse = await getSuppliers();
 
         setSuppliers(supplierResponse.filter((supplier) => supplier.is_active));
+
+        const departmentResponse = await getDepartmentOptions();
+
         setDepartments(
           departmentResponse.filter((department) => department.is_active),
         );
-      } catch {
-        setError("Failed to load purchase order form options.");
+      } catch (error) {
+        setError(
+          getApiErrorMessage(
+            error,
+            "Failed to load purchase order form options.",
+          ),
+        );
       } finally {
         setLoading(false);
       }
     }
 
     fetchFormOptions();
-  }, []);
+  }, [canCreatePO]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -85,12 +131,12 @@ export default function CreatePurchaseOrderPage() {
       (item) =>
         !item.item_name ||
         Number(item.quantity) <= 0 ||
-        Number(item.unit_price) < 0,
+        Number(item.unit_price) <= 0,
     );
 
     if (hasInvalidItem) {
       setError(
-        "Please make sure every item has a name, quantity greater than 0, and unit price of 0 or more.",
+        "Please make sure every item has a name, quantity greater than 0, and unit price greater than 0.",
       );
       return;
     }
@@ -107,9 +153,11 @@ export default function CreatePurchaseOrderPage() {
         items: cleanedItems,
       });
 
+      clearCreatePurchaseOrderDraft();
+
       navigate(`/purchase-orders/${createdPO.id}`);
-    } catch {
-      setError("Failed to create purchase order.");
+    } catch (error) {
+      setError(getApiErrorMessage(error, "Failed to create purchase order."));
     } finally {
       setSaving(false);
     }
@@ -117,110 +165,127 @@ export default function CreatePurchaseOrderPage() {
 
   if (loading) return <LoadingState />;
 
+  if (!canCreatePO) {
+    return (
+      <PageContainer>
+        <BackButton
+          fallbackLabel="Back to Purchase Orders"
+          fallbackTo="/purchase-orders"
+        />
+        <ErrorState message="You do not have permission to create purchase orders." />
+      </PageContainer>
+    );
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="flex min-w-0 flex-col gap-6">
-      <div className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
-        <Link
-          to="/purchase-orders"
-          className="text-sm font-medium text-primary-blue hover:underline"
-        >
-          ← Back to Purchase Orders
-        </Link>
-
-        <h1 className="mt-3 text-2xl font-semibold text-primary-black">
-          Create Standalone Purchase Order
-        </h1>
-
-        <p className="mt-1 text-sm text-primary-gray">
-          Create a purchase order that is not linked to a purchase requisition.
-        </p>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Create Standalone Purchase Order"
+        description="Create a purchase order that is not linked to a purchase requisition."
+        actions={
+          <div className="flex flex-wrap items-center gap-3">
+            <PurchaseOrderStatusBadge status="DRAFT" />
+            <BackButton
+              fallbackLabel="Back to Purchase Orders"
+              fallbackTo="/purchase-orders"
+            />
+          </div>
+        }
+      />
 
       {error && <ErrorState message={error} />}
 
-      <section className="grid gap-4 rounded-xl border bg-white p-4 shadow-sm sm:p-5 md:grid-cols-2">
-        <div>
-          <label className="mb-1 block text-sm font-medium text-primary-black">
-            Supplier
-          </label>
-          <select
-            value={supplierId}
-            onChange={(event) => setSupplierId(event.target.value)}
-            className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-primary-blue focus:ring-1 focus:ring-primary-blue"
-            required
-          >
-            <option value="">Select supplier</option>
-            {suppliers.map((supplier) => (
-              <option key={supplier.id} value={supplier.id}>
-                {supplier.name}
-              </option>
-            ))}
-          </select>
-        </div>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        <Card>
+          <h2 className="text-lg font-semibold text-primary-black">
+            Purchase Order Information
+          </h2>
 
-        <div>
-          <label className="mb-1 block text-sm font-medium text-primary-black">
-            Department
-          </label>
-          <select
-            value={departmentId}
-            onChange={(event) => setDepartmentId(event.target.value)}
-            className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-primary-blue focus:ring-1 focus:ring-primary-blue"
-          >
-            <option value="">No department selected</option>
-            {departments.map((department) => (
-              <option key={department.id} value={department.id}>
-                {department.name}
-              </option>
-            ))}
-          </select>
-        </div>
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-primary-black">
+                Supplier
+              </label>
+              <select
+                value={supplierId}
+                onChange={(event) => setSupplierId(event.target.value)}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
+                required
+              >
+                <option value="">Select supplier</option>
+                {suppliers.map((supplier) => (
+                  <option key={supplier.id} value={supplier.id}>
+                    {supplier.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-medium text-primary-black">
-            Currency
-          </label>
-          <select
-            value={currency}
-            onChange={(event) => setCurrency(event.target.value)}
-            className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-primary-blue focus:ring-1 focus:ring-primary-blue"
-            required
-          >
-            {currencyOptions.map((option) => (
-              <option key={option.code} value={option.code}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-primary-black">
+                Department
+              </label>
+              <select
+                value={departmentId}
+                onChange={(event) => setDepartmentId(event.target.value)}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
+              >
+                <option value="">No department selected</option>
+                {departments.map((department) => (
+                  <option key={department.id} value={department.id}>
+                    {department.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-        <div className="md:col-span-2">
-          <label className="mb-1 block text-sm font-medium text-primary-black">
-            Notes
-          </label>
-          <textarea
-            value={notes}
-            onChange={(event) => setNotes(event.target.value)}
-            rows={4}
-            className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-primary-blue focus:ring-1 focus:ring-primary-blue"
-            placeholder="Optional notes for this purchase order"
-          />
-        </div>
-      </section>
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-primary-black">
+                Currency
+              </label>
+              <select
+                value={currency}
+                onChange={(event) => setCurrency(event.target.value)}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
+                required
+              >
+                {currencyOptions.map((option) => (
+                  <option key={option.code} value={option.code}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-      <PurchaseOrderItemsForm items={items} onChange={setItems} />
+            <div className="space-y-1 md:col-span-2">
+              <label className="block text-sm font-medium text-primary-black">
+                Notes
+              </label>
+              <textarea
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                rows={4}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition placeholder:text-gray-400 focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
+                placeholder="Optional notes for this purchase order"
+              />
+            </div>
+          </div>
+        </Card>
 
-      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        <Link to="/purchase-orders">
-          <Button type="button" variant="secondary">
-            Cancel
+        <PurchaseOrderItemsForm items={items} onChange={setItems} />
+
+        <Card className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+          <Link to="/purchase-orders">
+            <Button type="button" variant="secondary" disabled={saving}>
+              Cancel
+            </Button>
+          </Link>
+
+          <Button type="submit" disabled={saving}>
+            {saving ? "Creating..." : "Create Purchase Order"}
           </Button>
-        </Link>
-
-        <Button type="submit" disabled={saving}>
-          {saving ? "Creating..." : "Create Purchase Order"}
-        </Button>
-      </div>
-    </form>
+        </Card>
+      </form>
+    </PageContainer>
   );
 }

@@ -1,3 +1,5 @@
+import type { ReportType } from "../components/ReportTabs";
+
 export type ReportFilterType =
   | "date_range"
   | "status"
@@ -15,7 +17,8 @@ export type ReportFilterOption = {
   value: string;
 };
 
-export type ReportStatusOptions = Record<string, string[]>;
+export type ReportStatusOptions = Partial<Record<ReportType, string[]>>;
+
 export type ReportPaymentMethodOptions = string[];
 
 export type ReportFilters = {
@@ -27,6 +30,8 @@ export type ReportFilters = {
   payment_method?: string;
   page?: number;
   page_size?: number;
+  skip?: number;
+  limit?: number;
 };
 
 export type ReportSummaryCardConfig<T> = {

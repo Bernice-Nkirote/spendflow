@@ -33,6 +33,7 @@ class RoleService:
             name=name,
             description=description,
             is_active=role_data.is_active,
+            is_system_role=False,
         )
 
         created_role = self.repo.create(role)
@@ -54,6 +55,36 @@ class RoleService:
     def get_all_roles(self, company_id: UUID) -> list[Role]:
         return self.repo.get_all(company_id)
 
+    def get_paginated_roles(
+        self,
+        company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> dict:
+        if skip < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Skip must be zero or greater.",
+            )
+
+        if limit < 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Limit must be greater than zero.",
+            )
+
+        roles = self.repo.get_all(
+            company_id=company_id,
+            skip=skip,
+            limit=limit,
+        )
+        total_count = self.repo.count_all(company_id)
+
+        return {
+            "rows": roles,
+            "total_count": total_count,
+        }
+
     def update_role(
         self,
         role_id: UUID,
@@ -63,10 +94,10 @@ class RoleService:
         role = self.get_role(role_id, company_id)
         is_admin_role = role.name.strip().lower() == "admin"
 
-        if is_admin_role:
+        if role.is_system_role:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Admin role cannot be modified.",
+                detail="System roles cannot be modified because they protect company governance.",
             )
 
         if self.repo.has_users(role.id, company_id):
@@ -136,23 +167,16 @@ class RoleService:
         current_user_role_id: UUID,
     ) -> Role:
         role = self.get_role(role_id, company_id)
-
-        if role.name.strip().lower() == "admin":
+        if role.is_system_role:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Admin role cannot be deactivated.",
+                detail="System roles cannot be deactivated because they protect company governance.",
             )
-
+        
         if role.id == current_user_role_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="You cannot deactivate the role assigned to your own account.",
-            )
-
-        if role.name.strip().lower() == "admin":
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="The Admin role cannot be deactivated.",
             )
 
         if not role.is_active:
@@ -184,10 +208,10 @@ class RoleService:
     def delete_role(self, role_id: UUID, company_id: UUID) -> None:
         role = self.get_role(role_id, company_id)
 
-        if role.name.strip().lower() == "admin":
+        if role.is_system_role:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Admin role cannot be deleted.",
+                detail="System roles cannot be deleted because they protect company governance.",
             )
 
         if self.repo.has_users(role.id, company_id):

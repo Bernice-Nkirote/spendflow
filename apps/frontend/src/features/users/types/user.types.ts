@@ -12,6 +12,7 @@ export type User = {
   email: string;
   phone_number: string | null;
 
+  is_company_owner: boolean;
   is_active: boolean;
 
   has_completed_onboarding: boolean;
@@ -35,4 +36,9 @@ export type UpdateUserPayload = {
   phone_number?: string | null;
   department_id?: string | null;
   role_id?: string;
+};
+
+export type PaginatedUsersResponse = {
+  rows: User[];
+  total_count: number;
 };

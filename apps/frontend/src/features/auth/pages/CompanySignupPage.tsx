@@ -3,14 +3,13 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { isValidPhoneNumber } from "react-phone-number-input";
 import type { Value } from "react-phone-number-input";
-import axiosInstance from "../../api/axiosInstance";
+import axiosInstance from "../../../api/axiosInstance";
 
-import Button from "../../components/ui/Button";
-import Card from "../../components/ui/Card";
-import Input from "../../components/ui/Input";
-import PhoneInputField from "../../components/ui/PhoneInputField";
-import PasswordInput from "../../components/ui/PasswordInput";
-
+import Button from "../../../components/ui/Button";
+import Card from "../../../components/ui/Card";
+import Input from "../../../components/ui/Input";
+import PhoneInputField from "../../../components/ui/PhoneInputField";
+import PasswordInput from "../../../components/ui/PasswordInput";
 function CompanySignupPage() {
   const navigate = useNavigate();
 

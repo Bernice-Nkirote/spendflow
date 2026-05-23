@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -24,3 +24,7 @@ class DepartmentRead(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class PaginatedDepartmentResponse(BaseModel):
+    rows: List[DepartmentRead]
+    total_count: int

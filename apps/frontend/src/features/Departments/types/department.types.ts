@@ -16,3 +16,8 @@ export type DepartmentUpdatePayload = {
   name?: string;
   is_active?: boolean;
 };
+
+export type PaginatedDepartmentsResponse = {
+  rows: Department[];
+  total_count: number;
+};

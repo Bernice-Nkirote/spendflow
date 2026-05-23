@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import Button from "../../../components/ui/Button";
+import Card from "../../../components/ui/Card";
 import ErrorState from "../../../components/ui/ErrorState";
 
 import {
@@ -64,20 +65,25 @@ export default function PurchaseRequisitionItemsEditor({
 
   async function handleAddItem() {
     if (!newItem.item_name.trim()) {
-      setError("Item name is required.");
+      setError(
+        "Complete the current item before adding another one. Item name is required.",
+      );
       return;
     }
 
     if (!newItem.description.trim()) {
-      setError("Item description is required.");
+      setError(
+        "Complete the current item before adding another one. Description is required.",
+      );
       return;
     }
 
     if (Number(newItem.quantity) <= 0) {
-      setError("Quantity must be greater than zero.");
+      setError(
+        "Complete the current item before adding another one. Quantity must be greater than zero.",
+      );
       return;
     }
-
     try {
       setLoading(true);
       setError(null);
@@ -135,7 +141,7 @@ export default function PurchaseRequisitionItemsEditor({
   }
 
   return (
-    <section className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
+    <Card className="p-4 shadow-md sm:p-5">
       <h2 className="text-lg font-semibold text-primary-black">
         Edit Requested Items
       </h2>
@@ -320,6 +326,6 @@ export default function PurchaseRequisitionItemsEditor({
           </Button>
         </div>
       </div>
-    </section>
+    </Card>
   );
 }

@@ -51,3 +51,13 @@ export type SupplierUserCreatePayload = {
   supplier_id: string;
   email: string;
 };
+
+export type SupplierListParams = {
+  skip?: number;
+  limit?: number;
+};
+
+export type PaginatedSupplierResponse = {
+  rows: Supplier[];
+  total_count: number;
+};

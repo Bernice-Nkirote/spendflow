@@ -4,6 +4,7 @@ import type {
   PaymentDetails,
   PaymentListItem,
   PaymentListParams,
+  PaginatedPaymentResponse,
   PaymentUpdatePayload,
 } from "../types/payment.types";
 
@@ -13,6 +14,17 @@ export async function getPayments(
   const response = await axiosInstance.get<PaymentListItem[]>("/payments/", {
     params,
   });
+
+  return response.data;
+}
+
+export async function getPaginatedPayments(
+  params: PaymentListParams = {},
+): Promise<PaginatedPaymentResponse> {
+  const response = await axiosInstance.get<PaginatedPaymentResponse>(
+    "/payments/paginated",
+    { params },
+  );
 
   return response.data;
 }

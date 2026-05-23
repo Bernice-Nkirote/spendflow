@@ -1,12 +1,17 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.core.auth_dependancy import get_current_admin_user
 from app.core.database import get_db
 from app.repositories.role_repository import RoleRepository
-from app.schemas.role_schemas import RoleCreate, RoleRead, RoleUpdate
+from app.schemas.role_schemas import (
+    PaginatedRoleResponse,
+    RoleCreate,
+    RoleRead,
+    RoleUpdate,
+)
 from app.services.roles_service import RoleService
 
 
@@ -38,6 +43,18 @@ def get_all_roles(
 ):
     return service.get_all_roles(current_user.company_id)
 
+@router.get("/paginated", response_model=PaginatedRoleResponse)
+def get_paginated_roles(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1),
+    service: RoleService = Depends(get_role_service),
+    current_user=Depends(get_current_admin_user),
+):
+    return service.get_paginated_roles(
+        company_id=current_user.company_id,
+        skip=skip,
+        limit=limit,
+    )
 
 @router.get("/{role_id}", response_model=RoleRead)
 def get_role(

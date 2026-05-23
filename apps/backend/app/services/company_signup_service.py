@@ -112,6 +112,7 @@ class CompanySignupService:
                     name=role_name,
                     description=None,
                     is_active=True,
+                    is_system_role=role_name == "Admin",
                 )
                 seeded_roles.append(self.role_repo.create(role))
 
@@ -161,6 +162,8 @@ class CompanySignupService:
                 phone_number=phone_number,
                 hashed_password=hash_password(password),
                 is_active=True,
+                is_company_owner=True,
+                has_completed_onboarding=True,
             )
             self.user_repo.create(admin_user)
 

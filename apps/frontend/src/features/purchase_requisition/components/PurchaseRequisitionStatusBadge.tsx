@@ -1,16 +1,21 @@
+import StatusBadge from "../../../components/ui/StatusBadge";
+
 import type { PurchaseRequisitionStatus } from "../types/purchaseRequisition.types";
 
 type Props = {
   status: PurchaseRequisitionStatus;
 };
 
-const statusStyles: Record<PurchaseRequisitionStatus, string> = {
-  DRAFT: "bg-gray-50 text-gray-700 ring-gray-600/20",
-  PENDING_APPROVAL: "bg-yellow-50 text-yellow-700 ring-yellow-600/20",
-  APPROVED: "bg-green-50 text-green-700 ring-green-600/20",
-  REJECTED: "bg-red-50 text-red-700 ring-red-600/20",
-  CANCELLED: "bg-gray-100 text-gray-600 ring-gray-500/20",
-  CONVERTED_TO_PO: "bg-blue-50 text-blue-700 ring-blue-600/20",
+const statusVariantMap: Record<
+  PurchaseRequisitionStatus,
+  "neutral" | "warning" | "success" | "danger" | "info"
+> = {
+  DRAFT: "neutral",
+  PENDING_APPROVAL: "warning",
+  APPROVED: "success",
+  REJECTED: "danger",
+  CANCELLED: "neutral",
+  CONVERTED_TO_PO: "info",
 };
 
 function formatStatus(status: PurchaseRequisitionStatus) {
@@ -23,10 +28,8 @@ function formatStatus(status: PurchaseRequisitionStatus) {
 
 export default function PurchaseRequisitionStatusBadge({ status }: Props) {
   return (
-    <span
-      className={`inline-flex w-fit whitespace-nowrap rounded-full px-3 py-1 text-xs font-medium ring-1 ${statusStyles[status]}`}
-    >
+    <StatusBadge variant={statusVariantMap[status]}>
       {formatStatus(status)}
-    </span>
+    </StatusBadge>
   );
 }

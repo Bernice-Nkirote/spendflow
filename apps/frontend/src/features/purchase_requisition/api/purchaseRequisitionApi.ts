@@ -8,6 +8,7 @@ import type {
   PurchaseRequisitionListItem,
   PurchaseRequisitionListParams,
   PurchaseRequisitionUpdatePayload,
+  PurchaseRequisitionPaginatedResponse,
 } from "../types/purchaseRequisition.types";
 
 // CREATE PR
@@ -52,6 +53,19 @@ export async function getPurchaseRequisitions(
     "/purchase-requisitions",
     { params },
   );
+
+  return response.data;
+}
+
+//  GET PAGINATED PR
+export async function getPaginatedPurchaseRequisitions(
+  params: PurchaseRequisitionListParams = {},
+): Promise<PurchaseRequisitionPaginatedResponse> {
+  const response =
+    await axiosInstance.get<PurchaseRequisitionPaginatedResponse>(
+      "/purchase-requisitions/paginated",
+      { params },
+    );
 
   return response.data;
 }

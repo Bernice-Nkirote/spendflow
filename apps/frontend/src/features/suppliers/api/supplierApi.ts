@@ -8,12 +8,25 @@ import type {
 
 // SUPPLIER USER
 import type {
+  PaginatedSupplierResponse,
+  SupplierListParams,
   SupplierUser,
   SupplierUserCreatePayload,
 } from "../types/supplier.types";
 
 export async function getSuppliers(): Promise<Supplier[]> {
   const response = await axiosInstance.get<Supplier[]>("/suppliers/");
+  return response.data;
+}
+
+export async function getPaginatedSuppliers(
+  params: SupplierListParams = {},
+): Promise<PaginatedSupplierResponse> {
+  const response = await axiosInstance.get<PaginatedSupplierResponse>(
+    "/suppliers/paginated",
+    { params },
+  );
+
   return response.data;
 }
 

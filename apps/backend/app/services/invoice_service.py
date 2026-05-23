@@ -19,7 +19,7 @@ from app.schemas.invoice_line_item_schema import (
     InvoiceLineItemCreate,
     InvoiceLineItemUpdate,
 )
-from app.schemas.invoice_schema import InvoiceCreate, InvoiceUpdate
+from app.schemas.invoice_schema import InvoiceCreate, InvoiceUpdate, InvoicePaginatedRead
 from app.services.permission_service import PermissionService
 from app.services.approval_instance_service import ApprovalInstanceService
 from app.services.audit_log_service import AuditLogService
@@ -324,6 +324,25 @@ class InvoiceService:
 
         return [self._enrich_invoice_readable_fields(invoice) for invoice in invoices]
 
+    def get_all_invoices_paginated(
+        self,
+        company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> InvoicePaginatedRead:
+        rows = self.get_all_invoices(
+            company_id=company_id,
+            skip=skip,
+            limit=limit,
+        )
+
+        total_count = self.invoice_repo.count_all(company_id)
+
+        return InvoicePaginatedRead(
+            rows=rows,
+            total_count=total_count,
+        )
+
     def get_all_invoices_by_status(
         self,
         invoice_status: InvoiceStatusEnum,
@@ -385,6 +404,30 @@ class InvoiceService:
         )
 
         return [self._enrich_invoice_readable_fields(invoice) for invoice in invoices]
+
+    def get_all_invoices_by_supplier_paginated(
+        self,
+        supplier_id: UUID,
+        company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> InvoicePaginatedRead:
+        rows = self.get_all_invoices_by_supplier(
+            supplier_id=supplier_id,
+            company_id=company_id,
+            skip=skip,
+            limit=limit,
+        )
+
+        total_count = self.invoice_repo.count_by_supplier(
+            supplier_id=supplier_id,
+            company_id=company_id,
+        )
+
+        return InvoicePaginatedRead(
+            rows=rows,
+            total_count=total_count,
+        )
 
     def get_all_invoices_by_purchase_order(
         self,

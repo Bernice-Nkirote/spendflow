@@ -46,6 +46,13 @@ class ExchangeRateRepository:
             .all()
         )
 
+    def count_all(self, company_id: UUID) -> int:
+        return (
+            self.db.query(ExchangeRate)
+            .filter(ExchangeRate.company_id == company_id)
+            .count()
+        )
+
     def get_by_currency_pair_and_date(
         self,
         company_id: UUID,

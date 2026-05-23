@@ -1,18 +1,14 @@
-import type { ApprovalQueueItem } from "../types/dashboard.types";
+import { Link } from "react-router-dom";
 import EmptyState from "../../../components/ui/EmptyState";
+import StatusBadge from "../../../components/ui/StatusBadge";
+import type { ApprovalQueueItem } from "../types/dashboard.types";
 
 type ApprovalQueueProps = {
   items: ApprovalQueueItem[] | undefined;
 };
 
-const statusClasses: Record<string, string> = {
-  APPROVED: "bg-green-50 text-green-700 ring-green-600/20",
-  PENDING: "bg-yellow-50 text-yellow-700 ring-yellow-600/20",
-  REJECTED: "bg-red-50 text-red-700 ring-red-600/20",
-};
-
 function formatDate(value: string) {
-  return new Date(value).toLocaleDateString(undefined, {
+  return new Date(value).toLocaleDateString("en-KE", {
     year: "numeric",
     month: "short",
     day: "numeric",
@@ -20,70 +16,56 @@ function formatDate(value: string) {
 }
 
 export default function ApprovalQueue({ items }: ApprovalQueueProps) {
+  const visibleItems = items?.slice(0, 5) ?? [];
+
   return (
     <div>
       <div className="mb-4">
-        <h2 className="text-lg font-semibold text-gray-900">Approval Queue</h2>
-        <p className="mt-1 text-sm text-gray-500">
-          Documents currently requiring approval action.
-        </p>
+        <div>
+          <h2 className="text-lg font-semibold text-primary-black">
+            Approval Queue
+          </h2>
+          <p className="mt-1 text-sm leading-5 text-primary-gray">
+            Documents currently requiring approval action.
+          </p>
+        </div>
       </div>
 
       {!items || items.length === 0 ? (
-        <EmptyState message="No pending approvals" />
+        <EmptyState message="No pending approvals." />
       ) : (
-        <div className="max-h-[420px] overflow-auto rounded-lg border border-gray-200">
-          {" "}
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="sticky top-0 z-10 bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left font-medium text-gray-500">
-                  Document
-                </th>
-                <th className="px-4 py-3 text-left font-medium text-gray-500">
-                  Requested By
-                </th>
-                <th className="px-4 py-3 text-left font-medium text-gray-500">
-                  Status
-                </th>
-                <th className="px-4 py-3 text-left font-medium text-gray-500">
-                  Created
-                </th>
-              </tr>
-            </thead>
+        <div className="space-y-3">
+          {visibleItems.map((item) => (
+            <Link
+              key={item.id}
+              to={`/approvals/${item.id}`}
+              state={{ from: "dashboard" }}
+              className="block rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-primary-blue/30 hover:bg-gray-50 hover:shadow-md"
+            >
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-primary-blue">
+                    {item.documentReference}
+                  </p>
+                  <p className="mt-1 text-xs font-medium uppercase tracking-wide text-primary-gray">
+                    {item.documentType}
+                  </p>
+                </div>
 
-            <tbody className="divide-y divide-gray-100 bg-white">
-              {items.slice(0, 10).map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-gray-900">
-                      {item.documentReference}
-                    </p>
-                    <p className="text-xs text-gray-500">{item.documentType}</p>
-                  </td>
+                <StatusBadge variant="warning">{item.status}</StatusBadge>
+              </div>
 
-                  <td className="px-4 py-3 text-gray-600">
+              <div className="mt-3 grid gap-2 text-xs text-primary-gray sm:grid-cols-2">
+                <p>
+                  Requested by{" "}
+                  <span className="font-medium text-primary-black">
                     {item.requestedBy ?? "Unknown user"}
-                  </td>
-
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${
-                        statusClasses[item.status] ??
-                        "bg-gray-50 text-gray-700 ring-gray-600/20"
-                      }`}
-                    >
-                      {item.status}
-                    </span>
-                  </td>
-
-                  <td className="px-4 py-3 text-gray-500">
-                    {formatDate(item.createdAt)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </span>
+                </p>
+                <p className="sm:text-right">{formatDate(item.createdAt)}</p>
+              </div>
+            </Link>
+          ))}
         </div>
       )}
     </div>

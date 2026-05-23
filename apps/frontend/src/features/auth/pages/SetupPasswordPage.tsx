@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { setupPassword } from "./authApi";
+import { setupPassword } from "../api/authApi";
 
 function SetupPasswordPage() {
   const [searchParams] = useSearchParams();

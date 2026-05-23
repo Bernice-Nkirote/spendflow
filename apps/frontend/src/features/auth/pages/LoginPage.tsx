@@ -1,11 +1,12 @@
 import axios from "axios";
+import axiosInstance from "../../../api/axiosInstance";
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axiosInstance from "../../api/axiosInstance";
-import Button from "../../components/ui/Button";
-import Card from "../../components/ui/Card";
-import Input from "../../components/ui/Input";
-import PasswordInput from "../../components/ui/PasswordInput";
+import { login } from "../api/authApi";
+import Button from "../../../components/ui/Button";
+import Card from "../../../components/ui/Card";
+import Input from "../../../components/ui/Input";
+import PasswordInput from "../../../components/ui/PasswordInput";
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -73,24 +74,31 @@ function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await axiosInstance.post("/auth/login", {
+      const response = await login({
         company_name: companyName.trim(),
-        email: email.trim(),
+        email: email.trim().toLowerCase(),
         password,
       });
 
-      const token = response.data.access_token;
+      const accessToken = response.access_token;
+      const refreshToken = response.refresh_token;
 
-      localStorage.setItem("access_token", token);
+      localStorage.setItem("access_token", accessToken);
+      localStorage.setItem("refresh_token", refreshToken);
 
       const userResponse = await axiosInstance.get("/auth/me");
       localStorage.setItem("user", JSON.stringify(userResponse.data));
 
-      navigate("/");
+      const returnTo = sessionStorage.getItem("returnToAfterLogin");
+
+      sessionStorage.removeItem("returnToAfterLogin");
+
+      navigate(returnTo || "/");
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
         const status = err.response?.status;
         const detail = err.response?.data?.detail;
+
         if (status === 404) {
           setFormError(
             "Company not found. Please register your company before signing in.",
@@ -105,21 +113,51 @@ function LoginPage() {
           return;
         }
 
-        if (typeof detail === "string") {
-          if (detail.toLowerCase().includes("company")) {
-            setFormError(
-              "Company not found. Please register your company before signing in.",
-            );
-            return;
-          }
+        if (status === 401) {
+          setFormError(
+            "We could not match that company, email, and password. Please check your details.",
+          );
+          return;
+        }
 
+        if (
+          status === 403 &&
+          typeof detail === "string" &&
+          detail === "Company is inactive."
+        ) {
+          setFormError(
+            "Company is inactive. Please contact your administrator.",
+          );
+          return;
+        }
+
+        if (
+          status === 403 &&
+          typeof detail === "string" &&
+          detail === "User account is inactive."
+        ) {
+          setFormError(
+            "User account is inactive. Please contact your administrator.",
+          );
+          return;
+        }
+
+        if (
+          typeof detail === "string" &&
+          detail.toLowerCase().includes("company")
+        ) {
+          setFormError(
+            "Company not found. Please register your company before signing in.",
+          );
+          return;
+        }
+
+        if (typeof detail === "string") {
           setFormError(detail);
           return;
         }
 
-        setFormError(
-          "Login failed. Please register your company first, then sign in with your admin account.",
-        );
+        setFormError("Login failed. Please try again.");
         return;
       }
 
@@ -178,15 +216,26 @@ function LoginPage() {
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Signing in..." : "Sign In"}
           </Button>
-          <p className="mt-4 text-center text-sm text-primary-gray">
-            Don’t have a company account?{" "}
-            <Link
-              to="/company-signup"
-              className="text-primary-blue hover:underline"
-            >
-              Register your company
-            </Link>
-          </p>
+          <div className="mt-4 space-y-2 text-center text-sm text-primary-gray">
+            <p>
+              <Link
+                to="/forgot-password"
+                className="text-primary-blue hover:underline"
+              >
+                Forgot your password?
+              </Link>
+            </p>
+
+            <p>
+              Don’t have a company account?{" "}
+              <Link
+                to="/company-signup"
+                className="text-primary-blue hover:underline"
+              >
+                Register your company
+              </Link>
+            </p>
+          </div>
         </form>
       </Card>
     </div>

@@ -44,6 +44,13 @@ class UserRepository:
             .all()
         )
 
+    def count_all(self, company_id: UUID) -> int:
+        return (
+            self.db.query(User)
+            .filter(User.company_id == company_id)
+            .count()
+        )
+
     def get_by_email(self, email: str, company_id: UUID) -> Optional[User]:
         return (
             self.db.query(User)

@@ -1,5 +1,6 @@
 import axiosInstance from "../../../api/axiosInstance";
 import type {
+  PaginatedRolesResponse,
   Role,
   RoleCreatePayload,
   RoleUpdatePayload,
@@ -7,6 +8,26 @@ import type {
 
 export async function getRoles(): Promise<Role[]> {
   const response = await axiosInstance.get<Role[]>("/roles/");
+  return response.data;
+}
+
+export async function getPaginatedRoles({
+  skip,
+  limit,
+}: {
+  skip: number;
+  limit: number;
+}): Promise<PaginatedRolesResponse> {
+  const response = await axiosInstance.get<PaginatedRolesResponse>(
+    "/roles/paginated",
+    {
+      params: {
+        skip,
+        limit,
+      },
+    },
+  );
+
   return response.data;
 }
 

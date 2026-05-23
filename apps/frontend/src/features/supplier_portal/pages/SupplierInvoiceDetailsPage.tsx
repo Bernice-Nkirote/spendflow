@@ -1,13 +1,16 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
 
+import BackButton from "../../../components/ui/BackButton";
 import Button from "../../../components/ui/Button";
-import Input from "../../../components/ui/Input";
 import Card from "../../../components/ui/Card";
 import EmptyState from "../../../components/ui/EmptyState";
 import ErrorState from "../../../components/ui/ErrorState";
+import FloatingAlert from "../../../components/ui/FloatingAlert";
+import Input from "../../../components/ui/Input";
 import LoadingState from "../../../components/ui/LoadingState";
+import TableWrapper from "../../../components/ui/TableWrapper";
+import { useFloatingAlert } from "../../../components/ui/useFloatingAlert";
 import { formatCurrency } from "../../../utils/formatCurrency";
 import {
   getSupplierInvoice,
@@ -15,55 +18,40 @@ import {
   updateSupplierInvoice,
 } from "../api/supplierPortalApi";
 import SupplierInvoiceStatusBadge from "../components/SupplierInvoiceStatusBadge";
-
-type SupplierInvoiceLineItem = {
-  id: string;
-  purchase_order_item_id: string;
-  description: string;
-  invoiced_quantity: string;
-  unit_price: string;
-  total_price: string;
-};
-
-type SupplierInvoice = {
-  id: string;
-  invoice_number: string;
-  po_number?: string | null;
-  supplier_name?: string | null;
-  submitted_by_supplier_user_name?: string | null;
-  status: string;
-  total_amount: string;
-  currency: string;
-  base_amount?: string | null;
-  base_currency?: string | null;
-  exchange_rate?: string | null;
-  exchange_rate_date?: string | null;
-  created_at: string;
-  updated_at: string;
-  line_items: SupplierInvoiceLineItem[];
-};
+import type {
+  SupplierInvoice,
+  SupplierInvoiceLineItem,
+} from "../types/supplierPortal.types";
+import { useParams } from "react-router-dom";
 
 function SupplierInvoiceDetailsPage() {
   const { id } = useParams();
+  const { alert, showAlert, clearAlert } = useFloatingAlert();
 
   const [invoice, setInvoice] = useState<SupplierInvoice | null>(null);
+  const [editableItems, setEditableItems] = useState<SupplierInvoiceLineItem[]>(
+    [],
+  );
+
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editableItems, setEditableItems] = useState<SupplierInvoiceLineItem[]>(
-    [],
-  );
   const [error, setError] = useState("");
 
   async function loadInvoice() {
-    if (!id) return;
+    if (!id) {
+      setError("Invoice is required.");
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
       setError("");
 
       const data = await getSupplierInvoice(id);
+
       setInvoice(data);
       setEditableItems(data.line_items);
     } catch {
@@ -83,19 +71,24 @@ function SupplierInvoiceDetailsPage() {
     try {
       setSubmitting(true);
       setError("");
+      clearAlert();
 
       const submittedInvoice = await submitSupplierInvoice(invoice.id);
+
       setInvoice(submittedInvoice);
+      setEditableItems(submittedInvoice.line_items);
+      showAlert("success", "Invoice submitted for approval successfully.");
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
-        setError(
+        showAlert(
+          "error",
           err.response?.data?.detail ||
             "Failed to submit invoice for approval.",
         );
         return;
       }
 
-      setError("Failed to submit invoice for approval.");
+      showAlert("error", "Failed to submit invoice for approval.");
     } finally {
       setSubmitting(false);
     }
@@ -124,19 +117,21 @@ function SupplierInvoiceDetailsPage() {
     setEditableItems(invoice.line_items);
     setIsEditing(false);
     setError("");
+    clearAlert();
   }
 
   async function handleSaveInvoiceChanges() {
     if (!invoice) return;
 
     if (editableItems.length === 0) {
-      setError("At least one invoice line item is required.");
+      showAlert("error", "At least one invoice line item is required.");
       return;
     }
 
     try {
       setSaving(true);
       setError("");
+      clearAlert();
 
       const updatedInvoice = await updateSupplierInvoice(invoice.id, {
         line_items: editableItems.map((item) => ({
@@ -150,16 +145,19 @@ function SupplierInvoiceDetailsPage() {
       setInvoice(updatedInvoice);
       setEditableItems(updatedInvoice.line_items);
       setIsEditing(false);
+
+      showAlert("success", "Invoice updated successfully.");
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
-        setError(
+        showAlert(
+          "error",
           err.response?.data?.detail ||
             "Failed to update invoice. Please try again.",
         );
         return;
       }
 
-      setError("Failed to update invoice. Please try again.");
+      showAlert("error", "Failed to update invoice. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -183,14 +181,20 @@ function SupplierInvoiceDetailsPage() {
 
   return (
     <div className="space-y-6">
+      {alert && (
+        <FloatingAlert
+          type={alert.type}
+          message={alert.message}
+          onClose={clearAlert}
+        />
+      )}
+
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <div>
-          <Link
-            to="/supplier-portal/invoices"
-            className="text-sm font-medium text-primary-blue hover:underline"
-          >
-            ← Back to Supplier Invoices
-          </Link>
+          <BackButton
+            fallbackLabel="Back to Supplier Invoices"
+            fallbackTo="/supplier-portal/invoices"
+          />
 
           <p className="mt-4 text-sm text-primary-gray">Invoice</p>
           <h1 className="text-2xl font-bold text-primary-black">
@@ -233,7 +237,11 @@ function SupplierInvoiceDetailsPage() {
                 </Button>
 
                 {canSubmit && (
-                  <Button onClick={handleSubmitInvoice} disabled={submitting}>
+                  <Button
+                    type="button"
+                    onClick={handleSubmitInvoice}
+                    disabled={submitting}
+                  >
                     {submitting ? "Submitting..." : "Submit for Approval"}
                   </Button>
                 )}
@@ -246,14 +254,23 @@ function SupplierInvoiceDetailsPage() {
       {error && <ErrorState message={error} />}
 
       <Card>
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold text-primary-black">
+            Invoice Summary
+          </h2>
+          <p className="mt-1 text-sm text-gray-600">
+            Key status, purchase order, and amount information.
+          </p>
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <p className="text-xs font-medium uppercase text-primary-gray">
               Status
             </p>
-            <p className="mt-1 font-semibold text-primary-black">
+            <div className="mt-1">
               <SupplierInvoiceStatusBadge status={invoice.status} />
-            </p>
+            </div>
           </div>
 
           <div>
@@ -291,9 +308,14 @@ function SupplierInvoiceDetailsPage() {
       </Card>
 
       <Card>
-        <h2 className="mb-4 text-lg font-semibold text-primary-black">
-          Invoice Information
-        </h2>
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold text-primary-black">
+            Invoice Information
+          </h2>
+          <p className="mt-1 text-sm text-gray-600">
+            Supplier, submitter, and date details.
+          </p>
+        </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
@@ -326,9 +348,14 @@ function SupplierInvoiceDetailsPage() {
       </Card>
 
       <Card>
-        <h2 className="mb-4 text-lg font-semibold text-primary-black">
-          Invoice Line Items
-        </h2>
+        <div className="mb-4">
+          <h2 className="text-lg font-semibold text-primary-black">
+            Invoice Line Items
+          </h2>
+          <p className="mt-1 text-sm text-gray-600">
+            Review or edit invoice line items while the invoice is editable.
+          </p>
+        </div>
 
         {invoice.line_items.length === 0 ? (
           <EmptyState
@@ -336,23 +363,26 @@ function SupplierInvoiceDetailsPage() {
             message="This invoice does not have any line items."
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50">
+          <TableWrapper minWidth="980px">
+            <table className="w-full table-fixed text-left text-sm">
+              <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
                 <tr>
-                  <th className="px-4 py-3 text-left font-semibold">
+                  <th className="w-72 whitespace-nowrap px-4 py-3">
                     Description
                   </th>
-                  <th className="px-4 py-3 text-right font-semibold">
+                  <th className="w-40 whitespace-nowrap px-4 py-3 text-right">
                     Quantity
                   </th>
-                  <th className="px-4 py-3 text-right font-semibold">
+                  <th className="w-44 whitespace-nowrap px-4 py-3 text-right">
                     Unit Price
                   </th>
-                  <th className="px-4 py-3 text-right font-semibold">Total</th>
+                  <th className="w-40 whitespace-nowrap px-4 py-3 text-right">
+                    Total
+                  </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 bg-white">
+
+              <tbody className="divide-y">
                 {(isEditing ? editableItems : invoice.line_items).map(
                   (item, index) => {
                     const lineTotal =
@@ -375,7 +405,9 @@ function SupplierInvoiceDetailsPage() {
                               }
                             />
                           ) : (
-                            item.description
+                            <span title={item.description} className="truncate">
+                              {item.description}
+                            </span>
                           )}
                         </td>
 
@@ -396,7 +428,9 @@ function SupplierInvoiceDetailsPage() {
                               }
                             />
                           ) : (
-                            item.invoiced_quantity
+                            <span className="whitespace-nowrap">
+                              {item.invoiced_quantity}
+                            </span>
                           )}
                         </td>
 
@@ -417,14 +451,16 @@ function SupplierInvoiceDetailsPage() {
                               }
                             />
                           ) : (
-                            formatCurrency(
-                              Number(item.unit_price),
-                              invoice.currency,
-                            )
+                            <span className="whitespace-nowrap">
+                              {formatCurrency(
+                                Number(item.unit_price),
+                                invoice.currency,
+                              )}
+                            </span>
                           )}
                         </td>
 
-                        <td className="px-4 py-3 text-right font-medium">
+                        <td className="whitespace-nowrap px-4 py-3 text-right font-medium">
                           {formatCurrency(lineTotal, invoice.currency)}
                         </td>
                       </tr>
@@ -433,7 +469,7 @@ function SupplierInvoiceDetailsPage() {
                 )}
               </tbody>
             </table>
-          </div>
+          </TableWrapper>
         )}
       </Card>
     </div>

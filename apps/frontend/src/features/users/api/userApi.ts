@@ -2,12 +2,35 @@ import axiosInstance from "../../../api/axiosInstance";
 
 import type {
   CreateUserPayload,
+  PaginatedUsersResponse,
   UpdateUserPayload,
   User,
 } from "../types/user.types";
 
 export async function getUsers(): Promise<User[]> {
   const response = await axiosInstance.get<User[]>("/users/");
+  return response.data;
+}
+
+type GetPaginatedUsersParams = {
+  skip: number;
+  limit: number;
+};
+
+export async function getPaginatedUsers({
+  skip,
+  limit,
+}: GetPaginatedUsersParams): Promise<PaginatedUsersResponse> {
+  const response = await axiosInstance.get<PaginatedUsersResponse>(
+    "/users/paginated",
+    {
+      params: {
+        skip,
+        limit,
+      },
+    },
+  );
+
   return response.data;
 }
 

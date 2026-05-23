@@ -13,11 +13,16 @@ from app.models.purchase_requisition_item import PurchaseRequisitionItem
 from app.repositories.approval_workflow_repository import ApprovalWorkflowRepository
 from app.repositories.pr_item_repository import PurchaseRequisitionItemRepository
 from app.repositories.pr_repository import PurchaseRequisitionRepository
-from app.schemas.pr_schema import PurchaseRequisitionCreate, PurchaseRequisitionUpdate
+from app.schemas.pr_schema import (
+    PurchaseRequisitionCreate,
+    PurchaseRequisitionUpdate,
+    PurchaseRequisitionPaginatedRead,
+)
 from app.services.approval_instance_service import ApprovalInstanceService
 from app.services.permission_service import PermissionService
 from app.services.audit_log_service import AuditLogService
 from app.services.exchange_rate_service import ExchangeRateService
+
 
 class PurchaseRequisitionService:
     def __init__(
@@ -327,6 +332,25 @@ class PurchaseRequisitionService:
             )
 
         return self.requisition_repo.get_all(company_id, skip=skip, limit=limit)
+
+    def get_all_purchase_requisitions_paginated(
+        self,
+        company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> PurchaseRequisitionPaginatedRead:
+        rows = self.get_all_purchase_requisitions(
+            company_id=company_id,
+            skip=skip,
+            limit=limit,
+        )
+
+        total_count = self.requisition_repo.count_all(company_id)
+
+        return PurchaseRequisitionPaginatedRead(
+            rows=rows,
+            total_count=total_count,
+        )
 
     def get_all_purchase_requisitions_by_status(
         self,

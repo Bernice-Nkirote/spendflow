@@ -50,6 +50,13 @@ class PaymentRepository:
             .all()
         )
 
+    def count_all(self, company_id: UUID) -> int:
+        return (
+            self.db.query(func.count(Payment.id))
+            .filter(Payment.company_id == company_id)
+            .scalar()
+        )
+
     def get_by_invoice(
         self,
         invoice_id: UUID,
@@ -91,6 +98,21 @@ class PaymentRepository:
             .offset(skip)
             .limit(limit)
             .all()
+        )
+
+    def count_by_supplier(
+        self,
+        supplier_id: UUID,
+        company_id: UUID,
+    ) -> int:
+        return (
+            self.db.query(func.count(Payment.id))
+            .join(Payment.invoice)
+            .filter(
+                Payment.company_id == company_id,
+                Payment.invoice.has(supplier_id=supplier_id),
+            )
+            .scalar()
         )
 
     def get_by_status(

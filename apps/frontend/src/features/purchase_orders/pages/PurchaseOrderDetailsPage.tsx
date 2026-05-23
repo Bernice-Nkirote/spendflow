@@ -1,15 +1,23 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 
+import BackButton from "../../../components/ui/BackButton";
+import Button from "../../../components/ui/Button";
+import Card from "../../../components/ui/Card";
 import ErrorState from "../../../components/ui/ErrorState";
 import LoadingState from "../../../components/ui/LoadingState";
+import PageContainer from "../../../components/ui/PageContainer";
+import TableWrapper from "../../../components/ui/TableWrapper";
+import PageHeader from "../../../components/ui/PageHeader";
 
-import { getPurchaseOrderById } from "../api/purchaseOrderApi";
 import { getInvoicesByPurchaseOrder } from "../../invoices/api/invoiceApi";
-
-import type { PurchaseOrderDetails } from "../types/purchaseOrder.types";
+import { getPurchaseOrderById } from "../api/purchaseOrderApi";
 import PurchaseOrderActions from "../components/PurchaseOrderActions";
+import PurchaseOrderStatusBadge from "../components/PurchaseOrderStatusBadge";
+
 import { formatCurrency } from "../../../utils/formatCurrency";
+import { userHasPermission } from "../../../utils/permissions";
+import type { PurchaseOrderDetails } from "../types/purchaseOrder.types";
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "-";
@@ -33,16 +41,22 @@ function formatRate(value: string | number | null | undefined) {
   });
 }
 
-function formatStatus(status: string) {
-  return status
-    .toLowerCase()
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+function formatQuantity(value: string | number | null | undefined) {
+  const numericValue = Number(value ?? 0);
+
+  if (Number.isNaN(numericValue)) return "0";
+
+  return numericValue.toLocaleString("en-KE", {
+    maximumFractionDigits: 2,
+  });
 }
 
 export default function PurchaseOrderDetailsPage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+
+  const returnTo = searchParams.get("returnTo");
+  const canCreateInvoice = userHasPermission("invoice.create");
 
   const [purchaseOrder, setPurchaseOrder] =
     useState<PurchaseOrderDetails | null>(null);
@@ -51,6 +65,7 @@ export default function PurchaseOrderDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [linkedInvoiceId, setLinkedInvoiceId] = useState<string | null>(null);
+
   useEffect(() => {
     async function fetchPurchaseOrder() {
       if (!id) {
@@ -89,73 +104,68 @@ export default function PurchaseOrderDetailsPage() {
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-6">
-      <div className="flex flex-col gap-4 rounded-xl border bg-white p-4 shadow-sm sm:p-5 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap gap-3">
-            <Link
-              to="/purchase-orders"
-              className="text-sm font-medium text-primary-blue hover:underline"
-            >
-              ← Back to Purchase Orders
-            </Link>
+    <PageContainer>
+      {returnTo ? (
+        <BackButton label="Back to Approval" to={returnTo} />
+      ) : (
+        <BackButton
+          fallbackLabel="Back to Purchase Orders"
+          fallbackTo="/purchase-orders"
+        />
+      )}
 
-            <Link
-              to="/reports"
-              className="text-sm font-medium text-primary-blue hover:underline"
-            >
-              ← Back to Reports
-            </Link>
+      <PageHeader
+        title={`Purchase Order ${purchaseOrder.po_number}`}
+        description={`Supplier: ${purchaseOrder.supplier_name ?? "-"}`}
+        actions={<PurchaseOrderStatusBadge status={purchaseOrder.status} />}
+      />
+
+      <Card>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-primary-black">
+              Purchase Order Actions
+            </h2>
+            <p className="mt-1 text-sm text-gray-600">
+              Manage document generation, dispatch, invoice creation, and
+              workflow actions.
+            </p>
           </div>
 
-          <h1 className="mt-3 text-2xl font-semibold text-primary-black">
-            {purchaseOrder.po_number}
-          </h1>
-
-          <p className="mt-1 text-sm text-primary-gray">
-            Supplier: {purchaseOrder.supplier_name ?? "-"}
-          </p>
+          <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+            <PurchaseOrderActions
+              purchaseOrder={purchaseOrder}
+              onUpdated={(updatedPurchaseOrder) => {
+                setPurchaseOrder(updatedPurchaseOrder);
+                setActionError(null);
+              }}
+              onError={setActionError}
+            />
+            {canCreateInvoice &&
+              ["APPROVED", "SENT"].includes(purchaseOrder.status) &&
+              !linkedInvoiceId && (
+                <Link
+                  to={`/invoices/new?purchaseOrderId=${purchaseOrder.id}&from=purchase-order`}
+                >
+                  <Button type="button">Create Invoice</Button>
+                </Link>
+              )}
+            {["APPROVED", "SENT"].includes(purchaseOrder.status) &&
+              linkedInvoiceId && (
+                <Link to={`/invoices/${linkedInvoiceId}`}>
+                  <Button type="button" variant="secondary">
+                    View Invoice
+                  </Button>
+                </Link>
+              )}
+          </div>
         </div>
+      </Card>
 
-        <div className="flex flex-col gap-2 sm:flex-row lg:flex-col lg:items-end">
-          <span className="inline-flex w-fit rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700">
-            {formatStatus(purchaseOrder.status)}
-          </span>
-
-          <span className="text-sm text-primary-gray">
-            Created {formatDate(purchaseOrder.created_at)}
-          </span>
-          <PurchaseOrderActions
-            purchaseOrder={purchaseOrder}
-            onUpdated={(updatedPurchaseOrder) => {
-              setPurchaseOrder(updatedPurchaseOrder);
-              setActionError(null);
-            }}
-            onError={setActionError}
-          />
-          {["APPROVED", "SENT"].includes(purchaseOrder.status) &&
-            !linkedInvoiceId && (
-              <Link
-                to={`/invoices/new?purchaseOrderId=${purchaseOrder.id}&from=purchase-order`}
-              >
-                <button className="inline-flex items-center justify-center rounded-lg bg-primary-blue px-4 py-2 text-sm font-medium text-white transition hover:bg-primary-blue/90">
-                  Create Invoice
-                </button>
-              </Link>
-            )}
-          {["APPROVED", "SENT"].includes(purchaseOrder.status) &&
-            linkedInvoiceId && (
-              <Link to={`/invoices/${linkedInvoiceId}`}>
-                <button className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-primary-black transition hover:bg-gray-50">
-                  View Invoice
-                </button>
-              </Link>
-            )}
-        </div>
-      </div>
       {actionError && <ErrorState message={actionError} />}
+
       <section className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
+        <Card>
           <p className="text-sm text-primary-gray">Original Amount</p>
           <p className="mt-2 text-2xl font-semibold text-primary-black">
             {formatCurrency(
@@ -166,9 +176,9 @@ export default function PurchaseOrderDetailsPage() {
           <p className="mt-1 text-xs text-primary-gray">
             Transaction currency: {purchaseOrder.currency}
           </p>
-        </div>
+        </Card>
 
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
+        <Card>
           <p className="text-sm text-primary-gray">Base Amount</p>
           <p className="mt-2 text-2xl font-semibold text-primary-black">
             {purchaseOrder.base_amount && purchaseOrder.base_currency
@@ -181,9 +191,9 @@ export default function PurchaseOrderDetailsPage() {
           <p className="mt-1 text-xs text-primary-gray">
             Used for approval thresholds
           </p>
-        </div>
+        </Card>
 
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
+        <Card>
           <p className="text-sm text-primary-gray">Exchange Rate</p>
           <p className="mt-2 text-2xl font-semibold text-primary-black">
             {formatRate(purchaseOrder.exchange_rate)}
@@ -194,9 +204,9 @@ export default function PurchaseOrderDetailsPage() {
               ? ` → ${purchaseOrder.base_currency}`
               : ""}
           </p>
-        </div>
+        </Card>
 
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
+        <Card>
           <p className="text-sm text-primary-gray">Supplier</p>
           <p className="mt-2 truncate text-2xl font-semibold text-primary-black">
             {purchaseOrder.supplier_name ?? "-"}
@@ -204,10 +214,10 @@ export default function PurchaseOrderDetailsPage() {
           <p className="mt-1 text-xs text-primary-gray">
             Rate date: {formatDate(purchaseOrder.exchange_rate_date)}
           </p>
-        </div>
+        </Card>
 
-        <div
-          className={`rounded-xl border p-4 shadow-sm ${
+        <Card
+          className={`p-4 shadow-md ${
             purchaseOrder.signed_pdf_file_path
               ? "border-green-200 bg-green-50"
               : "border-yellow-200 bg-yellow-50"
@@ -235,24 +245,24 @@ export default function PurchaseOrderDetailsPage() {
               : "Required before dispatch"}
           </p>
 
-          <p className="mt-1 text-xs text-primary-gray">
+          <p className="mt-1 break-words text-xs text-primary-gray">
             {purchaseOrder.signed_pdf_original_filename ??
               "Download the PO, sign it, then upload the signed PDF."}
           </p>
-        </div>
+        </Card>
       </section>
 
-      <section className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
+      <Card>
         <h2 className="text-lg font-semibold text-primary-black">
           Purchase Order Information
         </h2>
 
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-primary-gray">
+            <p className="text-xs font-semibold uppercase tracking-wide text-primary-gray">
               PO Number
             </p>
-            <p className="mt-1 text-sm text-primary-black">
+            <p className="mt-1 break-words text-sm text-primary-black">
               {purchaseOrder.po_number}
             </p>
           </div>
@@ -262,7 +272,7 @@ export default function PurchaseOrderDetailsPage() {
               PR Number
             </p>
             <p className="mt-1 text-sm text-primary-black">
-              {purchaseOrder.pr_number ?? "-"}
+              {purchaseOrder.pr_number ?? "Standalone"}
             </p>
           </div>
 
@@ -315,9 +325,9 @@ export default function PurchaseOrderDetailsPage() {
             <p className="text-xs font-medium uppercase tracking-wide text-primary-gray">
               Status
             </p>
-            <p className="mt-1 text-sm text-primary-black">
-              {formatStatus(purchaseOrder.status)}
-            </p>
+            <div className="mt-1">
+              <PurchaseOrderStatusBadge status={purchaseOrder.status} />
+            </div>
           </div>
 
           <div>
@@ -360,78 +370,97 @@ export default function PurchaseOrderDetailsPage() {
             <p className="text-xs font-medium uppercase tracking-wide text-primary-gray">
               Notes
             </p>
-            <p className="mt-1 text-sm text-primary-black">
+            <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-primary-black">
               {purchaseOrder.notes || "-"}
             </p>
           </div>
         </div>
-      </section>
+      </Card>
 
-      <section className="min-w-0 rounded-xl border bg-white shadow-sm">
-        <div className="border-b p-4 sm:p-5">
-          <h2 className="text-lg font-semibold text-primary-black">
-            Purchase Order Items
-          </h2>
-          <p className="mt-1 text-sm text-primary-gray">
-            Item-level details attached to this purchase order.
+      <Card>
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-primary-black">
+              Purchase Order Items
+            </h2>
+            <p className="mt-1 text-sm text-primary-gray">
+              Item-level details attached to this purchase order.
+            </p>
+          </div>
+
+          <p className="text-sm text-primary-gray">
+            {purchaseOrder.items.length} items
           </p>
         </div>
 
-        <div className="max-w-full overflow-x-auto">
-          <table className="min-w-[800px] border-separate border-spacing-0 text-sm">
-            <thead className="bg-gray-50 text-left">
-              <tr>
-                <th className="border-b px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-600">
-                  Item
-                </th>
-                <th className="border-b px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-600">
-                  Description
-                </th>
-                <th className="border-b px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">
-                  Quantity
-                </th>
-                <th className="border-b px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">
-                  Unit Price
-                </th>
-                <th className="border-b px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">
-                  Total
-                </th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {purchaseOrder.items.map((item) => (
-                <tr
-                  key={item.id}
-                  className="transition-colors hover:bg-gray-50"
-                >
-                  <td className="border-b px-4 py-3 text-gray-700">
-                    {item.item_name}
-                  </td>
-                  <td className="border-b px-4 py-3 text-gray-700">
-                    {item.description || "-"}
-                  </td>
-                  <td className="border-b px-4 py-3 text-right tabular-nums text-gray-700">
-                    {item.quantity}
-                  </td>
-                  <td className="border-b px-4 py-3 text-right tabular-nums text-gray-700">
-                    {formatCurrency(
-                      Number(item.unit_price ?? 0),
-                      purchaseOrder.currency,
-                    )}
-                  </td>
-                  <td className="border-b px-4 py-3 text-right tabular-nums text-gray-700">
-                    {formatCurrency(
-                      Number(item.total_price ?? 0),
-                      purchaseOrder.currency,
-                    )}
-                  </td>
+        <div className="mt-4">
+          <TableWrapper minWidth="850px">
+            <table className="w-full divide-y divide-gray-200 bg-white text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                    Item
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                    Description
+                  </th>
+                  <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                    Quantity
+                  </th>
+                  <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                    Unit Price
+                  </th>
+                  <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                    Total
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+
+              <tbody className="divide-y divide-gray-100 bg-white">
+                {purchaseOrder.items.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium text-primary-black">
+                      <span
+                        className="block max-w-[260px] whitespace-pre-wrap break-words"
+                        title={item.item_name}
+                      >
+                        {item.item_name}
+                      </span>
+                    </td>
+
+                    <td className="px-4 py-3 text-primary-black">
+                      <span
+                        className="block max-w-[360px] whitespace-pre-wrap break-words leading-6"
+                        title={item.description ?? ""}
+                      >
+                        {item.description || "-"}
+                      </span>
+                    </td>
+
+                    <td className="whitespace-nowrap px-4 py-3 text-right text-primary-black">
+                      {formatQuantity(item.quantity)}
+                    </td>
+
+                    <td className="whitespace-nowrap px-4 py-3 text-right text-primary-black">
+                      {formatCurrency(
+                        Number(item.unit_price ?? 0),
+                        purchaseOrder.currency,
+                      )}
+                    </td>
+
+                    <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-primary-black">
+                      {formatCurrency(
+                        Number(item.total_price ?? 0),
+                        purchaseOrder.currency,
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableWrapper>
         </div>
-      </section>
-    </div>
+      </Card>
+    </PageContainer>
   );
 }

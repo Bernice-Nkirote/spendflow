@@ -2,109 +2,119 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import Button from "../../../components/ui/Button";
+import PageContainer from "../../../components/ui/PageContainer";
+import PageHeader from "../../../components/ui/PageHeader";
+import Pagination from "../../../components/ui/Pagination";
+
 import EmptyState from "../../../components/ui/EmptyState";
 import ErrorState from "../../../components/ui/ErrorState";
 import LoadingState from "../../../components/ui/LoadingState";
+import { userHasPermission } from "../../../utils/permissions";
 
-import { getPurchaseRequisitions } from "../api/purchaseRequisitionApi";
+import { getPaginatedPurchaseRequisitions } from "../api/purchaseRequisitionApi";
 import PurchaseRequisitionTable from "../components/PurchaseRequisitionTable";
 import type { PurchaseRequisitionListItem } from "../types/purchaseRequisition.types";
-
-const PAGE_SIZE = 20;
 
 export default function PurchaseRequisitionsPage() {
   const [purchaseRequisitions, setPurchaseRequisitions] = useState<
     PurchaseRequisitionListItem[]
   >([]);
 
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [totalCount, setTotalCount] = useState(0);
 
-  const skip = (page - 1) * PAGE_SIZE;
-  const hasPreviousPage = page > 1;
-  const hasNextPage = purchaseRequisitions.length === PAGE_SIZE;
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [recordsLoading, setRecordsLoading] = useState(true);
+
+  const [error, setError] = useState<string | null>(null);
+  const [recordsError, setRecordsError] = useState<string | null>(null);
+
+  const skip = (page - 1) * pageSize;
+  const canCreatePR = userHasPermission("pr.create");
 
   useEffect(() => {
-    async function fetchPurchaseRequisitions() {
+    async function fetchPurchaseRequisitionRecords() {
       try {
-        setLoading(true);
-        setError(null);
+        setRecordsLoading(true);
+        setRecordsError(null);
 
-        const response = await getPurchaseRequisitions({
+        const response = await getPaginatedPurchaseRequisitions({
           skip,
-          limit: PAGE_SIZE,
+          limit: pageSize,
         });
 
-        setPurchaseRequisitions(response);
+        setPurchaseRequisitions(response.rows);
+        setTotalCount(response.total_count);
       } catch {
-        setError("Failed to load purchase requisitions.");
+        if (initialLoading) {
+          setError("Failed to load purchase requisitions.");
+        } else {
+          setRecordsError("Failed to update purchase requisitions.");
+        }
       } finally {
-        setLoading(false);
+        setRecordsLoading(false);
+        setInitialLoading(false);
       }
     }
 
-    fetchPurchaseRequisitions();
-  }, [skip]);
+    fetchPurchaseRequisitionRecords();
+  }, [skip, pageSize]);
 
   return (
-    <div className="flex min-w-0 flex-col gap-6">
-      <div className="flex flex-col gap-4 rounded-xl border bg-white p-4 shadow-sm sm:p-5 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-primary-black">
-            Purchase Requisitions
-          </h1>
+    <PageContainer>
+      <PageHeader
+        title="Purchase Requisitions"
+        description="View, track, and manage internal purchase requisition requests."
+        actions={
+          canCreatePR ? (
+            <Link to="/purchase-requisitions/new">
+              <Button>Create PR</Button>
+            </Link>
+          ) : undefined
+        }
+      />
 
-          <p className="mt-1 text-sm text-primary-gray">
-            View and manage internal purchase requisition requests.
-          </p>
-        </div>
+      {initialLoading && <LoadingState />}
 
-        <Link to="/purchase-requisitions/new">
-          <Button>Create PR</Button>
-        </Link>
-      </div>
+      {!initialLoading && error && <ErrorState message={error} />}
 
-      {loading && <LoadingState />}
-
-      {!loading && error && <ErrorState message={error} />}
-
-      {!loading && !error && purchaseRequisitions.length === 0 && (
-        <EmptyState
-          title="No purchase requisitions found"
-          message="Purchase requisitions created by your company will appear here."
-        />
-      )}
-
-      {!loading && !error && purchaseRequisitions.length > 0 && (
+      {!initialLoading && !error && (
         <>
-          <PurchaseRequisitionTable
-            purchaseRequisitions={purchaseRequisitions}
-          />
+          {recordsLoading && purchaseRequisitions.length > 0 && (
+            <p className="mb-3 rounded-lg border border-blue-100 bg-blue-50 px-4 py-2 text-sm text-blue-700">
+              Updating purchase requisitions...
+            </p>
+          )}
 
-          <div className="flex flex-col gap-3 rounded-xl border bg-white px-4 py-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-primary-gray">Page {page}</p>
+          {recordsError ? (
+            <ErrorState message={recordsError} />
+          ) : purchaseRequisitions.length === 0 && !recordsLoading ? (
+            <EmptyState
+              title="No purchase requisitions found"
+              message="Purchase requisitions created by your company will appear here."
+            />
+          ) : (
+            <>
+              <PurchaseRequisitionTable
+                purchaseRequisitions={purchaseRequisitions}
+              />
 
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                disabled={!hasPreviousPage}
-                onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-              >
-                Previous
-              </Button>
-
-              <Button
-                type="button"
-                disabled={!hasNextPage}
-                onClick={() => setPage((prev) => prev + 1)}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
+              <Pagination
+                page={page}
+                pageSize={pageSize}
+                totalItems={totalCount}
+                onPageChange={setPage}
+                onPageSizeChange={(nextPageSize) => {
+                  setPageSize(nextPageSize);
+                  setPage(1);
+                }}
+              />
+            </>
+          )}
         </>
       )}
-    </div>
+    </PageContainer>
   );
 }

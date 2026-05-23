@@ -1,12 +1,17 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.auth_dependancy import get_current_admin_user, get_current_user
 from app.core.database import get_db
 from app.repositories.department_repository import DepartmentRepository
-from app.schemas.department_schema import DepartmentCreate, DepartmentRead, DepartmentUpdate
+from app.schemas.department_schema import (
+    DepartmentCreate,
+    DepartmentRead,
+    DepartmentUpdate,
+    PaginatedDepartmentResponse,
+)
 from app.services.department_service import DepartmentService
 
 
@@ -47,6 +52,18 @@ def get_department_options(
     departments = service.get_all_departments(current_user.company_id)
     return [department for department in departments if department.is_active]
 
+@router.get("/paginated", response_model=PaginatedDepartmentResponse)
+def get_paginated_departments(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1),
+    service: DepartmentService = Depends(get_department_service),
+    current_user=Depends(get_current_admin_user),
+):
+    return service.get_paginated_departments(
+        company_id=current_user.company_id,
+        skip=skip,
+        limit=limit,
+    )
 
 @router.get("/{department_id}", response_model=DepartmentRead)
 def get_department(

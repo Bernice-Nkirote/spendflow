@@ -20,15 +20,15 @@ export default function SummaryCard({
 }: SummaryCardProps) {
   return (
     <div
-      className={`rounded-xl border border-l-4 border-gray-200 border-1-4 p-5 shadow-sm transition hover:shadow-md ${accentColorClasses[accentColor]}`}
+      className={`rounded-xl border border-gray-200 border-l-4 p-5 shadow-sm ${accentColorClasses[accentColor]}`}
     >
-      <p className="text-sm font-medium text-gray-500">{title}</p>
+      <p className="text-sm font-medium text-primary-gray">{title}</p>
 
-      <p className="mt-3 text-xl font-semibold tracking-tight text-gray-900 sm:text-2xl xl:text-3xl">
+      <p className="mt-3 text-2xl font-semibold tracking-tight text-primary-black sm:text-3xl">
         {value}
       </p>
 
-      <p className="mt-2 text-sm text-gray-500">{description}</p>
+      <p className="mt-2 text-sm leading-5 text-primary-gray">{description}</p>
     </div>
   );
 }

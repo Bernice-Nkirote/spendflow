@@ -4,6 +4,8 @@ from typing import Optional
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.approval_instance import ApprovalInstance
+from app.models.workflow_level_roles import WorkflowLevelRole
+from app.models.approval_action import ApprovalAction
 from app.models.enums import ApprovalStatus, EntityTypeEnum
 
 
@@ -56,6 +58,55 @@ class ApprovalInstanceRepository:
             .all()
         )
 
+    def count_all(
+        self,
+        company_id: uuid.UUID,
+        status: Optional[ApprovalStatus] = None,
+        exclude_status: Optional[ApprovalStatus] = None,
+    ) -> int:
+        query = self.db.query(ApprovalInstance).filter(
+            ApprovalInstance.company_id == company_id
+        )
+
+        if status:
+            query = query.filter(ApprovalInstance.status == status)
+
+        if exclude_status:
+            query = query.filter(ApprovalInstance.status != exclude_status)
+
+        return query.count()
+    
+    def get_paginated(
+        self,
+        company_id: uuid.UUID,
+        skip: int = 0,
+        limit: int = 10,
+        status: Optional[ApprovalStatus] = None,
+        exclude_status: Optional[ApprovalStatus] = None,
+    ) -> list[ApprovalInstance]:
+        query = (
+            self.db.query(ApprovalInstance)
+            .options(
+                joinedload(ApprovalInstance.workflow),
+                joinedload(ApprovalInstance.current_level),
+                joinedload(ApprovalInstance.actions),
+            )
+            .filter(ApprovalInstance.company_id == company_id)
+        )
+
+        if status:
+            query = query.filter(ApprovalInstance.status == status)
+
+        if exclude_status:
+            query = query.filter(ApprovalInstance.status != exclude_status)
+
+        return (
+            query.order_by(ApprovalInstance.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+
     def get_by_entity(
         self,
         entity_id: uuid.UUID,
@@ -87,6 +138,57 @@ class ApprovalInstanceRepository:
                 ApprovalInstance.status == ApprovalStatus.PENDING,
             )
             .first()
+        )
+
+    def get_my_pending_queue(
+        self,
+        company_id: uuid.UUID,
+        role_id: uuid.UUID,
+        skip: int = 0,
+        limit: int = 10,
+    ) -> list[ApprovalInstance]:
+        return (
+            self.db.query(ApprovalInstance)
+            .join(
+                WorkflowLevelRole,
+                WorkflowLevelRole.level_id == ApprovalInstance.current_level_id,
+            )
+            .options(
+                joinedload(ApprovalInstance.workflow),
+                joinedload(ApprovalInstance.current_level),
+                joinedload(ApprovalInstance.actions),
+            )
+            .filter(
+                ApprovalInstance.company_id == company_id,
+                ApprovalInstance.status == ApprovalStatus.PENDING,
+                WorkflowLevelRole.company_id == company_id,
+                WorkflowLevelRole.role_id == role_id,
+            )
+            .order_by(ApprovalInstance.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+
+
+    def count_my_pending_queue(
+        self,
+        company_id: uuid.UUID,
+        role_id: uuid.UUID,
+    ) -> int:
+        return (
+            self.db.query(ApprovalInstance)
+            .join(
+                WorkflowLevelRole,
+                WorkflowLevelRole.level_id == ApprovalInstance.current_level_id,
+            )
+            .filter(
+                ApprovalInstance.company_id == company_id,
+                ApprovalInstance.status == ApprovalStatus.PENDING,
+                WorkflowLevelRole.company_id == company_id,
+                WorkflowLevelRole.role_id == role_id,
+            )
+            .count()
         )
 
     def update(self, instance: ApprovalInstance) -> ApprovalInstance:

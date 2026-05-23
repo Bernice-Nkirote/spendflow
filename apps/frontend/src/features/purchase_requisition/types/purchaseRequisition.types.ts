@@ -48,6 +48,11 @@ export type PurchaseRequisitionListItem = Omit<
   "department_name" | "requested_by_name"
 >;
 
+export type PurchaseRequisitionPaginatedResponse = {
+  rows: PurchaseRequisitionListItem[];
+  total_count: number;
+};
+
 export type PurchaseRequisitionListParams = {
   skip?: number;
   limit?: number;

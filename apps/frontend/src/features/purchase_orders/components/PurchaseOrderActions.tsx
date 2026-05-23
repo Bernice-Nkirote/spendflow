@@ -1,7 +1,11 @@
+import axios from "axios";
 import { type ChangeEvent, useState } from "react";
 import { Link } from "react-router-dom";
 
+import { userHasPermission } from "../../../utils/permissions";
+
 import Button from "../../../components/ui/Button";
+import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import {
   downloadPurchaseOrderPdf,
   sendPurchaseOrderToSupplier,
@@ -16,6 +20,18 @@ type Props = {
   onError: (message: string) => void;
 };
 
+function getApiErrorMessage(error: unknown, fallback: string) {
+  if (axios.isAxiosError(error)) {
+    const detail = error.response?.data?.detail;
+
+    if (typeof detail === "string") {
+      return detail;
+    }
+  }
+
+  return fallback;
+}
+
 export default function PurchaseOrderActions({
   purchaseOrder,
   onUpdated,
@@ -25,6 +41,11 @@ export default function PurchaseOrderActions({
   const [downloading, setDownloading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [isSendDialogOpen, setIsSendDialogOpen] = useState(false);
+
+  const canUpdatePO = userHasPermission("po.update");
+  const canSubmitPO = userHasPermission("po.submit");
+  const canDispatchPO = userHasPermission("po.dispatch");
 
   async function handleSubmitForApproval() {
     try {
@@ -33,8 +54,13 @@ export default function PurchaseOrderActions({
 
       const updatedPurchaseOrder = await submitPurchaseOrder(purchaseOrder.id);
       onUpdated(updatedPurchaseOrder);
-    } catch {
-      onError("Failed to submit purchase order for approval.");
+    } catch (error) {
+      onError(
+        getApiErrorMessage(
+          error,
+          "Failed to submit purchase order for approval.",
+        ),
+      );
     } finally {
       setSubmitting(false);
     }
@@ -56,8 +82,10 @@ export default function PurchaseOrderActions({
 
       link.remove();
       window.URL.revokeObjectURL(fileUrl);
-    } catch {
-      onError("Failed to download purchase order PDF.");
+    } catch (error) {
+      onError(
+        getApiErrorMessage(error, "Failed to download purchase order PDF."),
+      );
     } finally {
       setDownloading(false);
     }
@@ -83,8 +111,13 @@ export default function PurchaseOrderActions({
       );
 
       onUpdated(updatedPurchaseOrder);
-    } catch {
-      onError("Failed to upload signed purchase order PDF.");
+    } catch (error) {
+      onError(
+        getApiErrorMessage(
+          error,
+          "Failed to upload signed purchase order PDF.",
+        ),
+      );
     } finally {
       setUploading(false);
       event.target.value = "";
@@ -92,14 +125,6 @@ export default function PurchaseOrderActions({
   }
 
   async function handleSendToSupplier() {
-    const confirmed = window.confirm(
-      "Please confirm the supplier email is correct before dispatching this signed purchase order.",
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
     try {
       setSending(true);
       onError("");
@@ -109,8 +134,14 @@ export default function PurchaseOrderActions({
       );
 
       onUpdated(updatedPurchaseOrder);
-    } catch {
-      onError("Failed to send signed purchase order to supplier.");
+      setIsSendDialogOpen(false);
+    } catch (error) {
+      onError(
+        getApiErrorMessage(
+          error,
+          "Failed to send signed purchase order to supplier.",
+        ),
+      );
     } finally {
       setSending(false);
     }
@@ -119,63 +150,90 @@ export default function PurchaseOrderActions({
   const canDownloadPdf =
     purchaseOrder.status === "APPROVED" || purchaseOrder.status === "SENT";
 
-  if (purchaseOrder.status !== "DRAFT" && !canDownloadPdf) {
+  const hasVisibleDraftActions =
+    purchaseOrder.status === "DRAFT" && (canUpdatePO || canSubmitPO);
+
+  const hasVisibleDispatchActions =
+    purchaseOrder.status === "APPROVED" && canDispatchPO;
+
+  const hasVisibleActions =
+    hasVisibleDraftActions || canDownloadPdf || hasVisibleDispatchActions;
+
+  if (!hasVisibleActions) {
     return null;
   }
 
   return (
-    <div className="flex flex-col gap-2 sm:flex-row lg:flex-col">
-      {purchaseOrder.status === "DRAFT" && (
-        <>
-          <Link to={`/purchase-orders/${purchaseOrder.id}/edit`}>
-            <Button type="button" variant="secondary">
-              Edit PO
+    <>
+      <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+        {purchaseOrder.status === "DRAFT" && (
+          <>
+            {canUpdatePO && (
+              <Link to={`/purchase-orders/${purchaseOrder.id}/edit`}>
+                <Button type="button" variant="secondary">
+                  Edit PO
+                </Button>
+              </Link>
+            )}
+
+            {canSubmitPO && (
+              <Button
+                type="button"
+                onClick={handleSubmitForApproval}
+                disabled={submitting}
+              >
+                {submitting ? "Submitting..." : "Submit for Approval"}
+              </Button>
+            )}
+          </>
+        )}
+
+        {canDownloadPdf && (
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={handleDownloadPdf}
+            disabled={downloading}
+          >
+            {downloading ? "Downloading..." : "Download PDF"}
+          </Button>
+        )}
+
+        {purchaseOrder.status === "APPROVED" && canDispatchPO && (
+          <>
+            <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-primary-black transition hover:bg-gray-50 focus-within:ring-2 focus-within:ring-primary-blue/20">
+              {uploading ? "Uploading..." : "Upload Signed PDF"}
+              <input
+                type="file"
+                accept="application/pdf"
+                className="hidden"
+                onChange={handleUploadSignedPdf}
+                disabled={uploading}
+              />
+            </label>
+
+            <Button
+              type="button"
+              onClick={() => setIsSendDialogOpen(true)}
+              disabled={sending || !purchaseOrder.signed_pdf_file_path}
+            >
+              {sending ? "Sending..." : "Send to Supplier"}
             </Button>
-          </Link>
+          </>
+        )}
+      </div>
 
-          <Button
-            type="button"
-            onClick={handleSubmitForApproval}
-            disabled={submitting}
-          >
-            {submitting ? "Submitting..." : "Submit for Approval"}
-          </Button>
-        </>
-      )}
-
-      {canDownloadPdf && (
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={handleDownloadPdf}
-          disabled={downloading}
-        >
-          {downloading ? "Downloading..." : "Download PDF"}
-        </Button>
-      )}
-
-      {purchaseOrder.status === "APPROVED" && (
-        <>
-          <label className="inline-flex cursor-pointer items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-primary-black transition hover:bg-gray-50">
-            {uploading ? "Uploading..." : "Upload Signed PDF"}
-            <input
-              type="file"
-              accept="application/pdf"
-              className="hidden"
-              onChange={handleUploadSignedPdf}
-              disabled={uploading}
-            />
-          </label>
-
-          <Button
-            type="button"
-            onClick={handleSendToSupplier}
-            disabled={sending || !purchaseOrder.signed_pdf_file_path}
-          >
-            {sending ? "Sending..." : "Send to Supplier"}
-          </Button>
-        </>
-      )}
-    </div>
+      <ConfirmDialog
+        isOpen={isSendDialogOpen}
+        title="Send purchase order to supplier?"
+        message="Please confirm the supplier email is correct before dispatching this signed purchase order. This action will send the signed PO document to the supplier."
+        confirmLabel="Send PO"
+        cancelLabel="Cancel"
+        variant="info"
+        isLoading={sending}
+        onConfirm={handleSendToSupplier}
+        onCancel={() => setIsSendDialogOpen(false)}
+      />
+    </>
   );
 }

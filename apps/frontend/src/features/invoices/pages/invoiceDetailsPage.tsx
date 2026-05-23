@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 
+import BackButton from "../../../components/ui/BackButton";
+import Card from "../../../components/ui/Card";
 import ErrorState from "../../../components/ui/ErrorState";
-import LoadingState from "../../../components/ui/LoadingState";
 import FloatingAlert from "../../../components/ui/FloatingAlert";
+import LoadingState from "../../../components/ui/LoadingState";
+import PageContainer from "../../../components/ui/PageContainer";
+import PageHeader from "../../../components/ui/PageHeader";
+import TableWrapper from "../../../components/ui/TableWrapper";
 
 import { formatCurrency } from "../../../utils/formatCurrency";
 import { getInvoiceById } from "../api/invoiceApi";
@@ -36,6 +41,9 @@ function formatRate(value: string | number | null | undefined) {
 
 export default function InvoiceDetailsPage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+
+  const returnTo = searchParams.get("returnTo");
 
   const [invoice, setInvoice] = useState<InvoiceDetails | null>(null);
   const [hasPendingPayment, setHasPendingPayment] = useState(false);
@@ -73,7 +81,7 @@ export default function InvoiceDetailsPage() {
     fetchInvoice();
   }, [id]);
 
-  if (loading) return <LoadingState />;
+  if (loading) return <LoadingState message="Loading invoice details..." />;
 
   if (error) return <ErrorState message={error} />;
 
@@ -87,7 +95,7 @@ export default function InvoiceDetailsPage() {
     "-";
 
   return (
-    <div className="flex min-w-0 flex-col gap-6">
+    <PageContainer>
       {actionSuccess && (
         <FloatingAlert
           type="success"
@@ -103,30 +111,36 @@ export default function InvoiceDetailsPage() {
           onClose={() => setActionError(null)}
         />
       )}
-      <div className="flex flex-col gap-4 rounded-xl border bg-white p-4 shadow-sm sm:p-5 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
-          <Link
-            to="/invoices"
-            className="text-sm font-medium text-primary-blue hover:underline"
-          >
-            ← Back to Invoices
-          </Link>
 
-          <h1 className="mt-3 text-2xl font-semibold text-primary-black">
-            {invoice.invoice_number}
-          </h1>
+      <PageHeader
+        title={invoice.invoice_number}
+        description={`Supplier: ${invoice.supplier_name ?? "-"}`}
+        actions={
+          <div className="flex flex-wrap items-center gap-3">
+            <InvoiceStatusBadge status={invoice.status} />
 
-          <p className="mt-1 text-sm text-primary-gray">
-            Supplier: {invoice.supplier_name ?? "-"}
-          </p>
-        </div>
+            {returnTo ? (
+              <BackButton label="Back to Approval" to={returnTo} />
+            ) : (
+              <BackButton
+                fallbackLabel="Back to Invoices"
+                fallbackTo="/invoices"
+              />
+            )}
+          </div>
+        }
+      />
 
-        <div className="flex flex-col gap-2 sm:flex-row lg:flex-col lg:items-end">
-          <InvoiceStatusBadge status={invoice.status} />
-
-          <span className="text-sm text-primary-gray">
-            Created {formatDate(invoice.created_at)}
-          </span>
+      <Card>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-primary-black">
+              Invoice Actions
+            </h2>
+            <p className="mt-1 text-sm text-gray-600">
+              Created {formatDate(invoice.created_at)}
+            </p>
+          </div>
 
           <InvoiceActions
             invoice={invoice}
@@ -142,24 +156,24 @@ export default function InvoiceDetailsPage() {
             }}
           />
         </div>
-      </div>
+      </Card>
 
-      <section className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-sm text-primary-gray">Original Amount</p>
+      <div className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <Card>
+          <p className="text-sm text-gray-600">Original Amount</p>
           <p className="mt-2 text-2xl font-semibold text-primary-black">
             {formatCurrency(
               Number(invoice.total_amount ?? 0),
               invoice.currency ?? "KES",
             )}
           </p>
-          <p className="mt-1 text-xs text-primary-gray">
+          <p className="mt-1 text-xs text-gray-500">
             Transaction currency: {invoice.currency ?? "-"}
           </p>
-        </div>
+        </Card>
 
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-sm text-primary-gray">Base Amount</p>
+        <Card>
+          <p className="text-sm text-gray-600">Base Amount</p>
           <p className="mt-2 text-2xl font-semibold text-primary-black">
             {invoice.base_amount && invoice.base_currency
               ? formatCurrency(
@@ -168,51 +182,49 @@ export default function InvoiceDetailsPage() {
                 )
               : "-"}
           </p>
-          <p className="mt-1 text-xs text-primary-gray">
+          <p className="mt-1 text-xs text-gray-500">
             Used for approvals and reporting
           </p>
-        </div>
+        </Card>
 
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-sm text-primary-gray">Exchange Rate</p>
+        <Card>
+          <p className="text-sm text-gray-600">Exchange Rate</p>
           <p className="mt-2 text-2xl font-semibold text-primary-black">
             {formatRate(invoice.exchange_rate)}
           </p>
-          <p className="mt-1 text-xs text-primary-gray">
+          <p className="mt-1 text-xs text-gray-500">
             {invoice.currency}
             {invoice.base_currency ? ` → ${invoice.base_currency}` : ""}
           </p>
-        </div>
+        </Card>
 
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-sm text-primary-gray">Supplier</p>
+        <Card>
+          <p className="text-sm text-gray-600">Supplier</p>
           <p className="mt-2 truncate text-2xl font-semibold text-primary-black">
             {invoice.supplier_name ?? "-"}
           </p>
-          <p className="mt-1 text-xs text-primary-gray">
+          <p className="mt-1 text-xs text-gray-500">
             Rate date: {formatDate(invoice.exchange_rate_date)}
           </p>
-        </div>
+        </Card>
 
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-sm text-primary-gray">Status</p>
+        <Card>
+          <p className="text-sm text-gray-600">Status</p>
           <div className="mt-3">
             <InvoiceStatusBadge status={invoice.status} />
           </div>
-          <p className="mt-2 text-xs text-primary-gray">
-            Invoice lifecycle status
-          </p>
-        </div>
-      </section>
+          <p className="mt-2 text-xs text-gray-500">Invoice lifecycle status</p>
+        </Card>
+      </div>
 
-      <section className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
+      <Card>
         <h2 className="text-lg font-semibold text-primary-black">
           Invoice Information
         </h2>
 
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-primary-gray">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
               Invoice Number
             </p>
             <p className="mt-1 text-sm text-primary-black">
@@ -221,7 +233,7 @@ export default function InvoiceDetailsPage() {
           </div>
 
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-primary-gray">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
               PO Number
             </p>
             <p className="mt-1 text-sm text-primary-black">
@@ -230,7 +242,7 @@ export default function InvoiceDetailsPage() {
           </div>
 
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-primary-gray">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
               Supplier
             </p>
             <p className="mt-1 text-sm text-primary-black">
@@ -239,14 +251,14 @@ export default function InvoiceDetailsPage() {
           </div>
 
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-primary-gray">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
               Submitted By
             </p>
             <p className="mt-1 text-sm text-primary-black">{submittedBy}</p>
           </div>
 
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-primary-gray">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
               Status
             </p>
 
@@ -256,7 +268,7 @@ export default function InvoiceDetailsPage() {
           </div>
 
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-primary-gray">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
               Created At
             </p>
             <p className="mt-1 text-sm text-primary-black">
@@ -265,7 +277,7 @@ export default function InvoiceDetailsPage() {
           </div>
 
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-primary-gray">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
               Updated At
             </p>
             <p className="mt-1 text-sm text-primary-black">
@@ -273,56 +285,48 @@ export default function InvoiceDetailsPage() {
             </p>
           </div>
         </div>
-      </section>
+      </Card>
 
-      <section className="min-w-0 rounded-xl border bg-white shadow-sm">
-        <div className="border-b p-4 sm:p-5">
+      <Card>
+        <div className="mb-4">
           <h2 className="text-lg font-semibold text-primary-black">
             Invoice Line Items
           </h2>
-          <p className="mt-1 text-sm text-primary-gray">
+          <p className="mt-1 text-sm text-gray-600">
             Line-level billing details attached to this invoice.
           </p>
         </div>
 
-        <div className="max-w-full overflow-x-auto">
-          <table className="min-w-[800px] border-separate border-spacing-0 text-sm">
-            <thead className="bg-gray-50 text-left">
+        <TableWrapper minWidth="800px">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
               <tr>
-                <th className="border-b px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-600">
-                  Description
-                </th>
-                <th className="border-b px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">
-                  Quantity
-                </th>
-                <th className="border-b px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">
-                  Unit Price
-                </th>
-                <th className="border-b px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-600">
-                  Total
-                </th>
+                <th className="px-4 py-3">Description</th>
+                <th className="px-4 py-3 text-right">Quantity</th>
+                <th className="px-4 py-3 text-right">Unit Price</th>
+                <th className="px-4 py-3 text-right">Total</th>
               </tr>
             </thead>
 
-            <tbody>
+            <tbody className="divide-y">
               {invoice.line_items.map((item) => (
-                <tr
-                  key={item.id}
-                  className="transition-colors hover:bg-gray-50"
-                >
-                  <td className="border-b px-4 py-3 text-gray-700">
+                <tr key={item.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-gray-700">
                     {item.description}
                   </td>
-                  <td className="border-b px-4 py-3 text-right tabular-nums text-gray-700">
+
+                  <td className="px-4 py-3 text-right tabular-nums text-gray-700">
                     {item.invoiced_quantity}
                   </td>
-                  <td className="border-b px-4 py-3 text-right tabular-nums text-gray-700">
+
+                  <td className="px-4 py-3 text-right tabular-nums text-gray-700">
                     {formatCurrency(
                       Number(item.unit_price ?? 0),
                       invoice.currency ?? "KES",
                     )}
                   </td>
-                  <td className="border-b px-4 py-3 text-right tabular-nums text-gray-700">
+
+                  <td className="px-4 py-3 text-right tabular-nums text-gray-700">
                     {formatCurrency(
                       Number(item.total_price ?? 0),
                       invoice.currency ?? "KES",
@@ -332,8 +336,8 @@ export default function InvoiceDetailsPage() {
               ))}
             </tbody>
           </table>
-        </div>
-      </section>
-    </div>
+        </TableWrapper>
+      </Card>
+    </PageContainer>
   );
 }

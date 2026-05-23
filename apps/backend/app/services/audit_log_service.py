@@ -189,24 +189,6 @@ class AuditLogService:
         entity_id: UUID,
         skip: int = 0,
         limit: int = 100,
-    ) -> list[dict]:
-        logs = self.repo.get_by_entity(
-            company_id=company_id,
-            entity_type=entity_type,
-            entity_id=entity_id,
-            skip=skip,
-            limit=limit,
-        )
-
-        return [self._serialize_log(log) for log in logs]
-
-    def get_entity_logs(
-        self,
-        company_id: UUID,
-        entity_type: str,
-        entity_id: UUID,
-        skip: int = 0,
-        limit: int = 100,
     ) -> list[AuditLog]:
         return self.repo.get_by_entity(
             company_id=company_id,
@@ -299,3 +281,45 @@ class AuditLogService:
         )
 
         return [self._serialize_log(log) for log in logs]
+    
+    def search_paginated_audit_logs(
+        self,
+        company_id: UUID,
+        entity_type: str | None = None,
+        entity_id: UUID | None = None,
+        action: str | None = None,
+        actor_user_id: UUID | None = None,
+        actor_supplier_user_id: UUID | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> dict:
+        logs = self.search_audit_logs(
+            company_id=company_id,
+            entity_type=entity_type,
+            entity_id=entity_id,
+            action=action,
+            actor_user_id=actor_user_id,
+            actor_supplier_user_id=actor_supplier_user_id,
+            date_from=date_from,
+            date_to=date_to,
+            skip=skip,
+            limit=limit,
+        )
+
+        total_count = self.repo.count_search(
+            company_id=company_id,
+            entity_type=entity_type.strip().upper() if entity_type else None,
+            entity_id=entity_id,
+            action=action.strip().upper() if action else None,
+            actor_user_id=actor_user_id,
+            actor_supplier_user_id=actor_supplier_user_id,
+            date_from=date_from,
+            date_to=date_to,
+        )
+
+        return {
+            "rows": logs,
+            "total_count": total_count,
+        }

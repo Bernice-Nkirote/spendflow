@@ -4,6 +4,7 @@ import type {
   InvoiceDetails,
   InvoiceListItem,
   InvoiceListParams,
+  InvoicePaginatedResponse,
 } from "../types/invoice.types";
 
 export async function getInvoices(
@@ -12,6 +13,17 @@ export async function getInvoices(
   const response = await axiosInstance.get<InvoiceListItem[]>("/invoices/", {
     params,
   });
+
+  return response.data;
+}
+
+export async function getPaginatedInvoices(
+  params: InvoiceListParams = {},
+): Promise<InvoicePaginatedResponse> {
+  const response = await axiosInstance.get<InvoicePaginatedResponse>(
+    "/invoices/paginated",
+    { params },
+  );
 
   return response.data;
 }

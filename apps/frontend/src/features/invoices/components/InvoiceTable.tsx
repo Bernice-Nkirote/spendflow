@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 
 import Button from "../../../components/ui/Button";
+import TableWrapper from "../../../components/ui/TableWrapper";
+
 import { formatCurrency } from "../../../utils/formatCurrency";
 import InvoiceStatusBadge from "./InvoiceStatusBadge";
 import type { InvoiceListItem } from "../types/invoice.types";
@@ -27,42 +29,62 @@ function getSubmittedBy(invoice: InvoiceListItem) {
 
 export default function InvoiceTable({ invoices }: InvoiceTableProps) {
   return (
-    <div className="max-w-full overflow-x-auto rounded-xl border bg-white shadow-sm">
-      <table className="min-w-[1000px] border-separate border-spacing-0 text-sm">
+    <TableWrapper minWidth="1100px">
+      <table className="w-full divide-y divide-gray-200 bg-white text-sm">
         <thead className="bg-gray-50">
-          <tr className="text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
-            <th className="border-b px-4 py-3">Invoice Number</th>
-            <th className="border-b px-4 py-3">Supplier</th>
-            <th className="border-b px-4 py-3">PO Number</th>
-            <th className="border-b px-4 py-3">Submitted By</th>
-            <th className="border-b px-4 py-3 text-right">Original Amount</th>
-            <th className="border-b px-4 py-3 text-right">Base Amount</th>{" "}
-            <th className="border-b px-4 py-3">Status</th>
-            <th className="border-b px-4 py-3">Created</th>
-            <th className="border-b px-4 py-3 text-right">Actions</th>
+          <tr>
+            <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+              Invoice Number
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+              Supplier
+            </th>
+            <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+              PO Number
+            </th>
+            <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+              Submitted By
+            </th>
+            <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
+              Original Amount
+            </th>
+            <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
+              Base Amount
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+              Status
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+              Created
+            </th>
+            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
+              Actions
+            </th>
           </tr>
         </thead>
 
-        <tbody>
+        <tbody className="divide-y divide-gray-100 bg-white">
           {invoices.map((invoice) => (
-            <tr key={invoice.id} className="transition-colors hover:bg-gray-50">
-              <td className="border-b px-4 py-3 font-medium text-primary-black">
-                {invoice.invoice_number}
+            <tr key={invoice.id} className="hover:bg-gray-50">
+              <td className="px-4 py-3 font-medium text-primary-black">
+                <span className="block max-w-[260px] break-words">
+                  {invoice.invoice_number}
+                </span>
               </td>
 
-              <td className="border-b px-4 py-3 text-primary-gray">
+              <td className="px-4 py-3 text-primary-black">
                 {invoice.supplier_name ?? "Unknown supplier"}
               </td>
 
-              <td className="border-b px-4 py-3 text-primary-gray">
+              <td className="px-4 py-3 text-primary-black">
                 {invoice.po_number ?? "-"}
               </td>
 
-              <td className="border-b px-4 py-3 text-primary-gray">
+              <td className="px-4 py-3 text-primary-black">
                 {getSubmittedBy(invoice)}
               </td>
 
-              <td className="border-b px-4 py-3 text-right tabular-nums text-primary-black">
+              <td className="whitespace-nowrap px-4 py-3 text-right text-primary-black">
                 <div className="font-medium">
                   {formatCurrency(
                     Number(invoice.total_amount ?? 0),
@@ -75,7 +97,7 @@ export default function InvoiceTable({ invoices }: InvoiceTableProps) {
                 </div>
               </td>
 
-              <td className="border-b px-4 py-3 text-right tabular-nums text-primary-black">
+              <td className="whitespace-nowrap px-4 py-3 text-right text-primary-black">
                 {invoice.base_amount && invoice.base_currency ? (
                   <>
                     <div className="font-medium">
@@ -94,23 +116,25 @@ export default function InvoiceTable({ invoices }: InvoiceTableProps) {
                 )}
               </td>
 
-              <td className="border-b px-4 py-3">
+              <td className="px-4 py-3">
                 <InvoiceStatusBadge status={invoice.status} />
               </td>
 
-              <td className="border-b px-4 py-3 text-primary-gray">
+              <td className="whitespace-nowrap px-4 py-3 text-primary-black">
                 {formatDate(invoice.created_at)}
               </td>
 
-              <td className="border-b px-4 py-3 text-right">
+              <td className="px-4 py-3 text-right">
                 <Link to={`/invoices/${invoice.id}`}>
-                  <Button variant="secondary">View</Button>
+                  <Button type="button" variant="secondary" size="sm">
+                    View
+                  </Button>
                 </Link>
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-    </div>
+    </TableWrapper>
   );
 }

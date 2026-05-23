@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.models.role_permission import RolePermission
-
+from app.models.permission import Permission
 
 class RolePermissionRepository:
     def __init__(self, db: Session):
@@ -71,6 +71,28 @@ class RolePermissionRepository:
             )
             .first()
         )
+
+    def get_permission_names_by_role(
+        self,
+        role_id: UUID,
+        company_id: UUID,
+    ) -> list[str]:
+        rows = (
+            self.db.query(Permission.name)
+            .join(
+                RolePermission,
+                RolePermission.permission_id == Permission.id,
+            )
+            .filter(
+                RolePermission.role_id == role_id,
+                RolePermission.company_id == company_id,
+                Permission.company_id == company_id,
+                Permission.is_active == True,
+            )
+            .all()
+        )
+
+        return [row[0] for row in rows]
 
     def delete(self, role_permission: RolePermission) -> None:
         self.db.delete(role_permission)

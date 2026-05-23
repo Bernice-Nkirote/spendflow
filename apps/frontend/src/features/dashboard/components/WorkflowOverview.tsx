@@ -31,27 +31,29 @@ export default function WorkflowOverview({ data }: WorkflowOverviewProps) {
   return (
     <div>
       <div className="mb-4">
-        <h2 className="text-lg font-semibold text-gray-900">
+        <h2 className="text-lg font-semibold text-primary-black">
           Procurement Workflow Overview
         </h2>
-        <p className="mt-1 text-sm text-gray-500">
-          High-level view of procurement documents moving through the system.
+        <p className="mt-1 text-sm leading-5 text-primary-gray">
+          High-level view of documents moving through the procurement lifecycle.
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {workflowItems.map((item) => (
           <div
             key={item.label}
-            className="rounded-lg border border-gray-200 bg-gray-50/50 p-4"
+            className="rounded-xl border border-gray-200 bg-gray-50/60 p-4"
           >
-            <p className="text-sm font-medium text-gray-500">
+            <p className="text-sm font-medium text-primary-gray">
               {item.shortLabel}
             </p>
-            <p className="mt-2 text-2xl font-semibold text-gray-900">
+
+            <p className="mt-2 text-2xl font-semibold text-primary-black">
               {item.value}
             </p>
-            <p className="mt-1 text-xs text-gray-400">{item.label}</p>
+
+            <p className="mt-1 text-xs text-primary-gray">{item.label}</p>
           </div>
         ))}
       </div>

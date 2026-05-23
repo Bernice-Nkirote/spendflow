@@ -1,17 +1,28 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 
+import BackButton from "../../../components/ui/BackButton";
 import Button from "../../../components/ui/Button";
+import Card from "../../../components/ui/Card";
 import ErrorState from "../../../components/ui/ErrorState";
 import FloatingAlert from "../../../components/ui/FloatingAlert";
+import Input from "../../../components/ui/Input";
 import LoadingState from "../../../components/ui/LoadingState";
+import PageContainer from "../../../components/ui/PageContainer";
+import PageHeader from "../../../components/ui/PageHeader";
 
 import { formatCurrency } from "../../../utils/formatCurrency";
+import { userHasPermission } from "../../../utils/permissions";
+
 import { getInvoiceById } from "../../invoices/api/invoiceApi";
 import type { InvoiceDetails } from "../../invoices/types/invoice.types";
 import { createPayment, getPaymentsByInvoice } from "../api/paymentApi";
+import {
+  clearCreatePaymentDraft,
+  useCreatePaymentDraft,
+} from "../hooks/useCreatePaymentDraft";
 import PaymentBalanceGuidanceCard from "../components/PaymentBalanceGuidanceCard";
 import PaymentBalanceSummaryCards from "../components/PaymentBalanceSummaryCards";
 import type { PaymentDetails, PaymentMethod } from "../types/payment.types";
@@ -22,9 +33,19 @@ const paymentMethods: { label: string; value: PaymentMethod }[] = [
   { label: "Cash", value: "CASH" },
 ];
 
+type PaymentNavigationState = {
+  from?: string;
+  label?: string;
+  to?: string;
+};
+
 export default function CreatePaymentPage() {
   const { invoiceId } = useParams<{ invoiceId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const navigationState = location.state as PaymentNavigationState | null;
+  const hasPaymentCreatePermission = userHasPermission("payment.create");
 
   const [invoice, setInvoice] = useState<InvoiceDetails | null>(null);
   const [invoicePayments, setInvoicePayments] = useState<PaymentDetails[]>([]);
@@ -40,8 +61,24 @@ export default function CreatePaymentPage() {
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  useCreatePaymentDraft({
+    invoiceId,
+    isReady: Boolean(invoice),
+    amount,
+    paymentMethod,
+    reference,
+    setAmount,
+    setPaymentMethod,
+    setReference,
+  });
+
   useEffect(() => {
     async function fetchInvoice() {
+      if (!hasPaymentCreatePermission) {
+        setError("You do not have permission to create payments.");
+        setLoading(false);
+        return;
+      }
       if (!invoiceId) {
         setError("Invoice ID is missing.");
         setLoading(false);
@@ -67,9 +104,18 @@ export default function CreatePaymentPage() {
     }
 
     fetchInvoice();
-  }, [invoiceId]);
+  }, [invoiceId, hasPaymentCreatePermission]);
 
   if (loading) return <LoadingState />;
+
+  if (!hasPaymentCreatePermission) {
+    return (
+      <PageContainer>
+        <BackButton fallbackLabel="Back to Payments" fallbackTo="/payments" />
+        <ErrorState message="You do not have permission to create payments." />
+      </PageContainer>
+    );
+  }
 
   if (error) return <ErrorState message={error} />;
 
@@ -80,8 +126,7 @@ export default function CreatePaymentPage() {
   const canCreatePayment =
     invoice.status === "APPROVED" || invoice.status === "PARTIALLY_PAID";
 
-  const invoiceCurrency = undefined;
-
+  const invoiceCurrency = invoice.currency ?? undefined;
   const invoiceTotal = Number(invoice.total_amount ?? 0);
 
   const completedPaidTotal = invoicePayments
@@ -96,6 +141,8 @@ export default function CreatePaymentPage() {
     invoiceTotal - completedPaidTotal - pendingApprovalTotal,
     0,
   );
+
+  const cancelTo = navigationState?.to ?? `/invoices/${invoice.id}`;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -141,7 +188,11 @@ export default function CreatePaymentPage() {
         reference: reference.trim() || null,
       });
 
-      navigate(`/payments/${payment.id}`);
+      clearCreatePaymentDraft(invoiceId);
+
+      navigate(`/payments/${payment.id}`, {
+        state: navigationState,
+      });
     } catch (error) {
       if (axios.isAxiosError(error)) {
         setActionError(
@@ -162,7 +213,7 @@ export default function CreatePaymentPage() {
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-6">
+    <PageContainer>
       {actionError && (
         <FloatingAlert
           type="error"
@@ -171,22 +222,15 @@ export default function CreatePaymentPage() {
         />
       )}
 
-      <div className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
-        <Link
-          to={`/invoices/${invoice.id}`}
-          className="text-sm font-medium text-primary-blue hover:underline"
-        >
-          ← Back to Invoice
-        </Link>
+      <BackButton
+        fallbackLabel="Back to Invoice"
+        fallbackTo={`/invoices/${invoice.id}`}
+      />
 
-        <h1 className="mt-3 text-2xl font-semibold text-primary-black">
-          Create Payment
-        </h1>
-
-        <p className="mt-1 text-sm text-primary-gray">
-          Create a payment record for invoice {invoice.invoice_number}.
-        </p>
-      </div>
+      <PageHeader
+        title="Create Payment"
+        description={`Create a payment record for invoice ${invoice.invoice_number}.`}
+      />
 
       <PaymentBalanceSummaryCards
         invoiceNumber={invoice.invoice_number}
@@ -203,83 +247,81 @@ export default function CreatePaymentPage() {
         currency={invoiceCurrency}
       />
 
-      <form
-        onSubmit={handleSubmit}
-        className="rounded-xl border bg-white p-4 shadow-sm sm:p-5"
-      >
-        <h2 className="text-lg font-semibold text-primary-black">
-          Payment Details
-        </h2>
-
-        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+      <Card>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-primary-black">
-              Amount
-            </label>
-            <input
+            <h2 className="text-lg font-semibold text-primary-black">
+              Payment Details
+            </h2>
+            <p className="mt-1 text-sm text-gray-600">
+              Enter the payment amount, method, and reference details.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <Input
+              label="Amount"
               type="number"
               min="0"
               max={balanceRemaining}
               step="0.01"
               value={amount}
               onChange={(event) => setAmount(event.target.value)}
-              className="mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-primary-blue"
               placeholder={`Maximum: ${formatCurrency(
                 balanceRemaining,
                 invoiceCurrency,
               )}`}
             />
+
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-primary-black">
+                Payment Method
+              </label>
+              <select
+                value={paymentMethod}
+                onChange={(event) =>
+                  setPaymentMethod(event.target.value as PaymentMethod)
+                }
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
+              >
+                {paymentMethods.map((method) => (
+                  <option key={method.value} value={method.value}>
+                    {method.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="md:col-span-2">
+              <Input
+                label="Reference"
+                type="text"
+                value={reference}
+                onChange={(event) => setReference(event.target.value)}
+                placeholder="Example: BANK-REF-001 or MPESA-REF-001"
+              />
+              <p className="mt-1 text-xs text-primary-gray">
+                Required for Bank Transfer and M-Pesa payments.
+              </p>
+            </div>
           </div>
 
-          <div>
-            <label className="text-sm font-medium text-primary-black">
-              Payment Method
-            </label>
-            <select
-              value={paymentMethod}
-              onChange={(event) =>
-                setPaymentMethod(event.target.value as PaymentMethod)
-              }
-              className="mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-primary-blue"
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => navigate(cancelTo)}
+              disabled={saving}
             >
-              {paymentMethods.map((method) => (
-                <option key={method.value} value={method.value}>
-                  {method.label}
-                </option>
-              ))}
-            </select>
+              Cancel
+            </Button>
+
+            <Button type="submit" disabled={saving || balanceRemaining <= 0}>
+              {saving ? "Creating..." : "Create Payment"}
+            </Button>
           </div>
-
-          <div className="md:col-span-2">
-            <label className="text-sm font-medium text-primary-black">
-              Reference
-            </label>
-            <input
-              type="text"
-              value={reference}
-              onChange={(event) => setReference(event.target.value)}
-              className="mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-primary-blue"
-              placeholder="Example: BANK-REF-001 or MPESA-REF-001"
-            />
-            <p className="mt-1 text-xs text-primary-gray">
-              Required for Bank Transfer and M-Pesa payments.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <Link
-            to={`/invoices/${invoice.id}`}
-            className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-primary-black hover:bg-gray-50"
-          >
-            Cancel
-          </Link>
-
-          <Button type="submit" disabled={saving || balanceRemaining <= 0}>
-            {saving ? "Creating..." : "Create Payment"}
-          </Button>
-        </div>
-      </form>
-    </div>
+        </form>
+      </Card>
+    </PageContainer>
   );
 }

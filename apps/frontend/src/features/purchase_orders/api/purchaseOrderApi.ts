@@ -4,6 +4,7 @@ import type {
   PurchaseOrderDetails,
   PurchaseOrderListItem,
   PurchaseOrderListParams,
+  PurchaseOrderPaginatedResponse,
   PurchaseOrderUpdatePayload,
 } from "../types/purchaseOrder.types";
 
@@ -12,6 +13,17 @@ export async function getPurchaseOrders(
 ): Promise<PurchaseOrderListItem[]> {
   const response = await axiosInstance.get<PurchaseOrderListItem[]>(
     "/purchase-orders/",
+    { params },
+  );
+
+  return response.data;
+}
+
+export async function getPaginatedPurchaseOrders(
+  params: PurchaseOrderListParams = {},
+): Promise<PurchaseOrderPaginatedResponse> {
+  const response = await axiosInstance.get<PurchaseOrderPaginatedResponse>(
+    "/purchase-orders/paginated",
     { params },
   );
 

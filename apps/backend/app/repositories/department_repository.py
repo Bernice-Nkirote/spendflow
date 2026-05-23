@@ -29,12 +29,31 @@ class DepartmentRepository:
             .first()
         )
 
-    def get_all(self, company_id: UUID) -> list[Department]:
-        return (
+    def get_all(
+        self,
+        company_id: UUID,
+        skip: int | None = None,
+        limit: int | None = None,
+    ) -> list[Department]:
+        query = (
             self.db.query(Department)
             .filter(Department.company_id == company_id)
             .order_by(Department.created_at.desc())
-            .all()
+        )
+
+        if skip is not None:
+            query = query.offset(skip)
+
+        if limit is not None:
+            query = query.limit(limit)
+
+        return query.all()
+
+    def count_all(self, company_id: UUID) -> int:
+        return (
+            self.db.query(Department)
+            .filter(Department.company_id == company_id)
+            .count()
         )
 
     def get_by_name(self, name: str, company_id: UUID) -> Optional[Department]:

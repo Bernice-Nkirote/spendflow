@@ -14,7 +14,7 @@ from app.models.payments import Payment
 from app.repositories.invoice_repository import InvoiceRepository
 from app.repositories.payment_repository import PaymentRepository
 from app.repositories.approval_workflow_repository import ApprovalWorkflowRepository
-from app.schemas.payment_schema import PaymentCreate, PaymentUpdate
+from app.schemas.payment_schema import PaginatedPaymentResponse, PaymentCreate, PaymentUpdate
 from app.services.approval_instance_service import ApprovalInstanceService
 from app.services.permission_service import PermissionService
 from app.services.audit_log_service import AuditLogService
@@ -198,6 +198,37 @@ class PaymentService:
 
         return [self._enrich_payment(payment) for payment in payments]
 
+    def get_paginated_payments(
+        self,
+        company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> dict:
+        if skip < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Skip must be zero or greater",
+            )
+
+        if limit < 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Limit must be greater than zero",
+            )
+
+        payments = self.payment_repo.get_all(
+            company_id=company_id,
+            skip=skip,
+            limit=limit,
+        )
+
+        total_count = self.payment_repo.count_all(company_id=company_id)
+
+        return {
+            "rows": [self._enrich_payment(payment) for payment in payments],
+            "total_count": total_count,
+        }
+
     def get_all_payments_by_invoice(
         self,
         invoice_id: UUID,
@@ -257,6 +288,30 @@ class PaymentService:
         )
 
         return [self._enrich_payment(payment) for payment in payments]
+
+    def get_all_payments_by_supplier_paginated(
+        self,
+        supplier_id: UUID,
+        company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> PaginatedPaymentResponse:
+        rows = self.get_all_payments_by_supplier(
+            supplier_id=supplier_id,
+            company_id=company_id,
+            skip=skip,
+            limit=limit,
+        )
+
+        total_count = self.payment_repo.count_by_supplier(
+            supplier_id=supplier_id,
+            company_id=company_id,
+        )
+
+        return PaginatedPaymentResponse(
+            rows=rows,
+            total_count=total_count,
+        )
 
     def get_all_payments_by_status(
         self,

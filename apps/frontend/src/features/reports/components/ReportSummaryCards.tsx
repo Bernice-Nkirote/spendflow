@@ -1,5 +1,7 @@
-import type { ReportSummaryCardConfig } from "../types/report.types";
+import Card from "../../../components/ui/Card";
 import { formatCurrency } from "../../../utils/formatCurrency";
+
+import type { ReportSummaryCardConfig } from "../types/report.types";
 
 type Props<T> = {
   data: T[];
@@ -29,6 +31,7 @@ function formatValue(
 
   return new Intl.NumberFormat("en-KE").format(value);
 }
+
 export default function ReportSummaryCards<T>({
   data,
   totalCount,
@@ -80,22 +83,23 @@ export default function ReportSummaryCards<T>({
         const summaryCurrency = getSummaryCurrency();
 
         return (
-          <div
-            key={card.label}
-            className="min-w-0 rounded-xl border bg-white p-4 shadow-sm"
-          >
-            <p className="truncate text-sm font-medium text-primary-gray">
-              {card.label}
-            </p>
-            <p className="mt-2 truncate text-2xl font-semibold text-primary-black">
-              {formatValue(value, card.format, summaryCurrency)}
-            </p>
-            {card.format === "currency" && (
-              <p className="mt-1 text-xs text-primary-gray">
-                Currency: {summaryCurrency}
+          <Card key={card.label}>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-primary-gray">
+                {card.label}
               </p>
-            )}
-          </div>
+
+              <p className="mt-2 truncate text-2xl font-semibold text-primary-black">
+                {formatValue(value, card.format, summaryCurrency)}
+              </p>
+
+              {card.format === "currency" && (
+                <p className="mt-1 text-xs text-primary-gray">
+                  Currency: {summaryCurrency}
+                </p>
+              )}
+            </div>
+          </Card>
         );
       })}
     </section>

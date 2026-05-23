@@ -1,5 +1,6 @@
 from typing import Optional
 from uuid import UUID
+from sqlalchemy import func
 
 from sqlalchemy.orm import Session
 
@@ -45,6 +46,13 @@ class SupplierRepository:
             .all()
         )
 
+    def count_all(self, company_id: UUID) -> int:
+        return (
+            self.db.query(func.count(Supplier.id))
+            .filter(Supplier.company_id == company_id)
+            .scalar()
+        )
+
     def get_by_name(self, name: str, company_id: UUID) -> Optional[Supplier]:
         return (
             self.db.query(Supplier)
@@ -83,6 +91,12 @@ class SupplierRepository:
             )
             .first()
             is not None
+        )
+    
+    def has_procurement_records(self, supplier_id: UUID, company_id: UUID) -> bool:
+        return (
+            self.has_purchase_orders(supplier_id, company_id)
+            or self.has_invoices(supplier_id, company_id)
         )
 
     def update(self, supplier: Supplier) -> Supplier:

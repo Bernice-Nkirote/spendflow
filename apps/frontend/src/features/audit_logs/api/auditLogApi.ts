@@ -1,5 +1,9 @@
 import axiosInstance from "../../../api/axiosInstance";
-import type { AuditLog, AuditLogFilters } from "../types/auditLog.types";
+import type {
+  AuditLog,
+  AuditLogFilters,
+  PaginatedAuditLogsResponse,
+} from "../types/auditLog.types";
 
 function cleanFilters(filters: AuditLogFilters) {
   return Object.fromEntries(
@@ -18,6 +22,29 @@ export async function getAuditLogs(
     hasFilters ? "/audit-logs/search" : "/audit-logs/",
     {
       params: cleanFilters(filters),
+    },
+  );
+
+  return response.data;
+}
+
+export async function getPaginatedAuditLogs({
+  skip,
+  limit,
+  filters = {},
+}: {
+  skip: number;
+  limit: number;
+  filters?: AuditLogFilters;
+}): Promise<PaginatedAuditLogsResponse> {
+  const response = await axiosInstance.get<PaginatedAuditLogsResponse>(
+    "/audit-logs/paginated",
+    {
+      params: {
+        ...cleanFilters(filters),
+        skip,
+        limit,
+      },
     },
   );
 

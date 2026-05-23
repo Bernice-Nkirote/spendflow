@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -60,3 +60,7 @@ class ExchangeRateRead(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class PaginatedExchangeRateResponse(BaseModel):
+    rows: List[ExchangeRateRead]
+    total_count: int

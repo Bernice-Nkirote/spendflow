@@ -1,7 +1,8 @@
 import type { ReportType } from "../components/ReportTabs";
 import type { ReportTableColumn } from "../components/ReportTable";
 
-import { getReport, exportReport } from "../api/reportApi";
+import { exportReport, getReport } from "../api/reportApi";
+import { reportConfig } from "./reportConfig";
 
 import {
   prColumns,
@@ -34,10 +35,9 @@ type ReportRegistryItem<T> = {
   columns: ReportTableColumn<T>[];
   filters: ReportFilterConfig[];
   summaryCards?: ReportSummaryCardConfig<T>[];
-  fetchReport?: (filters: ReportFilters) => Promise<PaginatedReportResponse<T>>;
-
-  exportCSV?: (filters: ReportFilters) => Promise<Blob>;
-  exportExcel?: (filters: ReportFilters) => Promise<Blob>;
+  fetchReport: (filters: ReportFilters) => Promise<PaginatedReportResponse<T>>;
+  exportCSV: (filters: ReportFilters) => Promise<Blob>;
+  exportExcel: (filters: ReportFilters) => Promise<Blob>;
   csvFilename: string;
   excelFilename: string;
   emptyMessage: string;
@@ -45,9 +45,7 @@ type ReportRegistryItem<T> = {
 
 export const reportRegistry = {
   "purchase-requisitions": {
-    title: "Purchase Requisition Report",
-    description: "Item-level purchase requisition report.",
-    isEnabled: true,
+    ...reportConfig["purchase-requisitions"],
     columns: prColumns,
     filters: [
       { type: "date_range" },
@@ -76,9 +74,7 @@ export const reportRegistry = {
   },
 
   "purchase-orders": {
-    title: "Purchase Order Report",
-    description: "Item-level purchase order report.",
-    isEnabled: true,
+    ...reportConfig["purchase-orders"],
     columns: poColumns,
     filters: [
       { type: "date_range" },
@@ -107,9 +103,7 @@ export const reportRegistry = {
   },
 
   invoices: {
-    title: "Invoice Report",
-    description: "Item-level invoice report.",
-    isEnabled: true,
+    ...reportConfig.invoices,
     columns: invoiceColumns,
     filters: [
       { type: "date_range" },
@@ -138,9 +132,7 @@ export const reportRegistry = {
   },
 
   "outstanding-invoices": {
-    title: "Outstanding Invoice Report",
-    description: "Unpaid and partially paid invoice balances.",
-    isEnabled: true,
+    ...reportConfig["outstanding-invoices"],
     columns: outstandingInvoiceColumns,
     filters: [
       { type: "date_range" },
@@ -172,9 +164,7 @@ export const reportRegistry = {
   },
 
   payments: {
-    title: "Payment Report",
-    description: "Readable payment report with invoice and supplier details.",
-    isEnabled: true,
+    ...reportConfig.payments,
     columns: paymentColumns,
     filters: [
       { type: "date_range" },
@@ -199,9 +189,7 @@ export const reportRegistry = {
   },
 
   "supplier-spend": {
-    title: "Supplier Spend Report",
-    description: "Supplier-level spend summary.",
-    isEnabled: true,
+    ...reportConfig["supplier-spend"],
     columns: supplierSpendColumns,
     filters: [{ type: "date_range" }, { type: "supplier" }],
     summaryCards: [
@@ -238,9 +226,7 @@ export const reportRegistry = {
   },
 
   "supplier-lead-time": {
-    title: "Supplier Lead Time Report",
-    description: "Supplier delivery performance summary.",
-    isEnabled: true,
+    ...reportConfig["supplier-lead-time"],
     columns: supplierLeadTimeColumns,
     filters: [{ type: "date_range" }, { type: "supplier" }],
     summaryCards: [
@@ -266,4 +252,4 @@ export const reportRegistry = {
     emptyMessage:
       "No supplier lead time records match your current filters. Try clearing filters or selecting a wider date range.",
   },
-} satisfies Partial<Record<ReportType, ReportRegistryItem<any>>>;
+} satisfies Record<ReportType, ReportRegistryItem<any>>;

@@ -6,8 +6,20 @@ import type {
 } from "../types/report.types";
 
 function cleanFilters(filters: ReportFilters) {
+  const page = filters.page ?? 1;
+  const pageSize = filters.page_size ?? 10;
+
+  const normalizedFilters = {
+    ...filters,
+    skip: (page - 1) * pageSize,
+    limit: pageSize,
+  };
+
+  delete normalizedFilters.page;
+  delete normalizedFilters.page_size;
+
   return Object.fromEntries(
-    Object.entries(filters).filter(
+    Object.entries(normalizedFilters).filter(
       ([, value]) => value !== "" && value !== undefined && value !== null,
     ),
   );

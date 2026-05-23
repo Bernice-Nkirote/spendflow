@@ -9,32 +9,32 @@ export const reportConfig = {
   "purchase-orders": {
     title: "Purchase Order Report",
     description: "Item-level purchase order report.",
-    isEnabled: false,
+    isEnabled: true,
   },
   invoices: {
     title: "Invoice Report",
     description: "Item-level invoice report.",
-    isEnabled: false,
+    isEnabled: true,
   },
   "outstanding-invoices": {
     title: "Outstanding Invoice Report",
     description: "Unpaid and partially paid invoice balances.",
-    isEnabled: false,
+    isEnabled: true,
   },
   payments: {
     title: "Payment Report",
     description: "Readable payment report with invoice and supplier details.",
-    isEnabled: false,
+    isEnabled: true,
   },
   "supplier-spend": {
     title: "Supplier Spend Report",
     description: "Supplier-level spend summary.",
-    isEnabled: false,
+    isEnabled: true,
   },
   "supplier-lead-time": {
     title: "Supplier Lead Time Report",
     description: "Supplier delivery performance summary.",
-    isEnabled: false,
+    isEnabled: true,
   },
 } satisfies Record<
   ReportType,

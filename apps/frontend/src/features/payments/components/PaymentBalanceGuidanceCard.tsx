@@ -1,3 +1,4 @@
+import Card from "../../../components/ui/Card";
 import { formatCurrency } from "../../../utils/formatCurrency";
 
 type PaymentBalanceGuidanceCardProps = {
@@ -14,7 +15,7 @@ export default function PaymentBalanceGuidanceCard({
   currency,
 }: PaymentBalanceGuidanceCardProps) {
   return (
-    <section className="rounded-xl border border-yellow-200 bg-yellow-50 p-4 shadow-sm sm:p-5">
+    <Card className="border-yellow-200 bg-yellow-50">
       <h2 className="text-sm font-semibold text-yellow-800">
         Payment balance guidance
       </h2>
@@ -47,6 +48,6 @@ export default function PaymentBalanceGuidanceCard({
         awaiting approval and completed payments are counted before allowing
         another payment.
       </p>
-    </section>
+    </Card>
   );
 }

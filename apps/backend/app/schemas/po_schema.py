@@ -70,3 +70,9 @@ class PurchaseOrderDetailRead(PurchaseOrderRead):
     issued_by_name: Optional[str] = None
     signed_pdf_uploaded_by_name: Optional[str] = None
     pr_number: Optional[str] = None
+
+class PurchaseOrderPaginatedRead(BaseModel):
+    rows: list[PurchaseOrderDetailRead]
+    total_count: int
+
+    model_config = ConfigDict(from_attributes=True)

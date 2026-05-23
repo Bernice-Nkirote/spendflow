@@ -44,6 +44,8 @@ class User(Base):
 
     is_active = Column(Boolean, nullable=False, default=True)
 
+    is_company_owner = Column(Boolean, nullable=False, default=False)
+
     has_completed_onboarding = Column(Boolean, nullable=False, default=False)
 
     onboarded_at = Column(DateTime(timezone=True), nullable=True)

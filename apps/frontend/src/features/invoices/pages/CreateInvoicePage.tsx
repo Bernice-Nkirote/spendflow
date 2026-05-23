@@ -1,18 +1,30 @@
 import axios from "axios";
-
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
+import BackButton from "../../../components/ui/BackButton";
 import Button from "../../../components/ui/Button";
+import Card from "../../../components/ui/Card";
 import ErrorState from "../../../components/ui/ErrorState";
+import FloatingAlert from "../../../components/ui/FloatingAlert";
 import Input from "../../../components/ui/Input";
 import LoadingState from "../../../components/ui/LoadingState";
+import PageContainer from "../../../components/ui/PageContainer";
+import PageHeader from "../../../components/ui/PageHeader";
+import { useFloatingAlert } from "../../../components/ui/useFloatingAlert";
+
 import { formatCurrency } from "../../../utils/formatCurrency";
+import { userHasPermission } from "../../../utils/permissions";
 
 import { getPurchaseOrderById } from "../../purchase_orders/api/purchaseOrderApi";
 import type { PurchaseOrderDetails } from "../../purchase_orders/types/purchaseOrder.types";
 import { createInvoice } from "../api/invoiceApi";
+import {
+  clearCreateInvoiceDraft,
+  useCreateInvoiceDraft,
+} from "../hooks/useCreateInvoiceDraft";
+import InvoiceStatusBadge from "../components/InvoiceStatusBadge";
 import type { InvoiceLineItemCreate } from "../types/invoice.types";
 
 export default function CreateInvoicePage() {
@@ -20,6 +32,7 @@ export default function CreateInvoicePage() {
   const purchaseOrderId = searchParams.get("purchaseOrderId");
   const from = searchParams.get("from");
   const navigate = useNavigate();
+  const canCreateInvoice = userHasPermission("invoice.create");
 
   const [purchaseOrder, setPurchaseOrder] =
     useState<PurchaseOrderDetails | null>(null);
@@ -31,6 +44,16 @@ export default function CreateInvoicePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const { alert, showAlert, clearAlert } = useFloatingAlert();
+  useCreateInvoiceDraft({
+    purchaseOrderId,
+    isReady: Boolean(purchaseOrder),
+    invoiceNumber,
+    lineItems,
+    setInvoiceNumber,
+    setLineItems,
+  });
+
   const totalAmount = useMemo(() => {
     return lineItems.reduce((total, item) => {
       const quantity = Number(item.invoiced_quantity || 0);
@@ -41,6 +64,11 @@ export default function CreateInvoicePage() {
   }, [lineItems]);
 
   useEffect(() => {
+    if (!canCreateInvoice) {
+      setError("You do not have permission to create invoices.");
+      setLoading(false);
+      return;
+    }
     async function fetchPurchaseOrder() {
       if (!purchaseOrderId) {
         setError("Purchase order is required to create an invoice.");
@@ -79,7 +107,7 @@ export default function CreateInvoicePage() {
     }
 
     fetchPurchaseOrder();
-  }, [purchaseOrderId]);
+  }, [purchaseOrderId, canCreateInvoice]);
 
   function updateLineItem(
     index: number,
@@ -100,12 +128,12 @@ export default function CreateInvoicePage() {
     event.preventDefault();
 
     if (!purchaseOrder) {
-      setError("Purchase order details are missing.");
+      showAlert("error", "Purchase order details are missing.");
       return;
     }
 
     if (lineItems.length === 0) {
-      setError("At least one invoice line item is required.");
+      showAlert("error", "At least one invoice line item is required.");
       return;
     }
 
@@ -120,22 +148,34 @@ export default function CreateInvoicePage() {
         line_items: lineItems,
       });
 
+      clearCreateInvoiceDraft(purchaseOrder.id);
+
       navigate(`/invoices/${createdInvoice.id}`);
     } catch (error) {
-      if (axios.isAxiosError(error)) {
-        setError(
-          error.response?.data?.detail ??
-            "Failed to create invoice. Please try again.",
-        );
-      } else {
-        setError("Failed to create invoice. Please try again.");
-      }
+      const message = axios.isAxiosError(error)
+        ? (error.response?.data?.detail ??
+          "Failed to create invoice. Please try again.")
+        : "Failed to create invoice. Please try again.";
+
+      showAlert("error", message);
+      setError(null);
     } finally {
       setSaving(false);
     }
   }
 
-  if (loading) return <LoadingState />;
+  if (loading) {
+    return <LoadingState message="Loading purchase order details..." />;
+  }
+
+  if (!canCreateInvoice) {
+    return (
+      <PageContainer>
+        <BackButton fallbackLabel="Back to Invoices" fallbackTo="/invoices" />
+        <ErrorState message="You do not have permission to create invoices." />
+      </PageContainer>
+    );
+  }
 
   if (error && !purchaseOrder) {
     return <ErrorState message={error} />;
@@ -146,60 +186,73 @@ export default function CreateInvoicePage() {
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-6">
-      <div className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
-        <Link
-          to={
-            from === "invoices"
-              ? "/invoices"
-              : `/purchase-orders/${purchaseOrder.id}`
-          }
-          className="text-sm font-medium text-primary-blue hover:underline"
-        >
-          {from === "invoices"
-            ? "← Back to Invoices"
-            : "← Back to Purchase Order"}
-        </Link>
+    <PageContainer>
+      {alert && (
+        <FloatingAlert
+          type={alert.type}
+          message={alert.message}
+          onClose={clearAlert}
+        />
+      )}
 
-        <h1 className="mt-3 text-2xl font-semibold text-primary-black">
-          Create Invoice
-        </h1>
+      <PageHeader
+        title="Create Invoice"
+        description={`Create an invoice from purchase order ${purchaseOrder.po_number}.`}
+        actions={
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="shrink-0">
+              <InvoiceStatusBadge status="DRAFT" />
+            </div>
 
-        <p className="mt-1 text-sm text-primary-gray">
-          Create an invoice from purchase order {purchaseOrder.po_number}.
-        </p>
-      </div>
+            <BackButton
+              fallbackLabel={
+                from === "invoices"
+                  ? "Back to Invoices"
+                  : "Back to Purchase Order"
+              }
+              fallbackTo={
+                from === "invoices"
+                  ? "/invoices"
+                  : `/purchase-orders/${purchaseOrder.id}`
+              }
+            />
+          </div>
+        }
+      />
 
-      {error && <ErrorState message={error} />}
-
-      <section className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-sm text-primary-gray">Purchase Order</p>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <Card>
+          <p className="text-sm text-gray-600">Purchase Order</p>
           <p className="mt-2 text-lg font-semibold text-primary-black">
             {purchaseOrder.po_number}
           </p>
-        </div>
+        </Card>
 
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-sm text-primary-gray">Supplier</p>
-          <p className="mt-2 text-lg font-semibold text-primary-black">
+        <Card>
+          <p className="text-sm text-gray-600">Supplier</p>
+          <p className="mt-2 truncate text-lg font-semibold text-primary-black">
             {purchaseOrder.supplier_name ?? "-"}
           </p>
-        </div>
+        </Card>
 
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
-          <p className="text-sm text-primary-gray">Invoice Total</p>
+        <Card>
+          <p className="text-sm text-gray-600">Invoice Total</p>
           <p className="mt-2 text-lg font-semibold text-primary-black">
             {formatCurrency(totalAmount, purchaseOrder.currency)}
           </p>
-        </div>
-      </section>
+        </Card>
+      </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-        <section className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
+        <Card>
           <h2 className="text-lg font-semibold text-primary-black">
             Invoice Information
           </h2>
+
+          <p className="mt-1 text-sm text-gray-600">
+            Add a supplier invoice number, or leave it blank for the system to
+            auto-generate one.
+          </p>
 
           <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
             <Input
@@ -209,13 +262,14 @@ export default function CreateInvoicePage() {
               onChange={(event) => setInvoiceNumber(event.target.value)}
             />
           </div>
-        </section>
+        </Card>
 
-        <section className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
+        <Card>
           <h2 className="text-lg font-semibold text-primary-black">
             Invoice Line Items
           </h2>
-          <p className="mt-1 text-sm text-primary-gray">
+
+          <p className="mt-1 text-sm text-gray-600">
             Confirm the quantities and unit prices being invoiced.
           </p>
 
@@ -233,69 +287,71 @@ export default function CreateInvoicePage() {
               return (
                 <div
                   key={item.purchase_order_item_id}
-                  className="grid gap-3 rounded-xl border bg-gray-50 p-4 md:grid-cols-2 xl:grid-cols-5"
+                  className="rounded-xl border border-gray-200 bg-gray-50 p-4"
                 >
-                  <div>
-                    <p className="text-sm font-medium text-primary-black">
+                  <div className="mb-4">
+                    <p className="font-medium text-primary-black">
                       {poItem?.item_name ?? "Item"}
                     </p>
-                    <p className="mt-1 text-xs text-primary-gray">
+                    <p className="mt-1 text-xs text-gray-500">
                       Ordered quantity: {poItem?.quantity ?? "-"}
                     </p>
                   </div>
 
-                  <Input
-                    label="Description"
-                    value={item.description}
-                    onChange={(event) =>
-                      updateLineItem(index, "description", event.target.value)
-                    }
-                    required
-                  />
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1.5fr_1fr_1fr_1fr]">
+                    <Input
+                      label="Description"
+                      value={item.description}
+                      onChange={(event) =>
+                        updateLineItem(index, "description", event.target.value)
+                      }
+                      required
+                    />
 
-                  <Input
-                    label="Invoice Quantity"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={item.invoiced_quantity}
-                    onChange={(event) =>
-                      updateLineItem(
-                        index,
-                        "invoiced_quantity",
-                        event.target.value,
-                      )
-                    }
-                    required
-                  />
+                    <Input
+                      label="Invoice Quantity"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={item.invoiced_quantity}
+                      onChange={(event) =>
+                        updateLineItem(
+                          index,
+                          "invoiced_quantity",
+                          event.target.value,
+                        )
+                      }
+                      required
+                    />
 
-                  <Input
-                    label="Unit Price"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={item.unit_price}
-                    onChange={(event) =>
-                      updateLineItem(index, "unit_price", event.target.value)
-                    }
-                    required
-                  />
+                    <Input
+                      label="Unit Price"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={item.unit_price}
+                      onChange={(event) =>
+                        updateLineItem(index, "unit_price", event.target.value)
+                      }
+                      required
+                    />
 
-                  <div>
-                    <p className="text-sm font-medium text-primary-black">
-                      Line Total
-                    </p>
-                    <p className="mt-2 text-sm text-primary-gray">
-                      {formatCurrency(lineTotal, purchaseOrder.currency)}
-                    </p>
+                    <div className="rounded-lg border border-gray-200 bg-white px-3 py-2">
+                      <p className="text-sm font-medium text-primary-black">
+                        Line Total
+                      </p>
+                      <p className="mt-2 text-sm text-gray-600">
+                        {formatCurrency(lineTotal, purchaseOrder.currency)}
+                      </p>
+                    </div>
                   </div>
                 </div>
               );
             })}
           </div>
-        </section>
+        </Card>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+        <Card className="flex flex-col gap-3 sm:flex-row sm:justify-end">
           <Link
             to={
               from === "invoices"
@@ -303,16 +359,21 @@ export default function CreateInvoicePage() {
                 : `/purchase-orders/${purchaseOrder.id}`
             }
           >
-            <Button type="button" variant="secondary">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={saving}
+              className="w-full sm:w-auto"
+            >
               Cancel
             </Button>
           </Link>
 
-          <Button type="submit" disabled={saving}>
+          <Button type="submit" disabled={saving} className="w-full sm:w-auto">
             {saving ? "Creating..." : "Create Invoice"}
           </Button>
-        </div>
+        </Card>
       </form>
-    </div>
+    </PageContainer>
   );
 }

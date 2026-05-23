@@ -32,3 +32,8 @@ export type AuditLogFilters = {
   date_from?: string;
   date_to?: string;
 };
+
+export type PaginatedAuditLogsResponse = {
+  rows: AuditLog[];
+  total_count: number;
+};

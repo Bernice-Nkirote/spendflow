@@ -1,48 +1,55 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
+import BackButton from "../../../components/ui/BackButton";
 import Card from "../../../components/ui/Card";
-import Button from "../../../components/ui/Button";
+import ErrorState from "../../../components/ui/ErrorState";
+import LoadingState from "../../../components/ui/LoadingState";
+import PageContainer from "../../../components/ui/PageContainer";
+import PageHeader from "../../../components/ui/PageHeader";
 
 import { getSupplierLeadTimeDetail } from "../api/supplierLeadTimeApi";
+import ReportStatusBadge from "../../reports/components/ReportStatusBadge";
 import type { SupplierLeadTimeDetail } from "../types/supplierLeadTimeDetail.types";
 
 function formatDate(value?: string | null) {
   if (!value) return "-";
 
-  return new Date(value).toLocaleString();
+  return new Intl.DateTimeFormat("en-KE", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 }
 
 function formatLeadTime(value?: number | null) {
   if (value === null || value === undefined) return "-";
 
-  return `${value.toFixed(2)} days`;
+  return `${value.toFixed(1)} days`;
 }
 
 export default function SupplierLeadTimeDetailsPage() {
-  const { poId } = useParams();
-  const navigate = useNavigate();
+  const { poId } = useParams<{ poId: string }>();
 
   const [data, setData] = useState<SupplierLeadTimeDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadData() {
+      if (!poId) {
+        setError("Purchase order ID is missing.");
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-
-        if (!poId) {
-          setError("Missing purchase order ID");
-          return;
-        }
+        setError(null);
 
         const response = await getSupplierLeadTimeDetail(poId);
-
         setData(response);
-      } catch (err) {
-        console.error(err);
-        setError("Failed to load supplier lead time details");
+      } catch {
+        setError("Failed to load supplier lead time details.");
       } finally {
         setLoading(false);
       }
@@ -53,129 +60,132 @@ export default function SupplierLeadTimeDetailsPage() {
 
   if (loading) {
     return (
-      <Card className="p-6">
-        <p className="text-sm text-gray-500">
-          Loading supplier lead time details...
-        </p>
-      </Card>
+      <PageContainer>
+        <LoadingState message="Loading supplier lead time details..." />
+      </PageContainer>
     );
   }
 
-  if (error || !data) {
+  if (error) {
     return (
-      <Card className="p-6">
-        <div className="space-y-4">
-          <p className="text-sm text-red-600">
-            {error || "Supplier lead time detail not found"}
-          </p>
+      <PageContainer>
+        <BackButton fallbackLabel="Back to Reports" fallbackTo="/reports" />
+        <ErrorState message={error} />
+      </PageContainer>
+    );
+  }
 
-          <Button onClick={() => navigate(-1)}>Go Back</Button>
-        </div>
-      </Card>
+  if (!data) {
+    return (
+      <PageContainer>
+        <BackButton fallbackLabel="Back to Reports" fallbackTo="/reports" />
+        <ErrorState message="Supplier lead time detail was not found." />
+      </PageContainer>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">
-            Supplier Lead Time Detail
-          </h1>
+    <PageContainer>
+      <BackButton fallbackLabel="Back to Reports" fallbackTo="/reports" />
 
-          <p className="mt-1 text-sm text-gray-500">
-            PO Number: {data.po_number}
-          </p>
-        </div>
+      <PageHeader
+        title="Supplier Lead Time Detail"
+        description={`PO Number: ${data.po_number}`}
+      />
 
-        <Button onClick={() => navigate(-1)}>Back</Button>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="p-5">
-          <p className="text-sm text-gray-500">Supplier</p>
-
-          <p className="mt-2 text-lg font-semibold text-gray-900">
+      <section className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <Card>
+          <p className="text-sm text-primary-gray">Supplier</p>
+          <p className="mt-2 break-words text-lg font-semibold text-primary-black">
             {data.supplier_name}
           </p>
         </Card>
 
-        <Card className="p-5">
-          <p className="text-sm text-gray-500">Lead Time</p>
-
-          <p className="mt-2 text-lg font-semibold text-gray-900">
+        <Card>
+          <p className="text-sm text-primary-gray">Lead Time</p>
+          <p className="mt-2 text-2xl font-semibold text-primary-black">
             {formatLeadTime(data.lead_time_days)}
           </p>
-        </Card>
-
-        <Card className="p-5">
-          <p className="text-sm text-gray-500">PO Status</p>
-
-          <p className="mt-2 text-lg font-semibold text-gray-900">
-            {data.po_status}
+          <p className="mt-1 text-xs text-primary-gray">
+            Days between PO issue and invoice creation
           </p>
         </Card>
 
-        <Card className="p-5">
-          <p className="text-sm text-gray-500">Invoice Status</p>
-
-          <p className="mt-2 text-lg font-semibold text-gray-900">
-            {data.invoice_status || "-"}
-          </p>
+        <Card>
+          <p className="text-sm text-primary-gray">PO Status</p>
+          <div className="mt-2">
+            <ReportStatusBadge status={data.po_status} />
+          </div>
         </Card>
-      </div>
 
-      <Card className="overflow-hidden">
-        <div className="border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Timeline Details
-          </h2>
-        </div>
+        <Card>
+          <p className="text-sm text-primary-gray">Invoice Status</p>
+          <div className="mt-2">
+            {data.invoice_status ? (
+              <ReportStatusBadge status={data.invoice_status} />
+            ) : (
+              <span className="text-sm text-primary-gray">-</span>
+            )}
+          </div>
+        </Card>
+      </section>
 
-        <div className="divide-y divide-gray-200">
-          <div className="grid grid-cols-1 gap-4 px-6 py-4 md:grid-cols-2">
-            <div>
-              <p className="text-sm text-gray-500">Purchase Order Number</p>
+      <Card>
+        <h2 className="text-lg font-semibold text-primary-black">
+          Timeline Details
+        </h2>
+        <p className="mt-1 text-sm text-gray-600">
+          Supplier delivery timing based on the purchase order issue date and
+          invoice creation date.
+        </p>
 
-              <p className="mt-1 font-medium text-gray-900">{data.po_number}</p>
-            </div>
-
-            <div>
-              <p className="text-sm text-gray-500">Invoice Number</p>
-
-              <p className="mt-1 font-medium text-gray-900">
-                {data.invoice_number || "-"}
-              </p>
-            </div>
+        <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-primary-gray">
+              Purchase Order Number
+            </p>
+            <p className="mt-1 text-sm font-medium text-primary-black">
+              {data.po_number}
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 px-6 py-4 md:grid-cols-2">
-            <div>
-              <p className="text-sm text-gray-500">PO Issued At</p>
-
-              <p className="mt-1 font-medium text-gray-900">
-                {formatDate(data.issued_at)}
-              </p>
-            </div>
-
-            <div>
-              <p className="text-sm text-gray-500">Invoice Created At</p>
-
-              <p className="mt-1 font-medium text-gray-900">
-                {formatDate(data.invoice_created_at)}
-              </p>
-            </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-primary-gray">
+              Invoice Number
+            </p>
+            <p className="mt-1 text-sm font-medium text-primary-black">
+              {data.invoice_number || "-"}
+            </p>
           </div>
 
-          <div className="px-6 py-4">
-            <p className="text-sm text-gray-500">Lead Time Calculation</p>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-primary-gray">
+              PO Issued At
+            </p>
+            <p className="mt-1 text-sm font-medium text-primary-black">
+              {formatDate(data.issued_at)}
+            </p>
+          </div>
 
-            <p className="mt-1 font-medium text-gray-900">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-primary-gray">
+              Invoice Created At
+            </p>
+            <p className="mt-1 text-sm font-medium text-primary-black">
+              {formatDate(data.invoice_created_at)}
+            </p>
+          </div>
+
+          <div className="md:col-span-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-primary-gray">
+              Lead Time Calculation
+            </p>
+            <p className="mt-1 text-sm font-medium text-primary-black">
               {formatLeadTime(data.lead_time_days)}
             </p>
           </div>
         </div>
       </Card>
-    </div>
+    </PageContainer>
   );
 }

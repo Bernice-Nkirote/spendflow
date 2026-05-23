@@ -1,3 +1,5 @@
+import Card from "../../../components/ui/Card";
+
 export type ReportType =
   | "purchase-requisitions"
   | "purchase-orders"
@@ -7,46 +9,98 @@ export type ReportType =
   | "supplier-spend"
   | "supplier-lead-time";
 
+export const reports: {
+  label: string;
+  value: ReportType;
+  permission: string;
+}[] = [
+  {
+    label: "PR Report",
+    value: "purchase-requisitions",
+    permission: "reports.pr.view",
+  },
+  {
+    label: "PO Report",
+    value: "purchase-orders",
+    permission: "reports.po.view",
+  },
+  {
+    label: "Invoice Report",
+    value: "invoices",
+    permission: "reports.invoices.view",
+  },
+  {
+    label: "Outstanding Invoice",
+    value: "outstanding-invoices",
+    permission: "reports.outstanding_invoices.view",
+  },
+  {
+    label: "Payment Report",
+    value: "payments",
+    permission: "reports.payments.view",
+  },
+  {
+    label: "Supplier Spend",
+    value: "supplier-spend",
+    permission: "reports.supplier_spend.view",
+  },
+  {
+    label: "Supplier Lead Time",
+    value: "supplier-lead-time",
+    permission: "reports.supplier_lead_time.view",
+  },
+];
+
 type Props = {
   activeReport: ReportType;
   onChange: (report: ReportType) => void;
+  allowedReports: ReportType[];
 };
 
-const reports: { label: string; value: ReportType }[] = [
-  { label: "PR Report", value: "purchase-requisitions" },
-  { label: "PO Report", value: "purchase-orders" },
-  { label: "Invoice Report", value: "invoices" },
-  { label: "Outstanding Invoice", value: "outstanding-invoices" },
-  { label: "Payment Report", value: "payments" },
-  { label: "Supplier Spend", value: "supplier-spend" },
-  { label: "Supplier Lead Time", value: "supplier-lead-time" },
-];
+export default function ReportTabs({
+  activeReport,
+  onChange,
+  allowedReports,
+}: Props) {
+  const visibleReports = reports.filter((report) =>
+    allowedReports.includes(report.value),
+  );
 
-export default function ReportTabs({ activeReport, onChange }: Props) {
   return (
-    <div className="min-w-0 rounded-xl border bg-white p-2 shadow-sm">
-      <div className="overflow-x-auto">
-        <div className="flex w-max gap-2">
-          {reports.map((report) => {
-            const isActive = activeReport === report.value;
+    <Card>
+      <div className="min-w-0">
+        <div className="mb-3">
+          <h2 className="text-lg font-semibold text-primary-black">
+            Report Type
+          </h2>
+          <p className="mt-1 text-sm text-gray-600">
+            Switch between procurement, invoice, payment, and supplier reports.
+          </p>
+        </div>
 
-            return (
-              <button
-                key={report.value}
-                type="button"
-                onClick={() => onChange(report.value)}
-                className={`shrink-0 rounded-lg px-4 py-2 text-sm font-medium transition ${
-                  isActive
-                    ? "bg-primary-blue text-white"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                }`}
-              >
-                {report.label}
-              </button>
-            );
-          })}
+        <div className="-mx-1 overflow-x-auto px-1">
+          <div className="flex w-max gap-2">
+            {visibleReports.map((report) => {
+              const isActive = activeReport === report.value;
+
+              return (
+                <button
+                  key={report.value}
+                  type="button"
+                  onClick={() => onChange(report.value)}
+                  className={`shrink-0 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
+                    isActive
+                      ? "bg-primary-blue text-white shadow-sm"
+                      : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-primary-black"
+                  }`}
+                >
+                  {report.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
-    </div>
+    </Card>
   );
 }

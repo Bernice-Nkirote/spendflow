@@ -19,9 +19,13 @@ export default function RecentActivity({ items }: RecentActivityProps) {
   return (
     <div>
       <div className="mb-4">
-        <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
-        <p className="mt-1 text-sm text-gray-500">
-          Latest procurement and workflow actions.
+        <h2 className="text-lg font-semibold text-primary-black">
+          Recent Activity
+        </h2>
+
+        <p className="mt-1 text-sm leading-5 text-primary-gray">
+          Latest procurement, approval, and operational activity across the
+          platform.
         </p>
       </div>
 
@@ -32,25 +36,37 @@ export default function RecentActivity({ items }: RecentActivityProps) {
           {items.slice(0, 5).map((activity) => (
             <div
               key={activity.id}
-              className="flex items-start gap-3 rounded-lg border border-gray-200 bg-gray-50/40 p-4 transition hover:bg-gray-50"
+              className="flex items-start gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-primary-blue/20 hover:bg-gray-50"
             >
-              <div className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-blue-600" />
+              <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50">
+                <div className="h-2.5 w-2.5 rounded-full bg-primary-blue" />
+              </div>
 
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-gray-900">
-                  {activity.action}
-                </p>
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-primary-black">
+                      {activity.action}
+                    </p>
 
-                <p className="mt-1 truncate text-xs text-gray-500">
-                  {activity.entityType}
-                  {activity.entityReference
-                    ? ` • ${activity.entityReference}`
-                    : ""}
-                </p>
+                    <p className="mt-1 truncate text-xs text-primary-gray">
+                      {activity.entityType}
+                      {activity.entityReference
+                        ? ` • ${activity.entityReference}`
+                        : ""}
+                    </p>
+                  </div>
 
-                <p className="mt-2 text-xs text-gray-400">
-                  {activity.performedBy ?? "System"} •{" "}
-                  {formatDateTime(activity.createdAt)}
+                  <p className="shrink-0 text-xs text-primary-gray">
+                    {formatDateTime(activity.createdAt)}
+                  </p>
+                </div>
+
+                <p className="mt-3 text-xs text-primary-gray">
+                  Performed by{" "}
+                  <span className="font-medium text-primary-black">
+                    {activity.performedBy ?? "System"}
+                  </span>
                 </p>
               </div>
             </div>

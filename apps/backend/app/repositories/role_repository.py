@@ -28,12 +28,31 @@ class RoleRepository:
             .first()
         )
 
-    def get_all(self, company_id: UUID) -> list[Role]:
-        return (
+    def get_all(
+        self,
+        company_id: UUID,
+        skip: int | None = None,
+        limit: int | None = None,
+    ) -> list[Role]:
+        query = (
             self.db.query(Role)
             .filter(Role.company_id == company_id)
             .order_by(Role.created_at.desc())
-            .all()
+        )
+
+        if skip is not None:
+            query = query.offset(skip)
+
+        if limit is not None:
+            query = query.limit(limit)
+
+        return query.all()
+    
+    def count_all(self, company_id: UUID) -> int:
+        return (
+            self.db.query(Role)
+            .filter(Role.company_id == company_id)
+            .count()
         )
 
     def get_by_name(self, name: str, company_id: UUID) -> Optional[Role]:

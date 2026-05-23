@@ -30,6 +30,7 @@ InvoiceCreate,
 InvoiceRead, 
 InvoiceUpdate,
 InvoiceDetailRead,
+InvoicePaginatedRead,
 )
 from app.services.approval_instance_service import ApprovalInstanceService
 from app.services.invoice_service import InvoiceService
@@ -121,6 +122,21 @@ def get_all_invoices(
         limit=limit,
     )
 
+@router.get(
+    "/paginated",
+    response_model=InvoicePaginatedRead,
+)
+def get_all_invoices_paginated(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1),
+    current_user=Depends(get_current_user),
+    service: InvoiceService = Depends(get_invoice_service),
+):
+    return service.get_all_invoices_paginated(
+        company_id=current_user.company_id,
+        skip=skip,
+        limit=limit,
+    )
 
 @router.get("/status/{status}", response_model=list[InvoiceDetailRead])
 def get_invoices_by_status(

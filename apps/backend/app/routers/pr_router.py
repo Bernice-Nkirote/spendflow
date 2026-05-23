@@ -29,6 +29,7 @@ from app.schemas.pr_item_schema import (
 from app.schemas.pr_schema import (
     PurchaseRequisitionCreate,
     PurchaseRequisitionRead,
+    PurchaseRequisitionPaginatedRead,
     PurchaseRequisitionDetailRead,
     PurchaseRequisitionUpdate,
 )
@@ -125,6 +126,23 @@ def get_all_purchase_requisitions(
     )
 
 
+@router.get(
+    "/paginated",
+    response_model=PurchaseRequisitionPaginatedRead,
+)
+def get_all_purchase_requisitions_paginated(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1),
+    current_user=Depends(get_current_user),
+    service: PurchaseRequisitionService = Depends(
+        get_purchase_requisition_service
+    ),
+):
+    return service.get_all_purchase_requisitions_paginated(
+        company_id=current_user.company_id,
+        skip=skip,
+        limit=limit,
+    )
 
 @router.get("/status/{status}", response_model=list[PurchaseRequisitionRead])
 def get_purchase_requisitions_by_status(

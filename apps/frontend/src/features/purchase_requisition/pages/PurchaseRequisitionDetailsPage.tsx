@@ -5,6 +5,11 @@ import EmptyState from "../../../components/ui/EmptyState";
 import ErrorState from "../../../components/ui/ErrorState";
 import LoadingState from "../../../components/ui/LoadingState";
 import Button from "../../../components/ui/Button";
+import BackButton from "../../../components/ui/BackButton";
+import Card from "../../../components/ui/Card";
+import PageContainer from "../../../components/ui/PageContainer";
+import TableWrapper from "../../../components/ui/TableWrapper";
+import PageHeader from "../../../components/ui/PageHeader";
 
 import { getPurchaseRequisitionById } from "../api/purchaseRequisitionApi";
 import PurchaseRequisitionStatusBadge from "../components/PurchaseRequisitionStatusBadge";
@@ -16,6 +21,7 @@ import {
   formatCurrency,
   normalizeCurrencyCode,
 } from "../../../utils/formatCurrency";
+import { userHasPermission } from "../../../utils/permissions";
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "-";
@@ -54,6 +60,8 @@ export default function PurchaseRequisitionDetailsPage() {
   const [searchParams] = useSearchParams();
 
   const returnTo = searchParams.get("returnTo");
+  const canUpdatePR = userHasPermission("pr.update");
+  const canConvertPRToPO = userHasPermission("pr.convert_to_po");
 
   const [purchaseRequisition, setPurchaseRequisition] =
     useState<PurchaseRequisitionDetails | null>(null);
@@ -92,72 +100,63 @@ export default function PurchaseRequisitionDetailsPage() {
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-6">
-      <div className="flex flex-col gap-4 rounded-xl border bg-white p-4 shadow-sm sm:p-5 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap gap-3">
-            <Link
-              to="/purchase-requisitions"
-              className="text-sm font-medium text-primary-blue hover:underline"
-            >
-              ← Back to Purchase Requisitions
-            </Link>
+    <PageContainer>
+      {returnTo ? (
+        <BackButton label="Back to Approval" to={returnTo} />
+      ) : (
+        <BackButton
+          fallbackLabel="Back to Purchase Requisitions"
+          fallbackTo="/purchase-requisitions"
+        />
+      )}
 
-            {returnTo && (
+      <PageHeader
+        title={`Purchase Requisition ${purchaseRequisition.pr_number}`}
+        description={purchaseRequisition.title}
+        actions={
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <PurchaseRequisitionStatusBadge
+              status={purchaseRequisition.status}
+            />
+
+            {canUpdatePR && purchaseRequisition.status === "DRAFT" && (
               <Link
-                to={returnTo}
-                className="text-sm font-medium text-primary-blue hover:underline"
+                to={`/purchase-requisitions/${purchaseRequisition.id}/edit`}
               >
-                ← Back to Approval
+                <Button type="button" variant="secondary">
+                  Edit PR
+                </Button>
               </Link>
             )}
+
+            {canConvertPRToPO && purchaseRequisition.status === "APPROVED" && (
+              <Link
+                to={`/purchase-orders/from-requisition/${purchaseRequisition.id}`}
+                state={{
+                  from: "purchase-orders",
+                  label: "Back to Purchase Orders",
+                }}
+              >
+                <Button type="button" variant="secondary">
+                  Create PO from PR
+                </Button>
+              </Link>
+            )}
+
+            <PurchaseRequisitionActions
+              purchaseRequisition={purchaseRequisition}
+              onUpdated={(updatedPurchaseRequisition) => {
+                setPurchaseRequisition(updatedPurchaseRequisition);
+                setActionError(null);
+              }}
+              onError={setActionError}
+            />
           </div>
-
-          <h1 className="mt-3 text-2xl font-semibold text-primary-black">
-            Purchase Requisition {purchaseRequisition.pr_number}
-          </h1>
-
-          <p className="mt-1 text-sm text-primary-gray">
-            {purchaseRequisition.title}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3 lg:flex-col lg:items-end">
-          <PurchaseRequisitionStatusBadge status={purchaseRequisition.status} />
-
-          <span className="text-sm text-primary-gray">
-            Created {formatDate(purchaseRequisition.created_at)}
-          </span>
-
-          {purchaseRequisition.status === "DRAFT" && (
-            <Link
-              to={`/purchase-requisitions/${purchaseRequisition.id}/edit`}
-              className="text-sm font-medium text-primary-blue hover:underline"
-            >
-              Edit PR
-            </Link>
-          )}
-          {purchaseRequisition.status === "APPROVED" && (
-            <Link
-              to={`/purchase-orders/from-requisition/${purchaseRequisition.id}`}
-            >
-              <Button type="button" variant="secondary">
-                Create PO from PR
-              </Button>
-            </Link>
-          )}
-          <PurchaseRequisitionActions
-            purchaseRequisition={purchaseRequisition}
-            onUpdated={(updatedPurchaseRequisition) => {
-              setPurchaseRequisition(updatedPurchaseRequisition);
-              setActionError(null);
-            }}
-            onError={setActionError}
-          />
-        </div>
-      </div>
+        }
+      />
       {actionError && <ErrorState message={actionError} />}
       <section className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
+        <Card>
           <p className="text-sm text-primary-gray">Original Amount</p>
           <p className="mt-2 text-2xl font-semibold text-primary-black">
             {formatCurrency(
@@ -169,9 +168,9 @@ export default function PurchaseRequisitionDetailsPage() {
             Transaction currency:{" "}
             {normalizeCurrencyCode(purchaseRequisition.currency)}
           </p>
-        </div>
+        </Card>
 
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
+        <Card className="p-4 shadow-md">
           <p className="text-sm text-primary-gray">Base Amount</p>
           <p className="mt-2 text-2xl font-semibold text-primary-black">
             {purchaseRequisition.base_amount &&
@@ -185,9 +184,9 @@ export default function PurchaseRequisitionDetailsPage() {
           <p className="mt-1 text-xs text-primary-gray">
             Used for approval thresholds
           </p>
-        </div>
+        </Card>
 
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
+        <Card className="p-4 shadow-md">
           <p className="text-sm text-primary-gray">Exchange Rate</p>
           <p className="mt-2 text-2xl font-semibold text-primary-black">
             {formatRate(purchaseRequisition.exchange_rate)}
@@ -198,9 +197,9 @@ export default function PurchaseRequisitionDetailsPage() {
               ? ` → ${purchaseRequisition.base_currency}`
               : ""}
           </p>
-        </div>
+        </Card>
 
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
+        <Card className="p-4 shadow-md">
           <p className="text-sm text-primary-gray">Items</p>
           <p className="mt-2 text-2xl font-semibold text-primary-black">
             {purchaseRequisition.items.length}
@@ -208,20 +207,20 @@ export default function PurchaseRequisitionDetailsPage() {
           <p className="mt-1 text-xs text-primary-gray">
             Rate date: {formatDate(purchaseRequisition.exchange_rate_date)}
           </p>
-        </div>
+        </Card>
       </section>
       <PurchaseRequisitionApprovalCard
         purchaseRequisition={purchaseRequisition}
       />
 
-      <section className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
+      <Card>
         <h2 className="text-lg font-semibold text-primary-black">
           Requisition Information
         </h2>
 
         <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-primary-gray">
+            <p className="text-xs font-semibold uppercase tracking-wide text-primary-gray">
               PR Number
             </p>
             <p className="mt-1 text-sm text-primary-black">
@@ -287,9 +286,8 @@ export default function PurchaseRequisitionDetailsPage() {
             </p>
           </div>
         )}
-      </section>
-
-      <section className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
+      </Card>
+      <Card>
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-lg font-semibold text-primary-black">
             Requested Items
@@ -307,83 +305,85 @@ export default function PurchaseRequisitionDetailsPage() {
             />
           </div>
         ) : (
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-[900px] divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-3 text-left font-medium text-primary-gray">
-                    Item
-                  </th>
-                  <th className="px-4 py-3 text-left font-medium text-primary-gray">
-                    Description
-                  </th>
-                  <th className="px-4 py-3 text-right font-medium text-primary-gray">
-                    Quantity
-                  </th>
-                  <th className="px-4 py-3 text-right font-medium text-primary-gray">
-                    Unit Price
-                  </th>
-                  <th className="px-4 py-3 text-right font-medium text-primary-gray">
-                    Line Total
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody className="divide-y divide-gray-100 bg-white">
-                {purchaseRequisition.items.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-primary-black">
-                      <span
-                        className="block max-w-[260px] whitespace-pre-wrap break-words"
-                        title={item.item_name}
-                      >
-                        {item.item_name}
-                      </span>
-                    </td>
-
-                    <td className="px-4 py-3 text-primary-black">
-                      <span
-                        className="block max-w-[360px] whitespace-pre-wrap break-words leadin-6"
-                        title={item.description}
-                      >
-                        {item.description || "-"}
-                      </span>
-                    </td>
-
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-primary-black">
-                      {formatQuantity(item.quantity)}
-                    </td>
-
-                    <td className="whitespace-nowrap px-4 py-3 text-right text-primary-black">
-                      {item.unit_price
-                        ? formatCurrency(
-                            Number(item.unit_price ?? 0),
-                            purchaseRequisition.currency,
-                          )
-                        : "-"}
-                    </td>
-
-                    <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-primary-black">
-                      {item.line_total
-                        ? formatCurrency(
-                            Number(item.line_total ?? 0),
-                            purchaseRequisition.currency,
-                          )
-                        : "-"}
-                    </td>
+          <div className="mt-4">
+            <TableWrapper minWidth="900px">
+              <table className="w-full divide-y divide-gray-200 text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                      Item
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                      Description
+                    </th>
+                    <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                      Quantity
+                    </th>
+                    <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                      Unit Price
+                    </th>
+                    <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                      Line Total
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+
+                <tbody className="divide-y divide-gray-100 bg-white">
+                  {purchaseRequisition.items.map((item) => (
+                    <tr key={item.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 font-medium text-primary-black">
+                        <span
+                          className="block max-w-[260px] whitespace-pre-wrap break-words"
+                          title={item.item_name}
+                        >
+                          {item.item_name}
+                        </span>
+                      </td>
+
+                      <td className="px-4 py-3 text-primary-black">
+                        <span
+                          className="block max-w-[360px] whitespace-pre-wrap break-words leading-6"
+                          title={item.description}
+                        >
+                          {item.description || "-"}
+                        </span>
+                      </td>
+
+                      <td className="whitespace-nowrap px-4 py-3 text-right text-primary-black">
+                        {formatQuantity(item.quantity)}
+                      </td>
+
+                      <td className="whitespace-nowrap px-4 py-3 text-right text-primary-black">
+                        {item.unit_price
+                          ? formatCurrency(
+                              Number(item.unit_price ?? 0),
+                              purchaseRequisition.currency,
+                            )
+                          : "-"}
+                      </td>
+
+                      <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-primary-black">
+                        {item.line_total
+                          ? formatCurrency(
+                              Number(item.line_total ?? 0),
+                              purchaseRequisition.currency,
+                            )
+                          : "-"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableWrapper>
           </div>
         )}
-      </section>
-      {purchaseRequisition.status === "DRAFT" && (
+      </Card>
+      {canUpdatePR && purchaseRequisition.status === "DRAFT" && (
         <PurchaseRequisitionItemsEditor
           purchaseRequisition={purchaseRequisition}
           onItemsUpdated={fetchPurchaseRequisition}
         />
       )}
-    </div>
+    </PageContainer>
   );
 }

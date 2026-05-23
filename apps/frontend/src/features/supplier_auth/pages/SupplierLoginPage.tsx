@@ -1,22 +1,24 @@
 import axios from "axios";
 import { useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
-import supplierAxiosInstance from "../../../api/supplierAxiosInstance";
 import Button from "../../../components/ui/Button";
 import Card from "../../../components/ui/Card";
+import FloatingAlert from "../../../components/ui/FloatingAlert";
 import Input from "../../../components/ui/Input";
 import PasswordInput from "../../../components/ui/PasswordInput";
+import { useFloatingAlert } from "../../../components/ui/useFloatingAlert";
+import { getCurrentSupplier, supplierLogin } from "../api/supplierAuthApi";
 
 function SupplierLoginPage() {
   const navigate = useNavigate();
+  const { alert, showAlert, clearAlert } = useFloatingAlert();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
-  const [formError, setFormError] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
 
@@ -25,7 +27,7 @@ function SupplierLoginPage() {
 
     setEmailError("");
     setPasswordError("");
-    setFormError(null);
+    clearAlert();
 
     if (!email.trim()) {
       setEmailError("Email address is required.");
@@ -40,36 +42,44 @@ function SupplierLoginPage() {
     return isValid;
   };
 
-  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
 
     if (!validateForm()) return;
 
     setLoading(true);
 
     try {
-      const response = await supplierAxiosInstance.post(
-        "/supplier-auth/login",
-        {
-          email: email.trim(),
-          password,
-        },
-      );
+      const response = await supplierLogin({
+        email: email.trim(),
+        password,
+      });
 
-      localStorage.setItem("supplier_access_token", response.data.access_token);
+      localStorage.setItem("supplier_access_token", response.access_token);
+      localStorage.setItem("supplier_refresh_token", response.refresh_token);
 
-      navigate("/supplier-portal/purchase-orders");
+      const supplierUser = await getCurrentSupplier();
+      localStorage.setItem("supplier_user", JSON.stringify(supplierUser));
+
+      showAlert("success", "Signed in successfully.");
+
+      const returnTo = sessionStorage.getItem("supplierReturnToAfterLogin");
+
+      sessionStorage.removeItem("supplierReturnToAfterLogin");
+
+      navigate(returnTo || "/supplier-portal/purchase-orders");
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
         const detail = err.response?.data?.detail;
 
         if (typeof detail === "string") {
-          setFormError(detail);
+          showAlert("error", detail);
           return;
         }
       }
 
-      setFormError(
+      showAlert(
+        "error",
         "Supplier login failed. Please check your email and password.",
       );
     } finally {
@@ -78,7 +88,15 @@ function SupplierLoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-primary-white px-4">
+    <div className="flex min-h-screen items-center justify-center bg-primary-white px-4 py-8">
+      {alert && (
+        <FloatingAlert
+          type={alert.type}
+          message={alert.message}
+          onClose={clearAlert}
+        />
+      )}
+
       <Card className="w-full max-w-md">
         <div className="mb-6 text-center">
           <h1 className="text-3xl font-bold text-primary-blue">SpendFlow</h1>
@@ -93,7 +111,7 @@ function SupplierLoginPage() {
             name="email"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(event) => setEmail(event.target.value)}
             placeholder="supplier@company.com"
             error={emailError}
           />
@@ -102,20 +120,23 @@ function SupplierLoginPage() {
             label="Password"
             name="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(event) => setPassword(event.target.value)}
             placeholder="Enter your password"
             error={passwordError}
           />
 
-          {formError && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-center text-sm text-accent-error">
-              {formError}
-            </p>
-          )}
-
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Signing in..." : "Sign In"}
           </Button>
+
+          <p className="text-center text-sm text-primary-gray">
+            <Link
+              to="/supplier-forgot-password"
+              className="font-medium text-primary-blue hover:underline"
+            >
+              Forgot your password?
+            </Link>
+          </p>
         </form>
       </Card>
     </div>

@@ -1,23 +1,61 @@
 import uuid
 from uuid import UUID
 
-
 from fastapi import HTTPException, status
 
 from app.models.supplier import Supplier
 from app.repositories.supplier_repository import SupplierRepository
-from app.schemas.supplier_schema import(
-SupplierCreate, 
-SupplierUpdate,
+from app.schemas.supplier_schema import (
+    SupplierCreate,
+    SupplierUpdate,
 )
 
 
-
 class SupplierService:
-    def __init__(self, repo: SupplierRepository):
+    def __init__(
+        self,
+        repo: SupplierRepository,
+        permission_service=None,
+    ):
         self.repo = repo
+        self.permission_service = permission_service
 
-    def create_supplier(self, supplier_data: SupplierCreate, company_id: UUID) -> Supplier:
+    def _require_permission(
+        self,
+        role_id: UUID,
+        company_id: UUID,
+        permission_name: str,
+        error_message: str,
+    ) -> None:
+        if self.permission_service is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Permission service is required.",
+            )
+
+        if not self.permission_service.role_has_permission(
+            role_id=role_id,
+            permission_name=permission_name,
+            company_id=company_id,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=error_message,
+            )
+
+    def create_supplier(
+        self,
+        supplier_data: SupplierCreate,
+        company_id: UUID,
+        actor_role_id: UUID,
+    ) -> Supplier:
+        self._require_permission(
+            role_id=actor_role_id,
+            company_id=company_id,
+            permission_name="suppliers.create",
+            error_message="You do not have permission to create suppliers.",
+        )
+
         name = supplier_data.name.strip()
         if not name:
             raise HTTPException(status_code=400, detail="Supplier name is required.")
@@ -25,16 +63,29 @@ class SupplierService:
         email = supplier_data.email.strip().lower() if supplier_data.email else None
         phone = supplier_data.phone.strip() if supplier_data.phone else None
         address = supplier_data.address.strip() if supplier_data.address else None
-        contact_person = supplier_data.contact_person.strip() if supplier_data.contact_person else None
+        contact_person = (
+            supplier_data.contact_person.strip()
+            if supplier_data.contact_person
+            else None
+        )
 
         if self.repo.get_by_name(name, company_id):
-            raise HTTPException(status_code=409, detail="Supplier with this name already exists.")
+            raise HTTPException(
+                status_code=409,
+                detail="Supplier with this name already exists.",
+            )
 
         if email and self.repo.get_by_email(email, company_id):
-            raise HTTPException(status_code=409, detail="Supplier with this email already exists.")
+            raise HTTPException(
+                status_code=409,
+                detail="Supplier with this email already exists.",
+            )
 
         if phone and self.repo.get_by_phone(phone, company_id):
-            raise HTTPException(status_code=409, detail="Supplier with this phone number already exists.")
+            raise HTTPException(
+                status_code=409,
+                detail="Supplier with this phone number already exists.",
+            )
 
         supplier = Supplier(
             id=uuid.uuid4(),
@@ -53,13 +104,38 @@ class SupplierService:
 
         return created_supplier
 
-    def get_supplier(self, supplier_id: UUID, company_id: UUID) -> Supplier:
+    def get_supplier(
+        self,
+        supplier_id: UUID,
+        company_id: UUID,
+        actor_role_id: UUID,
+    ) -> Supplier:
+        self._require_permission(
+            role_id=actor_role_id,
+            company_id=company_id,
+            permission_name="suppliers.view",
+            error_message="You do not have permission to view suppliers.",
+        )
+
         supplier = self.repo.get_by_id(supplier_id, company_id)
         if not supplier:
             raise HTTPException(status_code=404, detail="Supplier not found.")
         return supplier
 
-    def get_all_suppliers(self, company_id: UUID, skip: int = 0, limit: int = 20) -> list[Supplier]:
+    def get_all_suppliers(
+        self,
+        company_id: UUID,
+        actor_role_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> list[Supplier]:
+        self._require_permission(
+            role_id=actor_role_id,
+            company_id=company_id,
+            permission_name="suppliers.view",
+            error_message="You do not have permission to view suppliers.",
+        )
+
         if skip < 0:
             raise HTTPException(status_code=400, detail="Skip must be zero or greater.")
         if limit < 1:
@@ -67,13 +143,62 @@ class SupplierService:
 
         return self.repo.get_all(company_id, skip=skip, limit=limit)
 
+    def get_paginated_suppliers(
+        self,
+        company_id: UUID,
+        actor_role_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> dict:
+        self._require_permission(
+            role_id=actor_role_id,
+            company_id=company_id,
+            permission_name="suppliers.view",
+            error_message="You do not have permission to view suppliers.",
+        )
+
+        if skip < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Skip must be zero or greater.",
+            )
+
+        if limit < 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Limit must be greater than zero.",
+            )
+
+        suppliers = self.repo.get_all(
+            company_id=company_id,
+            skip=skip,
+            limit=limit,
+        )
+
+        total_count = self.repo.count_all(company_id=company_id)
+
+        return {
+            "rows": suppliers,
+            "total_count": total_count,
+        }
+
     def update_supplier(
         self,
         supplier_id: UUID,
         supplier_data: SupplierUpdate,
         company_id: UUID,
+        actor_role_id: UUID,
     ) -> Supplier:
-        supplier = self.get_supplier(supplier_id, company_id)
+        self._require_permission(
+            role_id=actor_role_id,
+            company_id=company_id,
+            permission_name="suppliers.update",
+            error_message="You do not have permission to update suppliers.",
+        )
+
+        supplier = self.repo.get_by_id(supplier_id, company_id)
+        if not supplier:
+            raise HTTPException(status_code=404, detail="Supplier not found.")
 
         update_data = supplier_data.model_dump(exclude_unset=True)
 
@@ -82,9 +207,24 @@ class SupplierService:
             if not name:
                 raise HTTPException(status_code=400, detail="Supplier name cannot be empty.")
 
-            existing_supplier = self.repo.get_by_name(name, company_id)
+            if name != supplier.name and self.repo.has_procurement_records(
+                supplier_id,
+                company_id,
+            ):
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "Supplier name cannot be changed because this supplier is already linked "
+                        "to procurement records. Update contact details instead."
+                    ),
+                )
+
+            existing_supplier = self.repo.get_by_name(name, company_id)  
             if existing_supplier and existing_supplier.id != supplier.id:
-                raise HTTPException(status_code=409, detail="Supplier with this name already exists.")
+                raise HTTPException(
+                    status_code=409,
+                    detail="Supplier with this name already exists.",
+                )
 
             update_data["name"] = name
 
@@ -95,7 +235,10 @@ class SupplierService:
             if normalized_email:
                 existing_email = self.repo.get_by_email(normalized_email, company_id)
                 if existing_email and existing_email.id != supplier.id:
-                    raise HTTPException(status_code=409, detail="Supplier with this email already exists.")
+                    raise HTTPException(
+                        status_code=409,
+                        detail="Supplier with this email already exists.",
+                    )
 
             update_data["email"] = normalized_email
 
@@ -106,7 +249,10 @@ class SupplierService:
             if normalized_phone:
                 existing_phone = self.repo.get_by_phone(normalized_phone, company_id)
                 if existing_phone and existing_phone.id != supplier.id:
-                    raise HTTPException(status_code=409, detail="Supplier with this phone number already exists.")
+                    raise HTTPException(
+                        status_code=409,
+                        detail="Supplier with this phone number already exists.",
+                    )
 
             update_data["phone"] = normalized_phone
 
@@ -116,7 +262,9 @@ class SupplierService:
 
         if "contact_person" in update_data:
             contact_person = update_data["contact_person"]
-            update_data["contact_person"] = contact_person.strip() if contact_person else None
+            update_data["contact_person"] = (
+                contact_person.strip() if contact_person else None
+            )
 
         for field, value in update_data.items():
             setattr(supplier, field, value)
@@ -127,8 +275,22 @@ class SupplierService:
 
         return updated_supplier
 
-    def activate_supplier(self, supplier_id: UUID, company_id: UUID) -> Supplier:
-        supplier = self.get_supplier(supplier_id, company_id)
+    def activate_supplier(
+        self,
+        supplier_id: UUID,
+        company_id: UUID,
+        actor_role_id: UUID,
+    ) -> Supplier:
+        self._require_permission(
+            role_id=actor_role_id,
+            company_id=company_id,
+            permission_name="suppliers.update",
+            error_message="You do not have permission to update suppliers.",
+        )
+
+        supplier = self.repo.get_by_id(supplier_id, company_id)
+        if not supplier:
+            raise HTTPException(status_code=404, detail="Supplier not found.")
 
         if supplier.is_active:
             raise HTTPException(status_code=400, detail="Supplier is already active.")
@@ -141,8 +303,22 @@ class SupplierService:
 
         return updated_supplier
 
-    def deactivate_supplier(self, supplier_id: UUID, company_id: UUID) -> Supplier:
-        supplier = self.get_supplier(supplier_id, company_id)
+    def deactivate_supplier(
+        self,
+        supplier_id: UUID,
+        company_id: UUID,
+        actor_role_id: UUID,
+    ) -> Supplier:
+        self._require_permission(
+            role_id=actor_role_id,
+            company_id=company_id,
+            permission_name="suppliers.update",
+            error_message="You do not have permission to update suppliers.",
+        )
+
+        supplier = self.repo.get_by_id(supplier_id, company_id)
+        if not supplier:
+            raise HTTPException(status_code=404, detail="Supplier not found.")
 
         if not supplier.is_active:
             raise HTTPException(status_code=400, detail="Supplier is already inactive.")
@@ -155,19 +331,30 @@ class SupplierService:
 
         return updated_supplier
 
-    def delete_supplier(self, supplier_id: UUID, company_id: UUID) -> None:
-        supplier = self.get_supplier(supplier_id, company_id)
+    def delete_supplier(
+        self,
+        supplier_id: UUID,
+        company_id: UUID,
+        actor_role_id: UUID,
+    ) -> None:
+        self._require_permission(
+            role_id=actor_role_id,
+            company_id=company_id,
+            permission_name="suppliers.delete",
+            error_message="You do not have permission to delete suppliers.",
+        )
 
-        if self.repo.has_invoices(supplier_id, company_id):
+        supplier = self.repo.get_by_id(supplier_id, company_id)
+        if not supplier:
+            raise HTTPException(status_code=404, detail="Supplier not found.")
+
+        if self.repo.has_procurement_records(supplier_id, company_id):
             raise HTTPException(
                 status_code=400,
-                detail="Supplier cannot be deleted because it has invoices. Deactivate instead.",
-            )
-
-        if self.repo.has_purchase_orders(supplier_id, company_id):
-            raise HTTPException(
-                status_code=400,
-                detail="Supplier cannot be deleted because it has purchase orders. Deactivate instead.",
+                detail=(
+                    "Supplier cannot be deleted because it is linked to procurement records. "
+                    "Deactivate instead."
+                ),
             )
 
         self.repo.delete(supplier)

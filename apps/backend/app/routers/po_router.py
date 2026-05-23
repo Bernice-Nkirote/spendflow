@@ -37,6 +37,7 @@ from app.schemas.po_schema import (
     PurchaseOrderRead,
     PurchaseOrderUpdate,
     PurchaseOrderDetailRead,
+    PurchaseOrderPaginatedRead,
 )
 from app.schemas.po_email_log_schema import POEmailLogRead
 from app.services.approval_instance_service import ApprovalInstanceService
@@ -172,7 +173,7 @@ def get_po_email_log_service(
 # PURCHASE ORDER ROUTES
 @router.post(
     "/",
-    response_model=PurchaseOrderRead,
+    response_model=PurchaseOrderDetailRead,
     status_code=status.HTTP_201_CREATED,
 )
 def create_purchase_order(
@@ -189,7 +190,7 @@ def create_purchase_order(
 
 @router.post(
     "/from-requisition/{requisition_id}",
-    response_model=PurchaseOrderRead,
+    response_model=PurchaseOrderDetailRead,
     status_code=status.HTTP_201_CREATED,
 )
 def create_purchase_order_from_requisition(
@@ -220,6 +221,21 @@ def get_all_purchase_orders(
         limit=limit,
     )
 
+@router.get(
+    "/paginated",
+    response_model=PurchaseOrderPaginatedRead,
+)
+def get_all_purchase_orders_paginated(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1),
+    current_user=Depends(get_current_user),
+    service: PurchaseOrderService = Depends(get_purchase_order_service),
+):
+    return service.get_all_pos_paginated(
+        company_id=current_user.company_id,
+        skip=skip,
+        limit=limit,
+    )
 
 @router.get("/status/{status}", response_model=list[PurchaseOrderRead])
 def get_purchase_orders_by_status(
@@ -387,7 +403,7 @@ def delete_purchase_order_item(
 
 # GENERAL PO ROUTER HANDLING
 
-@router.patch("/{po_id}/submit", response_model=PurchaseOrderRead)
+@router.patch("/{po_id}/submit", response_model=PurchaseOrderDetailRead)
 def submit_purchase_order(
     po_id: UUID,
     current_user=Depends(get_current_user),
@@ -401,7 +417,7 @@ def submit_purchase_order(
     )
 
 
-@router.patch("/{po_id}/approve", response_model=PurchaseOrderRead)
+@router.patch("/{po_id}/approve", response_model=PurchaseOrderDetailRead)
 def approve_purchase_order(
     po_id: UUID,
     current_user=Depends(get_current_user),
@@ -413,7 +429,7 @@ def approve_purchase_order(
     )
 
 
-@router.patch("/{po_id}/reject", response_model=PurchaseOrderRead)
+@router.patch("/{po_id}/reject", response_model=PurchaseOrderDetailRead)
 def reject_purchase_order(
     po_id: UUID,
     current_user=Depends(get_current_user),
@@ -425,7 +441,7 @@ def reject_purchase_order(
     )
 
 
-@router.patch("/{po_id}/send", response_model=PurchaseOrderRead)
+@router.patch("/{po_id}/send", response_model=PurchaseOrderDetailRead)
 def send_purchase_order(
     po_id: UUID,
     current_user=Depends(get_current_user),
@@ -439,7 +455,7 @@ def send_purchase_order(
 
     )
 
-@router.patch("/{po_id}/resend", response_model=PurchaseOrderRead)
+@router.patch("/{po_id}/resend", response_model=PurchaseOrderDetailRead)
 def resend_purchase_order(
     po_id: UUID,
     current_user=Depends(get_current_user),
@@ -452,7 +468,7 @@ def resend_purchase_order(
     )
 
 
-@router.patch("/{po_id}/partial-receive", response_model=PurchaseOrderRead)
+@router.patch("/{po_id}/partial-receive", response_model=PurchaseOrderDetailRead)
 def mark_purchase_order_partially_received(
     po_id: UUID,
     current_user=Depends(get_current_user),
@@ -476,7 +492,7 @@ def receive_purchase_order(
     )
 
 
-@router.patch("/{po_id}/cancel", response_model=PurchaseOrderRead)
+@router.patch("/{po_id}/cancel", response_model=PurchaseOrderDetailRead)
 def cancel_purchase_order(
     po_id: UUID,
     current_user=Depends(get_current_user),

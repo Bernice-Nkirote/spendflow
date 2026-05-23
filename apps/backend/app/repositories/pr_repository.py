@@ -51,6 +51,16 @@ class PurchaseRequisitionRepository:
             .all()
         )
 
+    def count_all(
+        self,
+        company_id: UUID,
+    ) -> int:
+        return (
+            self.db.query(PurchaseRequisition)
+            .filter(PurchaseRequisition.company_id == company_id)
+            .count()
+        )
+
     def get_by_pr_number(
         self,
         pr_number: str,

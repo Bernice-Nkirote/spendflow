@@ -216,16 +216,21 @@ class PermissionService:
             role_permission_id,
             company_id,
         )
-        role_name = (
-            role_permission.role.name.strip().lower()
-            if role_permission.role and role_permission.role.name
-            else ""
+        role = self.role_repo.get_by_id(
+            role_permission.role_id,
+            company_id,
         )
 
-        if role_name == "admin":
+        if not role:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Role not found.",
+            )
+
+        if role.is_system_role:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Permissions cannot be removed from the Admin role because it protects system access.",
+                detail="Permissions cannot be removed from system roles because they protect company governance.",
             )
 
         role_name = (
@@ -338,6 +343,7 @@ class PermissionService:
         return [
             {
                 "id": role_permission.id,
+                "company_id": role_permission.company_id,
                 "role_id": role.id,
                 "role_name": role.name,
                 "permission_id": role_permission.permission.id,

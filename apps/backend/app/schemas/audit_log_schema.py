@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, List
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -33,3 +33,7 @@ class AuditLogRead(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class PaginatedAuditLogResponse(BaseModel):
+    rows: List[AuditLogRead]
+    total_count: int

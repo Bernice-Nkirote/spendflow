@@ -70,3 +70,7 @@ class PaymentDetailRead(PaymentRead):
     supplier_name: Optional[str] = None
     created_by_name: Optional[str] = None
     currency: Optional[str] = None
+
+class PaginatedPaymentResponse(BaseModel):
+    rows: list[PaymentDetailRead]
+    total_count: int

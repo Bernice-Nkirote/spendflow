@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session, joinedload
 from app.models.enums import POStatusEnum
 from app.models.purchase_order import PurchaseOrder
 
-
 class PurchaseOrderRepository:
     def __init__(self, db: Session):
         self.db = db
@@ -63,6 +62,16 @@ class PurchaseOrderRepository:
             .offset(skip)
             .limit(limit)
             .all()
+        )
+
+    def count_all(
+        self,
+        company_id: UUID,
+    ) -> int:
+        return (
+            self.db.query(PurchaseOrder)
+            .filter(PurchaseOrder.company_id == company_id)
+            .count()
         )
 
     def get_by_po_number(
@@ -129,6 +138,20 @@ class PurchaseOrderRepository:
             .offset(skip)
             .limit(limit)
             .all()
+        )
+
+    def count_by_supplier(
+        self,
+        supplier_id: UUID,
+        company_id: UUID,
+    ) -> int:
+        return (
+            self.db.query(PurchaseOrder)
+            .filter(
+                PurchaseOrder.supplier_id == supplier_id,
+                PurchaseOrder.company_id == company_id,
+            )
+            .count()
         )
 
     def update(self, po: PurchaseOrder) -> PurchaseOrder:

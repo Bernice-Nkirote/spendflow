@@ -1,3 +1,6 @@
+import Card from "../../../components/ui/Card";
+import PurchaseRequisitionStatusBadge from "./PurchaseRequisitionStatusBadge";
+
 import type { PurchaseRequisitionDetails } from "../types/purchaseRequisition.types";
 
 type Props = {
@@ -9,58 +12,68 @@ export default function PurchaseRequisitionApprovalCard({
 }: Props) {
   const status = purchaseRequisition.status;
 
-  let title = "Approval Status";
-  let message =
-    "This purchase requisition is being tracked through its workflow.";
+  const contentByStatus = {
+    DRAFT: {
+      title: "Draft Purchase Requisition",
+      message:
+        "This PR has not been submitted for approval yet. Review the details and requested items, then submit it for approval when ready.",
+      note: "Approval will only work after an active PR approval workflow has been configured.",
+    },
+    PENDING_APPROVAL: {
+      title: "Pending Approval",
+      message:
+        "This PR has been submitted and is waiting for approval from the assigned approver level.",
+      note: null,
+    },
+    APPROVED: {
+      title: "Approved Purchase Requisition",
+      message:
+        "This PR has been approved and can now be used to create a purchase order.",
+      note: null,
+    },
+    REJECTED: {
+      title: "Rejected Purchase Requisition",
+      message:
+        "This PR was rejected. Review the feedback, update the PR if allowed, and resubmit if supported.",
+      note: null,
+    },
+    CANCELLED: {
+      title: "Cancelled Purchase Requisition",
+      message:
+        "This PR has been cancelled and should not continue in the workflow.",
+      note: null,
+    },
+    CONVERTED_TO_PO: {
+      title: "Converted to Purchase Order",
+      message:
+        "This PR has already been converted into a purchase order and is no longer editable.",
+      note: null,
+    },
+  };
 
-  if (status === "DRAFT") {
-    title = "Draft Purchase Requisition";
-    message =
-      "This PR has not been submitted for approval yet. Review the details and items, then submit it for approval when ready.";
-  }
-
-  if (status === "PENDING_APPROVAL") {
-    title = "Pending Approval";
-    message =
-      "This PR has been submitted and is waiting for approval from the assigned approver level.";
-  }
-
-  if (status === "APPROVED") {
-    title = "Approved Purchase Requisition";
-    message =
-      "This PR has been approved and can now be used to create a purchase order.";
-  }
-
-  if (status === "REJECTED") {
-    title = "Rejected Purchase Requisition";
-    message =
-      "This PR was rejected. Review the feedback, update the draft if allowed, and resubmit if supported.";
-  }
-
-  if (status === "CANCELLED") {
-    title = "Cancelled Purchase Requisition";
-    message =
-      "This PR has been cancelled and should not continue in the workflow.";
-  }
-
-  if (status === "CONVERTED_TO_PO") {
-    title = "Converted to Purchase Order";
-    message =
-      "This PR has already been converted into a purchase order and is no longer editable.";
-  }
+  const content = contentByStatus[status];
 
   return (
-    <section className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
-      <h2 className="text-lg font-semibold text-primary-black">{title}</h2>
+    <Card className="p-4 shadow-md sm:p-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-primary-black">
+            {content.title}
+          </h2>
 
-      <p className="mt-2 text-sm leading-6 text-primary-gray">{message}</p>
+          <p className="mt-2 text-sm leading-6 text-primary-gray">
+            {content.message}
+          </p>
+        </div>
 
-      {status === "DRAFT" && (
-        <p className="mt-3 text-sm font-medium text-yellow-700">
-          Approval will only work after an active PR approval workflow has been
-          configured.
-        </p>
+        <PurchaseRequisitionStatusBadge status={status} />
+      </div>
+
+      {content.note && (
+        <div className="mt-4 rounded-lg border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm font-medium text-yellow-800">
+          {content.note}
+        </div>
       )}
-    </section>
+    </Card>
   );
 }

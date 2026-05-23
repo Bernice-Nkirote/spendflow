@@ -163,7 +163,7 @@ class ApprovalInstanceService:
 
                 if not instance.requester_name:
                     instance.requester_name = (
-                        invoice.submitted_by_supplier_user.name
+                        invoice.submitted_by_supplier_user.email
                         if invoice.submitted_by_supplier_user
                         else None
                     )
@@ -350,6 +350,87 @@ class ApprovalInstanceService:
         instances = self.repo.get_all(company_id, skip=skip, limit=limit)
 
         return [self._enrich_instance(instance) for instance in instances]
+
+    def get_paginated_instances(
+        self,
+        company_id: uuid.UUID,
+        skip: int = 0,
+        limit: int = 10,
+        status_value: ApprovalStatus | None = None,
+        exclude_status: ApprovalStatus | None = None,
+    ) -> dict:
+        if skip < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Skip cannot be negative",
+            )
+
+        if limit <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Limit must be greater than zero",
+            )
+
+        if status_value and exclude_status:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Use either status or exclude_status, not both",
+            )
+
+        instances = self.repo.get_paginated(
+            company_id=company_id,
+            skip=skip,
+            limit=limit,
+            status=status_value,
+            exclude_status=exclude_status,
+        )
+
+        total_count = self.repo.count_all(
+            company_id=company_id,
+            status=status_value,
+            exclude_status=exclude_status,
+        )
+
+        return {
+            "rows": [self._enrich_instance(instance) for instance in instances],
+            "total_count": total_count,
+        }
+
+    def get_my_pending_queue(
+        self,
+        company_id: uuid.UUID,
+        role_id: uuid.UUID,
+        skip: int = 0,
+        limit: int = 10,
+    ) -> dict:
+        if skip < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Skip cannot be negative",
+            )
+
+        if limit <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Limit must be greater than zero",
+            )
+
+        instances = self.repo.get_my_pending_queue(
+            company_id=company_id,
+            role_id=role_id,
+            skip=skip,
+            limit=limit,
+        )
+
+        total_count = self.repo.count_my_pending_queue(
+            company_id=company_id,
+            role_id=role_id,
+        )
+
+        return {
+            "rows": [self._enrich_instance(instance) for instance in instances],
+            "total_count": total_count,
+        }
 
     def update_instance_status(
         self,

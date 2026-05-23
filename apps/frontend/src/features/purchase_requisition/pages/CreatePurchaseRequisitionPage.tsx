@@ -1,15 +1,27 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+import BackButton from "../../../components/ui/BackButton";
 import Button from "../../../components/ui/Button";
+import Card from "../../../components/ui/Card";
 import ErrorState from "../../../components/ui/ErrorState";
+import Input from "../../../components/ui/Input";
+import PageContainer from "../../../components/ui/PageContainer";
+import PageHeader from "../../../components/ui/PageHeader";
 
 import { createPurchaseRequisition } from "../api/purchaseRequisitionApi";
+import {
+  clearCreatePurchaseRequisitionDraft,
+  useCreatePurchaseRequisitionDraft,
+} from "../hooks/useCreatePurchaseRequisitionDraft";
 import { getDepartmentOptions } from "../../reports/api/reportOptionsApi";
+import PurchaseRequisitionStatusBadge from "../components/PurchaseRequisitionStatusBadge";
+
 import type { PurchaseRequisitionItemCreate } from "../types/purchaseRequisition.types";
 import type { ReportFilterOption } from "../../reports/types/report.types";
 
 import { currencyOptions } from "../../../utils/currencyOptions";
+import { userHasPermission } from "../../../utils/permissions";
 
 const DEFAULT_ITEM: PurchaseRequisitionItemCreate = {
   item_name: "",
@@ -31,6 +43,7 @@ function calculateLineTotal(quantity: string, unitPrice: string) {
 
 export default function CreatePurchaseRequisitionPage() {
   const navigate = useNavigate();
+  const canCreatePR = userHasPermission("pr.create");
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -41,14 +54,33 @@ export default function CreatePurchaseRequisitionPage() {
   >([]);
 
   const [items, setItems] = useState<PurchaseRequisitionItemCreate[]>([
-    DEFAULT_ITEM,
+    { ...DEFAULT_ITEM },
   ]);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [itemError, setItemError] = useState<string | null>(null);
+
+  useCreatePurchaseRequisitionDraft({
+    title,
+    description,
+    currency,
+    departmentId,
+    items,
+    setTitle,
+    setDescription,
+    setCurrency,
+    setDepartmentId,
+    setItems,
+  });
 
   useEffect(() => {
     async function loadDepartments() {
+      if (!canCreatePR) {
+        setError("You do not have permission to create purchase requisitions.");
+        return;
+      }
+
       try {
         const departments = await getDepartmentOptions();
         setDepartmentOptions(departments);
@@ -58,26 +90,40 @@ export default function CreatePurchaseRequisitionPage() {
     }
 
     loadDepartments();
-  }, []);
+  }, [canCreatePR]);
 
   function updateItem(
     index: number,
     field: keyof PurchaseRequisitionItemCreate,
     value: string,
   ) {
+    setItemError(null);
     setItems((prev) =>
       prev.map((item, itemIndex) =>
-        itemIndex === index
-          ? {
-              ...item,
-              [field]: value,
-            }
-          : item,
+        itemIndex === index ? { ...item, [field]: value } : item,
       ),
     );
   }
 
+  function isItemReadyForNextRow(item: PurchaseRequisitionItemCreate) {
+    return (
+      item.item_name.trim().length > 0 &&
+      item.description.trim().length > 0 &&
+      Number(item.quantity) > 0
+    );
+  }
+
   function addItem() {
+    const lastItem = items[items.length - 1];
+
+    if (lastItem && !isItemReadyForNextRow(lastItem)) {
+      setItemError(
+        "Complete the current item before adding another one. Item name, description, and quantity are required.",
+      );
+      return;
+    }
+
+    setItemError(null);
     setItems((prev) => [...prev, { ...DEFAULT_ITEM }]);
   }
 
@@ -87,6 +133,7 @@ export default function CreatePurchaseRequisitionPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
     if (!departmentId) {
       setError("Please select a department.");
       return;
@@ -109,6 +156,8 @@ export default function CreatePurchaseRequisitionPage() {
         })),
       });
 
+      clearCreatePurchaseRequisitionDraft();
+
       navigate("/purchase-requisitions");
     } catch {
       setError("Failed to create purchase requisition.");
@@ -117,56 +166,60 @@ export default function CreatePurchaseRequisitionPage() {
     }
   }
 
+  if (!canCreatePR) {
+    return (
+      <PageContainer>
+        <BackButton
+          fallbackLabel="Back to Purchase Requisitions"
+          fallbackTo="/purchase-requisitions"
+        />
+        <ErrorState message="You do not have permission to create purchase requisitions." />
+      </PageContainer>
+    );
+  }
+
   return (
-    <div className="flex min-w-0 flex-col gap-6">
-      <div className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
-        <Link
-          to="/purchase-requisitions"
-          className="text-sm font-medium text-primary-blue hover:underline"
-        >
-          ← Back to Purchase Requisitions
-        </Link>
-
-        <h1 className="mt-3 text-2xl font-semibold text-primary-black">
-          Create Purchase Requisition
-        </h1>
-
-        <p className="mt-1 text-sm text-primary-gray">
-          Create a draft purchase requisition with requested items.
-        </p>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Create Purchase Requisition"
+        description="Create a draft purchase requisition with requested items."
+        actions={
+          <div className="flex flex-wrap items-center gap-3">
+            <PurchaseRequisitionStatusBadge status="DRAFT" />
+            <BackButton
+              fallbackLabel="Back to Purchase Requisitions"
+              fallbackTo="/purchase-requisitions"
+            />
+          </div>
+        }
+      />
 
       {error && <ErrorState message={error} />}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-        <section className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
+        <Card>
           <h2 className="text-lg font-semibold text-primary-black">
             Requisition Information
           </h2>
 
           <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <label className="text-sm font-medium text-primary-black">
-                Title
-              </label>
-              <input
-                required
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                className="mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-primary-blue"
-                placeholder="e.g. Office supplies request"
-              />
-            </div>
+            <Input
+              required
+              label="Title"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="e.g. Office supplies request"
+            />
 
-            <div>
-              <label className="text-sm font-medium text-primary-black">
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-primary-black">
                 Currency
               </label>
               <select
                 required
                 value={currency}
                 onChange={(event) => setCurrency(event.target.value)}
-                className="mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-primary-blue"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
               >
                 {currencyOptions.map((option) => (
                   <option key={option.code} value={option.code}>
@@ -175,19 +228,18 @@ export default function CreatePurchaseRequisitionPage() {
                 ))}
               </select>
             </div>
-            <div>
-              <label className="text-sm font-medium text-primary-black">
+
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-primary-black">
                 Department
               </label>
-
               <select
                 required
                 value={departmentId}
                 onChange={(event) => setDepartmentId(event.target.value)}
-                className="mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-primary-blue"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
               >
                 <option value="">Select department</option>
-
                 {departmentOptions.map((department) => (
                   <option key={department.value} value={department.value}>
                     {department.label}
@@ -195,41 +247,50 @@ export default function CreatePurchaseRequisitionPage() {
                 ))}
               </select>
             </div>
-            <div className="md:col-span-2">
-              <label className="text-sm font-medium text-primary-black">
+
+            <div className="space-y-1 md:col-span-2">
+              <label className="block text-sm font-medium text-primary-black">
                 Description
               </label>
               <textarea
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
-                className="mt-1 min-h-24 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-primary-blue"
+                className="min-h-24 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition placeholder:text-gray-400 focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
                 placeholder="Optional notes about this request"
               />
             </div>
           </div>
-        </section>
+        </Card>
 
-        <section className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
+        <Card>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-primary-black">
                 Requested Items
               </h2>
-              <p className="text-sm text-primary-gray">
+              <p className="mt-1 text-sm text-primary-gray">
                 Add at least one item to the requisition.
               </p>
             </div>
 
-            <Button type="button" onClick={addItem}>
-              Add Item
-            </Button>
+            <div className="flex flex-col items-start gap-2 sm:items-end">
+              <Button type="button" onClick={addItem}>
+                Add Item
+              </Button>
+
+              {itemError && (
+                <div className="max-w-md rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 shadow-sm">
+                  {itemError}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="mt-4 flex flex-col gap-4">
             {items.map((item, index) => (
               <div
                 key={index}
-                className="rounded-xl border bg-gray-50 p-4 shadow-sm"
+                className="rounded-xl border border-gray-200 bg-gray-50 p-4"
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <h3 className="font-medium text-primary-black">
@@ -237,77 +298,59 @@ export default function CreatePurchaseRequisitionPage() {
                   </h3>
 
                   {items.length > 1 && (
-                    <button
+                    <Button
                       type="button"
+                      variant="danger"
+                      size="sm"
                       onClick={() => removeItem(index)}
-                      className="text-sm font-medium text-red-600 hover:underline"
                     >
                       Remove
-                    </button>
+                    </Button>
                   )}
                 </div>
 
                 <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="text-sm font-medium text-primary-black">
-                      Item Name
-                    </label>
-                    <input
-                      required
-                      value={item.item_name}
-                      onChange={(event) =>
-                        updateItem(index, "item_name", event.target.value)
-                      }
-                      className="mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-primary-blue"
-                    />
-                  </div>
+                  <Input
+                    required
+                    label="Item Name"
+                    value={item.item_name}
+                    onChange={(event) =>
+                      updateItem(index, "item_name", event.target.value)
+                    }
+                  />
 
-                  <div>
-                    <label className="text-sm font-medium text-primary-black">
-                      Quantity
-                    </label>
-                    <input
-                      required
-                      min="0.01"
-                      step="0.01"
-                      type="number"
-                      value={item.quantity}
-                      onChange={(event) =>
-                        updateItem(index, "quantity", event.target.value)
-                      }
-                      className="mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-primary-blue"
-                    />
-                  </div>
+                  <Input
+                    required
+                    label="Quantity"
+                    min="0.01"
+                    step="0.01"
+                    type="number"
+                    value={item.quantity}
+                    onChange={(event) =>
+                      updateItem(index, "quantity", event.target.value)
+                    }
+                  />
 
-                  <div>
-                    <label className="text-sm font-medium text-primary-black">
-                      Unit Price
-                    </label>
-                    <input
-                      min="0"
-                      step="0.01"
-                      type="number"
-                      value={item.unit_price}
-                      onChange={(event) =>
-                        updateItem(index, "unit_price", event.target.value)
-                      }
-                      className="mt-1 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-primary-blue"
-                    />
-                  </div>
+                  <Input
+                    label="Unit Price"
+                    min="0"
+                    step="0.01"
+                    type="number"
+                    value={item.unit_price}
+                    onChange={(event) =>
+                      updateItem(index, "unit_price", event.target.value)
+                    }
+                  />
 
-                  <div>
-                    <label className="text-sm font-medium text-primary-black">
-                      Line Total
-                    </label>
-                    <input
-                      disabled
-                      value={calculateLineTotal(item.quantity, item.unit_price)}
-                      className="mt-1 w-full rounded-lg border bg-gray-100 px-3 py-2 text-sm text-primary-gray"
-                    />
-                  </div>
+                  <Input
+                    label="Line Total"
+                    disabled
+                    value={calculateLineTotal(item.quantity, item.unit_price)}
+                    className="bg-gray-100 text-primary-gray"
+                  />
 
-                  <div className="md:col-span-2">
-                    <label className="text-sm font-medium text-primary-black">
+                  <div className="space-y-1 md:col-span-2">
+                    <label className="block text-sm font-medium text-primary-black">
                       Description
                     </label>
                     <textarea
@@ -316,18 +359,18 @@ export default function CreatePurchaseRequisitionPage() {
                       onChange={(event) =>
                         updateItem(index, "description", event.target.value)
                       }
-                      className="mt-1 min-h-20 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-primary-blue"
+                      className="min-h-20 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition placeholder:text-gray-400 focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
                     />
                   </div>
                 </div>
               </div>
             ))}
           </div>
-        </section>
+        </Card>
 
-        <div className="flex flex-col gap-3 rounded-xl border bg-white p-4 shadow-sm sm:flex-row sm:justify-end">
+        <Card className="flex flex-col gap-3 sm:flex-row sm:justify-end">
           <Link to="/purchase-requisitions">
-            <Button type="button" disabled={submitting}>
+            <Button type="button" variant="secondary" disabled={submitting}>
               Cancel
             </Button>
           </Link>
@@ -335,8 +378,8 @@ export default function CreatePurchaseRequisitionPage() {
           <Button type="submit" disabled={submitting}>
             {submitting ? "Creating..." : "Create Draft PR"}
           </Button>
-        </div>
+        </Card>
       </form>
-    </div>
+    </PageContainer>
   );
 }

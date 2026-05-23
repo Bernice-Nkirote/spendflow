@@ -2,75 +2,271 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import Button from "../../../components/ui/Button";
+import Card from "../../../components/ui/Card";
 import EmptyState from "../../../components/ui/EmptyState";
 import ErrorState from "../../../components/ui/ErrorState";
 import LoadingState from "../../../components/ui/LoadingState";
+import PageContainer from "../../../components/ui/PageContainer";
+import PageHeader from "../../../components/ui/PageHeader";
+import Pagination from "../../../components/ui/Pagination";
+import TableWrapper from "../../../components/ui/TableWrapper";
 
-import { getPurchaseOrders } from "../api/purchaseOrderApi";
+import { formatCurrency } from "../../../utils/formatCurrency";
+import { userHasPermission } from "../../../utils/permissions";
+
+import { getPaginatedPurchaseRequisitions } from "../../purchase_requisition/api/purchaseRequisitionApi";
+import PurchaseRequisitionStatusBadge from "../../purchase_requisition/components/PurchaseRequisitionStatusBadge";
+import type { PurchaseRequisitionListItem } from "../../purchase_requisition/types/purchaseRequisition.types";
+
+import { getPaginatedPurchaseOrders } from "../api/purchaseOrderApi";
 import PurchaseOrderTable from "../components/PurchaseOrderTable";
 import type { PurchaseOrderListItem } from "../types/purchaseOrder.types";
+
+const APPROVED_PR_LIMIT = 5;
 
 export default function PurchaseOrdersPage() {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrderListItem[]>(
     [],
   );
-  const [loading, setLoading] = useState(true);
+  const [approvedPurchaseRequisitions, setApprovedPurchaseRequisitions] =
+    useState<PurchaseRequisitionListItem[]>([]);
+
+  const [totalCount, setTotalCount] = useState(0);
+
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [recordsLoading, setRecordsLoading] = useState(true);
+
   const [error, setError] = useState<string | null>(null);
+  const [recordsError, setRecordsError] = useState<string | null>(null);
 
-  async function fetchPurchaseOrders() {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await getPurchaseOrders();
-      setPurchaseOrders(response);
-    } catch {
-      setError("Failed to load purchase orders.");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const skip = (page - 1) * pageSize;
+  const canCreatePO = userHasPermission("po.create");
 
   useEffect(() => {
-    fetchPurchaseOrders();
+    async function fetchPurchaseOrdersPageData() {
+      try {
+        setInitialLoading(true);
+        setError(null);
+
+        const purchaseRequisitionResponse =
+          await getPaginatedPurchaseRequisitions({
+            skip: 0,
+            limit: 100,
+          });
+
+        setApprovedPurchaseRequisitions(
+          purchaseRequisitionResponse.rows
+            .filter(
+              (purchaseRequisition) =>
+                purchaseRequisition.status === "APPROVED",
+            )
+            .slice(0, APPROVED_PR_LIMIT),
+        );
+      } catch {
+        setError("Failed to load purchase order page data.");
+      } finally {
+        setInitialLoading(false);
+      }
+    }
+
+    fetchPurchaseOrdersPageData();
   }, []);
 
-  if (loading) return <LoadingState />;
+  useEffect(() => {
+    async function fetchPurchaseOrderRecords() {
+      try {
+        setRecordsLoading(true);
+        setRecordsError(null);
 
-  if (error) return <ErrorState message={error} />;
+        const purchaseOrderResponse = await getPaginatedPurchaseOrders({
+          skip,
+          limit: pageSize,
+        });
+
+        setPurchaseOrders(purchaseOrderResponse.rows);
+        setTotalCount(purchaseOrderResponse.total_count);
+      } catch {
+        setRecordsError("Failed to load purchase orders.");
+      } finally {
+        setRecordsLoading(false);
+      }
+    }
+
+    fetchPurchaseOrderRecords();
+  }, [skip, pageSize]);
 
   return (
-    <div className="flex min-w-0 flex-col gap-6">
-      <div className="flex flex-col gap-4 rounded-xl border bg-white p-4 shadow-sm sm:p-5 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-primary-black">
-            Purchase Orders
-          </h1>
-          <p className="mt-1 text-sm text-primary-gray">
-            Manage standalone purchase orders and purchase orders created from
-            approved requisitions.
-          </p>
-        </div>
+    <PageContainer>
+      <PageHeader
+        title="Purchase Orders"
+        description="Manage standalone purchase orders and purchase orders created from approved requisitions."
+        actions={
+          canCreatePO ? (
+            <Link to="/purchase-orders/new">
+              <Button type="button">Create Standalone PO</Button>
+            </Link>
+          ) : undefined
+        }
+      />
 
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Link to="/purchase-requisitions">
-            <Button variant="secondary">Create from Approved PR</Button>
-          </Link>
+      {initialLoading && <LoadingState />}
 
-          <Link to="/purchase-orders/new">
-            <Button>Create Standalone PO</Button>
-          </Link>
-        </div>
-      </div>
+      {!initialLoading && error && <ErrorState message={error} />}
 
-      {purchaseOrders.length === 0 ? (
-        <EmptyState
-          title="No purchase orders found"
-          message="Purchase orders will appear here after they are created from an approved requisition or created as standalone POs."
-        />
-      ) : (
-        <PurchaseOrderTable purchaseOrders={purchaseOrders} />
+      {!initialLoading && !error && (
+        <>
+          {canCreatePO && (
+            <Card>
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold text-primary-black">
+                  Approved PRs Ready for PO
+                </h2>
+                <p className="mt-1 text-sm text-gray-600">
+                  Showing the latest {APPROVED_PR_LIMIT} approved purchase
+                  requisitions ready for PO creation.
+                </p>
+
+                <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+                  Approved PRs ready for PO:{" "}
+                  <span className="font-semibold">
+                    {approvedPurchaseRequisitions.length}
+                  </span>
+                </div>
+              </div>
+
+              {approvedPurchaseRequisitions.length === 0 ? (
+                <EmptyState
+                  title="No approved PRs ready"
+                  message="Approved purchase requisitions will appear here when they are ready to be converted into purchase orders."
+                />
+              ) : (
+                <TableWrapper minWidth="900px">
+                  <table className="w-full divide-y divide-gray-200 text-sm">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                          PR Number
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                          Title
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                          Status
+                        </th>
+                        <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                          Amount
+                        </th>
+                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                          Action
+                        </th>
+                      </tr>
+                    </thead>
+
+                    <tbody className="divide-y divide-gray-100 bg-white">
+                      {approvedPurchaseRequisitions.map(
+                        (purchaseRequisition) => (
+                          <tr
+                            key={purchaseRequisition.id}
+                            className="hover:bg-gray-50"
+                          >
+                            <td className="whitespace-nowrap px-4 py-3 font-medium text-primary-black">
+                              {purchaseRequisition.pr_number}
+                            </td>
+
+                            <td className="px-4 py-3 text-primary-black">
+                              <span
+                                className="block max-w-[280px] truncate"
+                                title={purchaseRequisition.title}
+                              >
+                                {purchaseRequisition.title}
+                              </span>
+                            </td>
+
+                            <td className="px-4 py-3">
+                              <PurchaseRequisitionStatusBadge
+                                status={purchaseRequisition.status}
+                              />
+                            </td>
+
+                            <td className="whitespace-nowrap px-4 py-3 text-right text-primary-black">
+                              {formatCurrency(
+                                Number(purchaseRequisition.total_amount ?? 0),
+                                purchaseRequisition.currency,
+                              )}
+                            </td>
+
+                            <td className="whitespace-nowrap px-4 py-3 text-right">
+                              <Link
+                                to={`/purchase-orders/from-requisition/${purchaseRequisition.id}`}
+                                state={{
+                                  from: "purchase-orders",
+                                  label: "Back to Purchase Orders",
+                                }}
+                              >
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="sm"
+                                >
+                                  Create PO
+                                </Button>
+                              </Link>
+                            </td>
+                          </tr>
+                        ),
+                      )}
+                    </tbody>
+                  </table>
+                </TableWrapper>
+              )}
+            </Card>
+          )}
+
+          <Card>
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold text-primary-black">
+                Purchase Order List
+              </h2>
+              <p className="mt-1 text-sm text-gray-600">
+                Track draft, approved, sent, and completed purchase orders.
+              </p>
+            </div>
+
+            {recordsLoading && purchaseOrders.length > 0 && (
+              <p className="mb-3 rounded-lg border border-blue-100 bg-blue-50 px-4 py-2 text-sm text-blue-700">
+                Updating purchase orders...
+              </p>
+            )}
+
+            {recordsError ? (
+              <ErrorState message={recordsError} />
+            ) : purchaseOrders.length === 0 && !recordsLoading ? (
+              <EmptyState
+                title="No purchase orders found"
+                message="Purchase orders will appear here after they are created from an approved requisition or created as standalone POs."
+              />
+            ) : (
+              <>
+                <PurchaseOrderTable purchaseOrders={purchaseOrders} />
+
+                <Pagination
+                  page={page}
+                  pageSize={pageSize}
+                  totalItems={totalCount}
+                  onPageChange={setPage}
+                  onPageSizeChange={(nextPageSize) => {
+                    setPageSize(nextPageSize);
+                    setPage(1);
+                  }}
+                />
+              </>
+            )}
+          </Card>
+        </>
       )}
-    </div>
+    </PageContainer>
   );
 }

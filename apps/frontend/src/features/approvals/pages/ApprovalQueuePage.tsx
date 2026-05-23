@@ -1,289 +1,282 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
-import { getApprovalInstances } from "../api/approvalApi";
-import type { ApprovalInstance } from "../types/approval.types";
-import ApprovalStatusBadge from "../components/ApprovalStatusBadge";
+import Button from "../../../components/ui/Button";
+import Card from "../../../components/ui/Card";
+import EmptyState from "../../../components/ui/EmptyState";
+import ErrorState from "../../../components/ui/ErrorState";
+import LoadingState from "../../../components/ui/LoadingState";
+import PageContainer from "../../../components/ui/PageContainer";
+import PageHeader from "../../../components/ui/PageHeader";
+import Pagination from "../../../components/ui/Pagination";
+import TableWrapper from "../../../components/ui/TableWrapper";
 import { formatCurrency } from "../../../utils/formatCurrency";
+import {
+  getPaginatedApprovalInstances,
+  getMyPendingApprovalQueue,
+} from "../api/approvalApi";
+import ApprovalStatusBadge from "../components/ApprovalStatusBadge";
+import type { ApprovalInstance } from "../types/approval.types";
+
+function formatDate(value: string) {
+  return new Intl.DateTimeFormat("en-KE", {
+    dateStyle: "medium",
+  }).format(new Date(value));
+}
 
 function ApprovalQueuePage() {
-  const [instances, setInstances] = useState<ApprovalInstance[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  const [pendingInstances, setPendingInstances] = useState<ApprovalInstance[]>(
+    [],
+  );
+  const [pendingTotalCount, setPendingTotalCount] = useState(0);
+  const [pendingPage, setPendingPage] = useState(1);
+  const [pendingPageSize, setPendingPageSize] = useState(5);
+  const [isPendingLoading, setIsPendingLoading] = useState(true);
+
+  const [historyInstances, setHistoryInstances] = useState<ApprovalInstance[]>(
+    [],
+  );
+  const [historyTotalCount, setHistoryTotalCount] = useState(0);
   const [historyPage, setHistoryPage] = useState(1);
-  const historyPageSize = 5;
+  const [historyPageSize, setHistoryPageSize] = useState(5);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    async function loadApprovals() {
+    async function loadPendingApprovals() {
       try {
-        setIsLoading(true);
+        setIsPendingLoading(true);
         setError("");
 
-        const data = await getApprovalInstances();
-        setInstances(data);
+        const data = await getMyPendingApprovalQueue({
+          page: pendingPage,
+          pageSize: pendingPageSize,
+        });
+
+        setPendingInstances(data.rows);
+        setPendingTotalCount(data.total_count);
       } catch (err) {
         console.error(err);
-        setError("Failed to load approval queue.");
+        setError("Failed to load pending approvals.");
       } finally {
-        setIsLoading(false);
+        setIsPendingLoading(false);
       }
     }
 
-    loadApprovals();
-  }, []);
+    loadPendingApprovals();
+  }, [pendingPage, pendingPageSize]);
 
-  const pendingInstances = instances.filter(
-    (instance) => instance.status === "PENDING",
-  );
+  useEffect(() => {
+    async function loadApprovalHistory() {
+      try {
+        setIsHistoryLoading(true);
+        setError("");
 
-  const completedInstances = instances.filter(
-    (instance) => instance.status !== "PENDING",
-  );
+        const data = await getPaginatedApprovalInstances({
+          page: historyPage,
+          pageSize: historyPageSize,
+          excludeStatus: "PENDING",
+        });
 
-  const totalHistoryPages = Math.max(
-    1,
-    Math.ceil(completedInstances.length / historyPageSize),
-  );
+        setHistoryInstances(data.rows);
+        setHistoryTotalCount(data.total_count);
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load approval history.");
+      } finally {
+        setIsHistoryLoading(false);
+      }
+    }
 
-  const paginatedCompletedInstances = completedInstances.slice(
-    (historyPage - 1) * historyPageSize,
-    historyPage * historyPageSize,
-  );
+    loadApprovalHistory();
+  }, [historyPage, historyPageSize]);
+
+  function handlePendingPageSizeChange(pageSize: number) {
+    setPendingPageSize(pageSize);
+    setPendingPage(1);
+  }
+
+  function handleHistoryPageSizeChange(pageSize: number) {
+    setHistoryPageSize(pageSize);
+    setHistoryPage(1);
+  }
+
+  function openApproval(instanceId: string) {
+    navigate(`/approvals/${instanceId}`);
+  }
+
+  function renderApprovalTable(
+    instances: ApprovalInstance[],
+    actionLabel: string,
+    actionVariant: "primary" | "secondary",
+    showLastComment = false,
+  ) {
+    return (
+      <TableWrapper minWidth="1100px">
+        <table className="w-full divide-y divide-gray-200 bg-white text-sm">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                Entity Type
+              </th>
+              <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                Reference
+              </th>
+              <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                Requester
+              </th>
+              <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                Amount
+              </th>
+              <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                Status
+              </th>
+              {showLastComment ? (
+                <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                  Last Comment
+                </th>
+              ) : (
+                <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                  Created
+                </th>
+              )}
+              <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                Actions
+              </th>
+            </tr>
+          </thead>
+
+          <tbody className="divide-y divide-gray-100 bg-white">
+            {instances.map((instance) => {
+              const lastAction =
+                instance.actions?.[instance.actions.length - 1];
+
+              return (
+                <tr key={instance.id} className="hover:bg-gray-50">
+                  <td className="whitespace-nowrap px-4 py-3 font-medium text-primary-black">
+                    {instance.entity_type}
+                  </td>
+
+                  <td className="px-4 py-3 font-medium text-primary-black">
+                    {instance.entity_reference || "Not available"}
+                  </td>
+
+                  <td className="px-4 py-3 text-primary-gray">
+                    {instance.requester_name || "Not available"}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-primary-black">
+                    {formatCurrency(
+                      Number(instance.total_amount ?? 0),
+                      instance.currency || "KES",
+                    )}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3">
+                    <ApprovalStatusBadge status={instance.status} />
+                  </td>
+
+                  <td className="max-w-md px-4 py-3 text-primary-gray">
+                    {showLastComment
+                      ? lastAction?.comment || "No comment provided."
+                      : formatDate(instance.created_at)}
+                  </td>
+
+                  <td className="whitespace-nowrap px-4 py-3 text-right">
+                    <Button
+                      type="button"
+                      variant={actionVariant}
+                      size="sm"
+                      onClick={() => openApproval(instance.id)}
+                    >
+                      {actionLabel}
+                    </Button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </TableWrapper>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Approvals</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Review pending procurement approvals.
-        </p>
-      </div>
+    <PageContainer>
+      <PageHeader
+        title="Approvals"
+        description="Review pending procurement approvals and track completed approval decisions."
+      />
 
-      <div className="rounded-xl border bg-white shadow-sm">
-        <div className="border-b px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">
+      {error && <ErrorState message={error} />}
+
+      <Card className="space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-primary-black">
             Pending Approval Queue
           </h2>
+          <p className="mt-1 text-sm text-gray-600">
+            Requests waiting for review and decision.
+          </p>
         </div>
 
-        {isLoading ? (
-          <div className="p-6 text-sm text-gray-500">Loading approvals...</div>
-        ) : error ? (
-          <div className="p-6 text-sm text-red-600">{error}</div>
+        {isPendingLoading ? (
+          <LoadingState message="Loading pending approvals..." />
         ) : pendingInstances.length === 0 ? (
-          <div className="p-6 text-sm text-gray-500">
-            No pending approvals found.
-          </div>
+          <EmptyState
+            title="No pending approvals"
+            message="There are no approval requests waiting for review."
+          />
         ) : (
-          <div className="max-w-full overflow-x-auto">
-            <table className="min-w-[1000px] border-separate border-spacing-0 text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
-                    Entity Type
-                  </th>
-                  <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
-                    Reference
-                  </th>
-                  <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
-                    Requester
-                  </th>
-                  <th className="border-b px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
-                    Amount
-                  </th>
-                  <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
-                    Status
-                  </th>
-                  <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
-                    Created
-                  </th>
-                  <th className="border-b px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
-                    Action
-                  </th>
-                </tr>
-              </thead>
+          <>
+            {renderApprovalTable(pendingInstances, "Review", "primary")}
 
-              <tbody>
-                {pendingInstances.map((instance) => (
-                  <tr
-                    key={instance.id}
-                    className="transition-colors hover:bg-gray-50"
-                  >
-                    <td className="border-b px-4 py-3 font-medium text-primary-black">
-                      {instance.entity_type}
-                    </td>
-
-                    <td className="border-b px-4 py-3 font-medium text-primary-black">
-                      {instance.entity_reference || "Not available"}
-                    </td>
-
-                    <td className="border-b px-4 py-3 text-primary-gray">
-                      {instance.requester_name || "-"}
-                    </td>
-
-                    <td className="border-b px-4 py-3 text-right tabular-nums text-primary-black">
-                      {formatCurrency(
-                        Number(instance.total_amount ?? 0),
-                        instance.currency || "KES",
-                      )}
-                    </td>
-
-                    <td className="border-b px-4 py-3">
-                      <ApprovalStatusBadge status={instance.status} />
-                    </td>
-
-                    <td className="border-b px-4 py-3 text-primary-gray">
-                      {new Date(instance.created_at).toLocaleDateString()}
-                    </td>
-
-                    <td className="border-b px-4 py-3 text-right">
-                      <Link
-                        to={`/approvals/${instance.id}`}
-                        className="rounded-lg bg-primary-blue px-4 py-2 text-xs font-semibold text-white hover:bg-primary-blue/90"
-                      >
-                        Review
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+            <Pagination
+              page={pendingPage}
+              pageSize={pendingPageSize}
+              totalItems={pendingTotalCount}
+              onPageChange={setPendingPage}
+              onPageSizeChange={handlePendingPageSizeChange}
+            />
+          </>
         )}
-      </div>
+      </Card>
 
-      <div className="rounded-xl border bg-white shadow-sm">
-        <div className="border-b px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">
+      <Card className="space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold text-primary-black">
             Recent Approval History
           </h2>
+          <p className="mt-1 text-sm text-gray-600">
+            Recently approved or rejected procurement requests.
+          </p>
         </div>
 
-        {isLoading ? (
-          <div className="p-6 text-sm text-gray-500">
-            Loading approval history...
-          </div>
-        ) : error ? (
-          <div className="p-6 text-sm text-red-600">{error}</div>
-        ) : completedInstances.length === 0 ? (
-          <div className="p-6 text-sm text-gray-500">
-            No completed approvals found.
-          </div>
+        {isHistoryLoading ? (
+          <LoadingState message="Loading approval history..." />
+        ) : historyInstances.length === 0 ? (
+          <EmptyState
+            title="No completed approvals"
+            message="Approved and rejected requests will appear here once actions are taken."
+          />
         ) : (
-          <div className="max-w-full overflow-x-auto">
-            <table className="min-w-[1000px] border-separate border-spacing-0 text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
-                    Entity Type
-                  </th>
-                  <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
-                    Reference
-                  </th>
-                  <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
-                    Requester
-                  </th>
-                  <th className="border-b px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
-                    Amount
-                  </th>
-                  <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
-                    Status
-                  </th>
-                  <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
-                    Last Comment
-                  </th>
-                  <th className="border-b px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
-                    Action
-                  </th>
-                </tr>
-              </thead>
+          <>
+            {renderApprovalTable(historyInstances, "View", "secondary", true)}
 
-              <tbody>
-                {paginatedCompletedInstances.map((instance) => {
-                  const lastAction =
-                    instance.actions?.[instance.actions.length - 1];
-
-                  return (
-                    <tr
-                      key={instance.id}
-                      className="transition-colors hover:bg-gray-50"
-                    >
-                      <td className="border-b px-4 py-3 font-medium text-primary-black">
-                        {instance.entity_type}
-                      </td>
-
-                      <td className="border-b px-4 py-3 font-medium text-primary-black">
-                        {instance.entity_reference || "Not available"}
-                      </td>
-
-                      <td className="border-b px-4 py-3 text-primary-gray">
-                        {instance.requester_name || "-"}
-                      </td>
-
-                      <td className="border-b px-4 py-3 text-right tabular-nums text-primary-black">
-                        {formatCurrency(
-                          Number(instance.total_amount ?? 0),
-                          instance.currency || "KES",
-                        )}
-                      </td>
-
-                      <td className="border-b px-4 py-3">
-                        <ApprovalStatusBadge status={instance.status} />
-                      </td>
-
-                      <td className="border-b px-4 py-3 text-primary-gray">
-                        {lastAction?.comment || "No comment provided."}
-                      </td>
-
-                      <td className="border-b px-4 py-3 text-right">
-                        <Link
-                          to={`/approvals/${instance.id}`}
-                          className="rounded-lg border px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50"
-                        >
-                          View
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+            <Pagination
+              page={historyPage}
+              pageSize={historyPageSize}
+              totalItems={historyTotalCount}
+              onPageChange={setHistoryPage}
+              onPageSizeChange={handleHistoryPageSizeChange}
+            />
+          </>
         )}
-
-        {completedInstances.length > historyPageSize && (
-          <div className="flex flex-col gap-3 border-t px-4 py-4 text-sm sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-primary-gray">
-              Page {historyPage} of {totalHistoryPages}
-            </p>
-
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setHistoryPage((page) => Math.max(1, page - 1))}
-                disabled={historyPage === 1}
-                className="rounded-lg border px-3 py-2 font-medium text-primary-gray hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Previous
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  setHistoryPage((page) =>
-                    Math.min(totalHistoryPages, page + 1),
-                  )
-                }
-                disabled={historyPage === totalHistoryPages}
-                className="rounded-lg border px-3 py-2 font-medium text-primary-gray hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
+      </Card>
+    </PageContainer>
   );
 }
 

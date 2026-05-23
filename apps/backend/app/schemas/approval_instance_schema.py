@@ -40,3 +40,7 @@ class ApprovalInstanceRead(BaseModel):
     actions: List[ApprovalActionRead] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
+
+class PaginatedApprovalInstanceRead(BaseModel):
+    rows: List[ApprovalInstanceRead]
+    total_count: int

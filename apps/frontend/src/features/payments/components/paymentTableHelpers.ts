@@ -10,7 +10,11 @@ export function formatDate(value: string | null | undefined) {
 }
 
 export function formatPaymentMethod(value: string) {
-  return value.replaceAll("_", " ");
+  return value
+    .toLowerCase()
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }
 
 export function getReservedPaymentTotal(

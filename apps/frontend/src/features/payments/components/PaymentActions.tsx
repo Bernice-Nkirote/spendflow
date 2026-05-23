@@ -1,6 +1,12 @@
+import axios from "axios";
+import { useState } from "react";
+
 import Button from "../../../components/ui/Button";
+import ConfirmDialog from "../../../components/ui/ConfirmDialog";
+import StatusBadge from "../../../components/ui/StatusBadge";
 import { deletePayment, submitPayment } from "../api/paymentApi";
 import type { PaymentDetails } from "../types/payment.types";
+import { userHasPermission } from "../../../utils/permissions";
 
 type PaymentActionsProps = {
   payment: PaymentDetails;
@@ -9,60 +15,124 @@ type PaymentActionsProps = {
   onError: (message: string) => void;
 };
 
+function getApiErrorMessage(error: unknown, fallback: string) {
+  if (axios.isAxiosError(error)) {
+    const detail = error.response?.data?.detail;
+
+    if (typeof detail === "string") {
+      return detail;
+    }
+  }
+
+  return fallback;
+}
+
 export default function PaymentActions({
   payment,
   onUpdated,
   onDeleted,
   onError,
 }: PaymentActionsProps) {
-  const canSubmit = payment.status === "DRAFT" || payment.status === "REJECTED";
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [confirmError, setConfirmError] = useState("");
 
-  const canDelete = payment.status === "DRAFT" || payment.status === "REJECTED";
+  const hasSubmitPermission = userHasPermission("payment.submit");
+  const hasCancelPermission = userHasPermission("payment.cancel");
+
+  const canSubmit =
+    hasSubmitPermission &&
+    (payment.status === "DRAFT" || payment.status === "REJECTED");
+
+  const canDelete =
+    hasCancelPermission &&
+    (payment.status === "DRAFT" || payment.status === "REJECTED");
   const isSubmittedForApproval = payment.status === "PENDING_APPROVAL";
 
   async function handleSubmit() {
     try {
+      setIsSubmitting(true);
+      setConfirmError("");
+
       const updatedPayment = await submitPayment(payment.id);
       onUpdated(updatedPayment);
-    } catch {
-      onError("Failed to submit payment for approval.");
+    } catch (error) {
+      onError(
+        getApiErrorMessage(error, "Failed to submit payment for approval."),
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
-  async function handleDelete() {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this payment?",
-    );
-
-    if (!confirmed) return;
-
+  async function confirmDelete() {
     try {
+      setIsDeleting(true);
+      setConfirmError("");
+
       await deletePayment(payment.id);
+
+      setShowDeleteConfirm(false);
       onDeleted?.();
-    } catch {
-      onError("Failed to delete payment.");
+    } catch (error) {
+      setConfirmError(getApiErrorMessage(error, "Failed to delete payment."));
+    } finally {
+      setIsDeleting(false);
     }
   }
+  const hasVisibleActions = isSubmittedForApproval || canSubmit || canDelete;
 
+  if (!hasVisibleActions) {
+    return null;
+  }
   return (
-    <div className="flex flex-wrap gap-2">
-      {isSubmittedForApproval && (
-        <div className="rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 text-sm text-yellow-700">
-          Payment submitted for approval and awaiting review.
-        </div>
-      )}
+    <>
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        title="Delete payment"
+        message={`Delete payment for invoice "${
+          payment.invoice_number ?? "this invoice"
+        }"? This will only work if the payment is still draft or rejected and has not been submitted for approval.`}
+        confirmLabel="Delete"
+        variant="danger"
+        isLoading={isDeleting}
+        errorMessage={confirmError}
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setConfirmError("");
+        }}
+      />
 
-      {canSubmit && (
-        <Button type="button" onClick={handleSubmit}>
-          Submit for Approval
-        </Button>
-      )}
+      <div className="flex flex-wrap justify-end gap-2">
+        {isSubmittedForApproval && (
+          <StatusBadge variant="warning">
+            Payment submitted for approval
+          </StatusBadge>
+        )}
 
-      {canDelete && (
-        <Button type="button" variant="secondary" onClick={handleDelete}>
-          Delete
-        </Button>
-      )}
-    </div>
+        {canSubmit && (
+          <Button
+            type="button"
+            onClick={handleSubmit}
+            disabled={isSubmitting || isDeleting}
+          >
+            {isSubmitting ? "Submitting..." : "Submit for Approval"}
+          </Button>
+        )}
+
+        {canDelete && (
+          <Button
+            type="button"
+            variant="danger"
+            onClick={() => setShowDeleteConfirm(true)}
+            disabled={isSubmitting || isDeleting}
+          >
+            Delete
+          </Button>
+        )}
+      </div>
+    </>
   );
 }

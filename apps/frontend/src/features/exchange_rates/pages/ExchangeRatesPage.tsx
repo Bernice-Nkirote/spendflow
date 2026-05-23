@@ -1,17 +1,89 @@
+import axios from "axios";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import Button from "../../../components/ui/Button";
 import Card from "../../../components/ui/Card";
+import ConfirmDialog from "../../../components/ui/ConfirmDialog";
+import EmptyState from "../../../components/ui/EmptyState";
+import ErrorState from "../../../components/ui/ErrorState";
+import FloatingAlert from "../../../components/ui/FloatingAlert";
+import Input from "../../../components/ui/Input";
+import LoadingState from "../../../components/ui/LoadingState";
+import PageContainer from "../../../components/ui/PageContainer";
+import PageHeader from "../../../components/ui/PageHeader";
+import Pagination from "../../../components/ui/Pagination";
+import StatusBadge from "../../../components/ui/StatusBadge";
+import TableWrapper from "../../../components/ui/TableWrapper";
+import { useFloatingAlert } from "../../../components/ui/useFloatingAlert";
+import { getStoredUser, userHasPermission } from "../../../utils/permissions";
+
+import { currencyOptions } from "../../../utils/currencyOptions";
+
 import {
   createExchangeRate,
   deleteExchangeRate,
-  getExchangeRates,
+  getPaginatedExchangeRates,
   updateExchangeRate,
 } from "../api/exchangeRateApi";
 import type { ExchangeRate } from "../types/exchangeRate.types";
 
+function getPositiveNumberFromSearchParam(
+  value: string | null,
+  fallback: number,
+) {
+  const parsedValue = Number(value);
+
+  return Number.isFinite(parsedValue) && parsedValue > 0
+    ? parsedValue
+    : fallback;
+}
+
+function getApiErrorMessage(error: unknown, fallback: string) {
+  if (axios.isAxiosError(error)) {
+    const detail = error.response?.data?.detail;
+
+    if (typeof detail === "string") {
+      return detail;
+    }
+  }
+
+  return fallback;
+}
+
 function ExchangeRatesPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const page = getPositiveNumberFromSearchParam(searchParams.get("page"), 1);
+  const pageSize = getPositiveNumberFromSearchParam(
+    searchParams.get("page_size"),
+    10,
+  );
+  const skip = (page - 1) * pageSize;
+  const currentUser = getStoredUser();
+
+  const isAdminUser =
+    currentUser?.role_name === "Admin" ||
+    currentUser?.is_company_owner === true;
+
+  const canViewExchangeRates =
+    isAdminUser || userHasPermission("exchange_rates.view");
+
+  const canCreateExchangeRates =
+    isAdminUser || userHasPermission("exchange_rates.create");
+
+  const canUpdateExchangeRates =
+    isAdminUser || userHasPermission("exchange_rates.update");
+
+  const canDeleteExchangeRates =
+    isAdminUser || userHasPermission("exchange_rates.delete");
+
+  const canManageExchangeRates =
+    canCreateExchangeRates || canUpdateExchangeRates;
+
   const [exchangeRates, setExchangeRates] = useState<ExchangeRate[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+
   const [fromCurrency, setFromCurrency] = useState("");
   const [toCurrency, setToCurrency] = useState("");
   const [rate, setRate] = useState("");
@@ -19,37 +91,75 @@ function ExchangeRatesPage() {
   const [effectiveDate, setEffectiveDate] = useState("");
   const [editingRate, setEditingRate] = useState<ExchangeRate | null>(null);
 
-  const [isLoading, setIsLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [recordsLoading, setRecordsLoading] = useState(true);
+  const [recordsError, setRecordsError] = useState("");
+
   const [isSaving, setIsSaving] = useState(false);
   const [actionRateId, setActionRateId] = useState<string | null>(null);
-  const [error, setError] = useState("");
 
-  async function loadExchangeRates() {
-    try {
-      setIsLoading(true);
-      setError("");
-      const data = await getExchangeRates();
-      setExchangeRates(data);
-    } catch (err: any) {
-      setError(err?.response?.data?.detail ?? "Failed to load exchange rates.");
-    } finally {
-      setIsLoading(false);
+  const [rateToDelete, setRateToDelete] = useState<ExchangeRate | null>(null);
+  const [confirmError, setConfirmError] = useState("");
+
+  const { alert, showAlert, clearAlert } = useFloatingAlert();
+
+  function updatePaginationSearchParams(
+    nextPage: number,
+    nextPageSize: number,
+  ) {
+    setSearchParams((currentParams) => {
+      const nextParams = new URLSearchParams(currentParams);
+
+      nextParams.set("page", String(nextPage));
+      nextParams.set("page_size", String(nextPageSize));
+
+      return nextParams;
+    });
+  }
+
+  function handlePageChange(nextPage: number) {
+    updatePaginationSearchParams(nextPage, pageSize);
+  }
+
+  function handlePageSizeChange(nextPageSize: number) {
+    updatePaginationSearchParams(1, nextPageSize);
+  }
+
+  async function loadExchangeRates(nextSkip = skip, nextLimit = pageSize) {
+    if (!canViewExchangeRates) {
+      setInitialLoading(false);
+      setRecordsLoading(false);
+      return;
     }
+    try {
+      setRecordsLoading(true);
+      setRecordsError("");
+
+      const response = await getPaginatedExchangeRates({
+        skip: nextSkip,
+        limit: nextLimit,
+      });
+
+      setExchangeRates(response.rows);
+      setTotalCount(response.total_count);
+    } catch (error) {
+      setRecordsError(
+        getApiErrorMessage(error, "Failed to load exchange rates."),
+      );
+    } finally {
+      setRecordsLoading(false);
+      setInitialLoading(false);
+    }
+  }
+
+  async function resetToFirstPageAndReloadRates() {
+    updatePaginationSearchParams(1, pageSize);
+    await loadExchangeRates(0, pageSize);
   }
 
   useEffect(() => {
     loadExchangeRates();
-  }, []);
-
-  useEffect(() => {
-    if (!error) return;
-
-    const timer = window.setTimeout(() => {
-      setError("");
-    }, 5000);
-
-    return () => window.clearTimeout(timer);
-  }, [error]);
+  }, [skip, pageSize, canViewExchangeRates]);
 
   function resetForm() {
     setFromCurrency("");
@@ -71,7 +181,21 @@ function ExchangeRatesPage() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError("");
+    if (editingRate && !canUpdateExchangeRates) {
+      showAlert(
+        "error",
+        "You do not have permission to update exchange rates.",
+      );
+      return;
+    }
+
+    if (!editingRate && !canCreateExchangeRates) {
+      showAlert(
+        "error",
+        "You do not have permission to create exchange rates.",
+      );
+      return;
+    }
 
     const normalizedFromCurrency = fromCurrency.trim().toUpperCase();
     const normalizedToCurrency = toCurrency.trim().toUpperCase();
@@ -79,27 +203,33 @@ function ExchangeRatesPage() {
     const numericRate = Number(rate);
 
     if (normalizedFromCurrency.length !== 3) {
-      setError("From currency must be a 3-letter code, for example USD.");
+      showAlert(
+        "error",
+        "From currency must be a 3-letter code, for example USD.",
+      );
       return;
     }
 
     if (normalizedToCurrency.length !== 3) {
-      setError("To currency must be a 3-letter code, for example KES.");
+      showAlert(
+        "error",
+        "To currency must be a 3-letter code, for example KES.",
+      );
       return;
     }
 
     if (normalizedFromCurrency === normalizedToCurrency) {
-      setError("From currency and to currency cannot be the same.");
+      showAlert("error", "From currency and to currency cannot be the same.");
       return;
     }
 
     if (!numericRate || numericRate <= 0) {
-      setError("Exchange rate must be greater than zero.");
+      showAlert("error", "Exchange rate must be greater than zero.");
       return;
     }
 
     if (!effectiveDate) {
-      setError("Effective date is required.");
+      showAlert("error", "Effective date is required.");
       return;
     }
 
@@ -112,6 +242,8 @@ function ExchangeRatesPage() {
           source: normalizedSource,
           effective_date: effectiveDate,
         });
+
+        showAlert("success", "Exchange rate updated successfully.");
       } else {
         await createExchangeRate({
           from_currency: normalizedFromCurrency,
@@ -120,238 +252,335 @@ function ExchangeRatesPage() {
           source: normalizedSource,
           effective_date: effectiveDate,
         });
+
+        showAlert("success", "Exchange rate created successfully.");
       }
 
       resetForm();
-      await loadExchangeRates();
-    } catch (err: any) {
-      setError(err?.response?.data?.detail ?? "Failed to save exchange rate.");
+      await resetToFirstPageAndReloadRates();
+    } catch (error) {
+      showAlert(
+        "error",
+        getApiErrorMessage(error, "Failed to save exchange rate."),
+      );
     } finally {
       setIsSaving(false);
     }
   }
 
-  async function handleDelete(exchangeRate: ExchangeRate) {
-    const confirmed = window.confirm(
-      `Delete ${exchangeRate.from_currency} to ${exchangeRate.to_currency} rate for ${exchangeRate.effective_date}?`,
-    );
+  function handleDelete(exchangeRate: ExchangeRate) {
+    if (!canDeleteExchangeRates) {
+      showAlert(
+        "error",
+        "You do not have permission to delete exchange rates.",
+      );
+      return;
+    }
 
-    if (!confirmed) return;
+    setConfirmError("");
+    setRateToDelete(exchangeRate);
+  }
+
+  async function confirmDeleteExchangeRate() {
+    if (!rateToDelete) return;
 
     try {
-      setActionRateId(exchangeRate.id);
-      setError("");
+      setActionRateId(rateToDelete.id);
 
-      await deleteExchangeRate(exchangeRate.id);
-      await loadExchangeRates();
-    } catch (err: any) {
-      setError(
-        err?.response?.data?.detail ?? "Failed to delete exchange rate.",
+      await deleteExchangeRate(rateToDelete.id);
+
+      showAlert("success", "Exchange rate deleted successfully.");
+
+      setRateToDelete(null);
+      setConfirmError("");
+
+      await resetToFirstPageAndReloadRates();
+    } catch (error) {
+      setConfirmError(
+        getApiErrorMessage(error, "Failed to delete exchange rate."),
       );
     } finally {
       setActionRateId(null);
     }
   }
 
+  if (!canViewExchangeRates) {
+    return (
+      <PageContainer>
+        <PageHeader
+          title="Exchange Rates"
+          description="Manage currency conversion rates used for approvals, reporting, and financial normalization."
+        />
+
+        <ErrorState message="You do not have permission to view exchange rates." />
+      </PageContainer>
+    );
+  }
+
   return (
-    <div className="relative space-y-6">
-      {error && (
-        <div className="fixed right-4 top-20 z-[9999] max-w-md rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 shadow-lg">
-          <div className="flex items-start justify-between gap-3">
-            <p>{error}</p>
-            <button
-              type="button"
-              onClick={() => setError("")}
-              className="text-red-700 hover:text-red-900"
-              aria-label="Dismiss alert"
-            >
-              ×
-            </button>
-          </div>
-        </div>
+    <PageContainer>
+      {alert && (
+        <FloatingAlert
+          type={alert.type}
+          message={alert.message}
+          onClose={clearAlert}
+        />
       )}
 
-      <Card>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <h2 className="text-lg font-semibold text-primary-black">
-              {editingRate ? "Edit exchange rate" : "Add exchange rate"}
-            </h2>
-            <p className="mt-1 text-sm text-gray-600">
-              Configure rates used to convert transaction currencies into the
-              company base currency for approvals and reporting.
-            </p>
-          </div>
+      <ConfirmDialog
+        isOpen={Boolean(rateToDelete)}
+        title="Delete exchange rate"
+        message={`Delete ${rateToDelete?.from_currency} to ${rateToDelete?.to_currency} exchange rate for ${rateToDelete?.effective_date}?`}
+        confirmLabel="Delete"
+        variant="danger"
+        isLoading={actionRateId === rateToDelete?.id}
+        errorMessage={confirmError}
+        onConfirm={confirmDeleteExchangeRate}
+        onCancel={() => {
+          setRateToDelete(null);
+          setConfirmError("");
+        }}
+      />
 
-          <div className="grid gap-4 md:grid-cols-5 md:items-end">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                From currency
-              </label>
-              <input
-                value={fromCurrency}
-                onChange={(event) => setFromCurrency(event.target.value)}
-                placeholder="USD"
-                disabled={Boolean(editingRate)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm uppercase outline-none focus:border-primary-blue disabled:bg-gray-100"
+      <PageHeader
+        title="Exchange Rates"
+        description="Manage currency conversion rates used for approvals, reporting, and financial normalization."
+      />
+
+      {initialLoading && <LoadingState message="Loading exchange rates..." />}
+
+      {!initialLoading && (
+        <>
+          {canManageExchangeRates && (
+            <Card>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-primary-black">
+                    {editingRate ? "Edit exchange rate" : "Add exchange rate"}
+                  </h2>
+
+                  <p className="mt-1 text-sm text-gray-600">
+                    Configure rates used to convert transaction currencies into
+                    the company base currency for approvals and reporting.
+                  </p>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5 xl:items-end">
+                  <div className="space-y-1">
+                    <label className="block text-sm font-medium text-primary-black">
+                      From currency
+                    </label>
+
+                    <select
+                      value={fromCurrency}
+                      onChange={(event) => setFromCurrency(event.target.value)}
+                      disabled={Boolean(editingRate)}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20 disabled:cursor-not-allowed disabled:bg-gray-100"
+                    >
+                      <option value="">Select currency</option>
+
+                      {currencyOptions.map((option) => (
+                        <option key={option.code} value={option.code}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-sm font-medium text-primary-black">
+                      To currency
+                    </label>
+
+                    <select
+                      value={toCurrency}
+                      onChange={(event) => setToCurrency(event.target.value)}
+                      disabled={Boolean(editingRate)}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20 disabled:cursor-not-allowed disabled:bg-gray-100"
+                    >
+                      <option value="">Select currency</option>
+
+                      {currencyOptions.map((option) => (
+                        <option key={option.code} value={option.code}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <Input
+                    label="Rate"
+                    value={rate}
+                    onChange={(event) => setRate(event.target.value)}
+                    placeholder="129.50"
+                    type="number"
+                    min="0"
+                    step="0.000001"
+                  />
+
+                  <Input
+                    label="Effective date"
+                    value={effectiveDate}
+                    onChange={(event) => setEffectiveDate(event.target.value)}
+                    type="date"
+                  />
+
+                  <div className="flex gap-2">
+                    <Button
+                      type="submit"
+                      disabled={isSaving}
+                      className="min-w-[100px]"
+                    >
+                      {isSaving
+                        ? "Saving..."
+                        : editingRate
+                          ? "Update"
+                          : "Create"}
+                    </Button>
+
+                    {editingRate && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={resetForm}
+                        disabled={isSaving}
+                      >
+                        Cancel
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="max-w-sm">
+                  <Input
+                    label="Source"
+                    value={source}
+                    onChange={(event) => setSource(event.target.value)}
+                    placeholder="MANUAL"
+                    className="uppercase"
+                  />
+                </div>
+              </form>
+            </Card>
+          )}
+          <Card>
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold text-primary-black">
+                Exchange rate list
+              </h2>
+
+              <p className="mt-1 text-sm text-gray-600">
+                Rates are used when PRs, POs, invoices, and payments are
+                submitted for approval.
+              </p>
+            </div>
+
+            {recordsLoading && exchangeRates.length > 0 && (
+              <p className="mb-3 rounded-lg border border-blue-100 bg-blue-50 px-4 py-2 text-sm text-blue-700">
+                Updating exchange rates...
+              </p>
+            )}
+
+            {recordsError ? (
+              <ErrorState message={recordsError} />
+            ) : exchangeRates.length === 0 && !recordsLoading ? (
+              <EmptyState
+                title="No exchange rates found"
+                message="Add your first exchange rate before submitting foreign-currency transactions."
               />
-            </div>
+            ) : recordsLoading && exchangeRates.length === 0 ? (
+              <LoadingState message="Loading exchange rates..." />
+            ) : (
+              <>
+                <TableWrapper minWidth="900px">
+                  <table className="w-full text-left text-sm">
+                    <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
+                      <tr>
+                        <th className="px-4 py-3">Currency pair</th>
+                        <th className="px-4 py-3">Rate</th>
+                        <th className="px-4 py-3">Effective date</th>
+                        <th className="px-4 py-3">Source</th>
+                        {(canUpdateExchangeRates || canDeleteExchangeRates) && (
+                          <th className="px-4 py-3 text-right">Actions</th>
+                        )}
+                      </tr>
+                    </thead>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                To currency
-              </label>
-              <input
-                value={toCurrency}
-                onChange={(event) => setToCurrency(event.target.value)}
-                placeholder="KES"
-                disabled={Boolean(editingRate)}
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm uppercase outline-none focus:border-primary-blue disabled:bg-gray-100"
-              />
-            </div>
+                    <tbody className="divide-y">
+                      {exchangeRates.map((exchangeRate) => (
+                        <tr key={exchangeRate.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 font-medium text-primary-black">
+                            {exchangeRate.from_currency} →{" "}
+                            {exchangeRate.to_currency}
+                          </td>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Rate
-              </label>
-              <input
-                value={rate}
-                onChange={(event) => setRate(event.target.value)}
-                placeholder="129.50"
-                type="number"
-                min="0"
-                step="0.000001"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-blue"
-              />
-            </div>
+                          <td className="px-4 py-3 text-gray-700">
+                            {Number(exchangeRate.rate).toLocaleString(
+                              undefined,
+                              {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 6,
+                              },
+                            )}
+                          </td>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Effective date
-              </label>
-              <input
-                value={effectiveDate}
-                onChange={(event) => setEffectiveDate(event.target.value)}
-                type="date"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-blue"
-              />
-            </div>
+                          <td className="px-4 py-3 text-gray-700">
+                            {exchangeRate.effective_date}
+                          </td>
 
-            <div className="flex gap-2">
-              <Button type="submit" disabled={isSaving}>
-                {isSaving ? "Saving..." : editingRate ? "Update" : "Create"}
-              </Button>
+                          <td className="px-4 py-3">
+                            <StatusBadge variant="info">
+                              {exchangeRate.source}
+                            </StatusBadge>
+                          </td>
+                          {(canUpdateExchangeRates ||
+                            canDeleteExchangeRates) && (
+                            <td className="px-4 py-3">
+                              <div className="flex justify-end gap-2 whitespace-nowrap">
+                                {canUpdateExchangeRates && (
+                                  <Button
+                                    type="button"
+                                    variant="secondary"
+                                    size="sm"
+                                    onClick={() => startEdit(exchangeRate)}
+                                  >
+                                    Edit
+                                  </Button>
+                                )}
 
-              {editingRate && (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={resetForm}
-                  disabled={isSaving}
-                >
-                  Cancel
-                </Button>
-              )}
-            </div>
-          </div>
+                                {canDeleteExchangeRates && (
+                                  <Button
+                                    type="button"
+                                    variant="danger"
+                                    size="sm"
+                                    onClick={() => handleDelete(exchangeRate)}
+                                    disabled={actionRateId === exchangeRate.id}
+                                  >
+                                    Delete
+                                  </Button>
+                                )}
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </TableWrapper>
 
-          <div className="max-w-sm">
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Source
-            </label>
-            <input
-              value={source}
-              onChange={(event) => setSource(event.target.value)}
-              placeholder="MANUAL"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm uppercase outline-none focus:border-primary-blue"
-            />
-          </div>
-        </form>
-      </Card>
-
-      <Card>
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold text-primary-black">
-            Exchange rate list
-          </h2>
-          <p className="mt-1 text-sm text-gray-600">
-            Rates are used when PRs, POs, invoices, and payments are submitted
-            for approval.
-          </p>
-        </div>
-
-        {isLoading ? (
-          <p className="text-sm text-gray-600">Loading exchange rates...</p>
-        ) : exchangeRates.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center">
-            <p className="text-sm font-medium text-primary-black">
-              No exchange rates found
-            </p>
-            <p className="mt-1 text-sm text-gray-600">
-              Add your first exchange rate before submitting foreign-currency
-              transactions.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
-                <tr>
-                  <th className="px-4 py-3">Currency pair</th>
-                  <th className="px-4 py-3">Rate</th>
-                  <th className="px-4 py-3">Effective date</th>
-                  <th className="px-4 py-3">Source</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {exchangeRates.map((exchangeRate) => (
-                  <tr key={exchangeRate.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-primary-black">
-                      {exchangeRate.from_currency} → {exchangeRate.to_currency}
-                    </td>
-                    <td className="px-4 py-3 text-gray-700">
-                      {Number(exchangeRate.rate).toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 6,
-                      })}
-                    </td>
-                    <td className="px-4 py-3 text-gray-700">
-                      {exchangeRate.effective_date}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-primary-blue">
-                        {exchangeRate.source}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          onClick={() => startEdit(exchangeRate)}
-                        >
-                          Edit
-                        </Button>
-
-                        <Button
-                          type="button"
-                          variant="danger"
-                          onClick={() => handleDelete(exchangeRate)}
-                          disabled={actionRateId === exchangeRate.id}
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
-    </div>
+                <Pagination
+                  page={page}
+                  pageSize={pageSize}
+                  totalItems={totalCount}
+                  onPageChange={handlePageChange}
+                  onPageSizeChange={handlePageSizeChange}
+                />
+              </>
+            )}
+          </Card>
+        </>
+      )}
+    </PageContainer>
   );
 }
 

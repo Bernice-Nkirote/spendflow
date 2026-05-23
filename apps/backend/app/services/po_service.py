@@ -16,6 +16,7 @@ from app.repositories.po_item_repository import PurchaseOrderItemRepository
 from app.repositories.po_repository import PurchaseOrderRepository
 from app.repositories.pr_item_repository import PurchaseRequisitionItemRepository
 from app.repositories.pr_repository import PurchaseRequisitionRepository
+from app.schemas.po_schema import PurchaseOrderPaginatedRead
 from app.services.approval_instance_service import ApprovalInstanceService
 from app.services.permission_service import PermissionService
 from app.services.audit_log_service import AuditLogService
@@ -410,7 +411,10 @@ class PurchaseOrderService:
         self.po_repo.db.commit()
         self.po_repo.db.refresh(updated_po)
 
-        return updated_po
+        return self.get_po(
+            po_id=updated_po.id,
+            company_id=company_id,
+        )
 
     def create_po_from_pr(
         self,
@@ -544,7 +548,10 @@ class PurchaseOrderService:
         self.po_repo.db.commit()
         self.po_repo.db.refresh(updated_po)
 
-        return updated_po
+        return self.get_po(
+            po_id=updated_po.id,
+            company_id=company_id,
+        )
 
     def get_all_pos(
         self,
@@ -570,6 +577,25 @@ class PurchaseOrderService:
             self._enrich_po_readable_fields(po)
             for po in purchase_orders
         ]
+
+    def get_all_pos_paginated(
+        self,
+        company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> PurchaseOrderPaginatedRead:
+        rows = self.get_all_pos(
+            company_id=company_id,
+            skip=skip,
+            limit=limit,
+        )
+
+        total_count = self.po_repo.count_all(company_id)
+
+        return PurchaseOrderPaginatedRead(
+            rows=rows,
+            total_count=total_count,
+        )
 
     def get_all_pos_by_supplier(
         self,
@@ -601,6 +627,30 @@ class PurchaseOrderService:
             company_id=company_id,
             skip=skip,
             limit=limit,
+        )
+
+    def get_all_pos_by_supplier_paginated(
+        self,
+        supplier_id: UUID,
+        company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> PurchaseOrderPaginatedRead:
+        rows = self.get_all_pos_by_supplier(
+            supplier_id=supplier_id,
+            company_id=company_id,
+            skip=skip,
+            limit=limit,
+        )
+
+        total_count = self.po_repo.count_by_supplier(
+            supplier_id=supplier_id,
+            company_id=company_id,
+        )
+
+        return PurchaseOrderPaginatedRead(
+            rows=rows,
+            total_count=total_count,
         )
 
     def get_all_pos_by_status(
@@ -698,7 +748,10 @@ class PurchaseOrderService:
         self.po_repo.db.commit()
         self.po_repo.db.refresh(updated_po)
 
-        return updated_po
+        return self.get_po(
+            po_id=updated_po.id,
+            company_id=company_id,
+        )
 
     def create_po_item(
         self,
@@ -970,7 +1023,10 @@ class PurchaseOrderService:
         self.po_repo.db.commit()
         self.po_repo.db.refresh(updated_po)
 
-        return updated_po
+        return self.get_po(
+            po_id=updated_po.id,
+            company_id=company_id,
+        )
 
     def approve_po(
         self,
@@ -1066,7 +1122,10 @@ class PurchaseOrderService:
         self.po_repo.db.commit()
         self.po_repo.db.refresh(updated_po)
 
-        return updated_po
+        return self.get_po(
+            po_id=updated_po.id,
+            company_id=company_id,
+        )
 
     def mark_po_partially_received(
         self,
@@ -1164,7 +1223,10 @@ class PurchaseOrderService:
         self.po_repo.db.commit()
         self.po_repo.db.refresh(updated_po)
 
-        return updated_po
+        return self.get_po(
+            po_id=updated_po.id,
+            company_id=company_id,
+        )
 
     def delete_po(
         self,

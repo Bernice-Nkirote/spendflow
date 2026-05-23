@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.models.audit_logs import AuditLog
 from app.models.user import User
 from app.models.supplier_user import SupplierUser
+from app.models.supplier import Supplier
 
 class AuditLogRepository:
     def __init__(self, db: Session):
@@ -151,7 +152,45 @@ class AuditLogRepository:
             .limit(limit)
             .all()
         )
-    
+
+    def count_search(
+        self,
+        company_id: UUID,
+        entity_type: str | None = None,
+        entity_id: UUID | None = None,
+        action: str | None = None,
+        actor_user_id: UUID | None = None,
+        actor_supplier_user_id: UUID | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+    ) -> int:
+        query = self.db.query(AuditLog).filter(AuditLog.company_id == company_id)
+
+        if entity_type:
+            query = query.filter(AuditLog.entity_type == entity_type)
+
+        if entity_id:
+            query = query.filter(AuditLog.entity_id == entity_id)
+
+        if action:
+            query = query.filter(AuditLog.action == action)
+
+        if actor_user_id:
+            query = query.filter(AuditLog.actor_user_id == actor_user_id)
+
+        if actor_supplier_user_id:
+            query = query.filter(
+                AuditLog.actor_supplier_user_id == actor_supplier_user_id
+            )
+
+        if date_from:
+            query = query.filter(AuditLog.created_at >= date_from)
+
+        if date_to:
+            query = query.filter(AuditLog.created_at <= date_to)
+
+        return query.count()
+
     def get_actor_user(
         self,
         actor_user_id: UUID,
@@ -165,8 +204,7 @@ class AuditLogRepository:
             )
             .first()
         )
-
-
+    
     def get_actor_supplier_user(
         self,
         actor_supplier_user_id: UUID,
@@ -174,9 +212,10 @@ class AuditLogRepository:
     ) -> SupplierUser | None:
         return (
             self.db.query(SupplierUser)
+            .join(Supplier, SupplierUser.supplier_id == Supplier.id)
             .filter(
                 SupplierUser.id == actor_supplier_user_id,
-                SupplierUser.company_id == company_id,
+                Supplier.company_id == company_id,
             )
             .first()
         )

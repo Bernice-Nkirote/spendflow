@@ -103,3 +103,9 @@ class InvoiceDetailRead(InvoiceRead):
     currency: Optional[str] = None
     submitted_by_user_name: Optional[str] = None
     submitted_by_supplier_user_name: Optional[str] = None
+
+class InvoicePaginatedRead(BaseModel):
+    rows: list[InvoiceDetailRead]
+    total_count: int
+
+    model_config = ConfigDict(from_attributes=True)

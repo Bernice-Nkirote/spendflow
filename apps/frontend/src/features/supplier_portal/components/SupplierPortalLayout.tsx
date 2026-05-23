@@ -1,21 +1,40 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { useSupplierInactivityLogout } from "../../supplier_auth/hooks/useSupplierInactivityLogout";
+
+import Button from "../../../components/ui/Button";
+import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 
 function SupplierPortalLayout() {
+  const { isSessionWarningOpen, staySignedIn, logoutNow } =
+    useSupplierInactivityLogout();
+
   function handleLogout() {
     localStorage.removeItem("supplier_access_token");
+    localStorage.removeItem("supplier_refresh_token");
+    localStorage.removeItem("supplier_user");
     window.location.href = "/supplier-login";
   }
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `whitespace-nowrap rounded-lg px-3 py-2 text-sm font-semibold ${
+    `whitespace-nowrap rounded-xl px-3 py-2 text-sm font-semibold transition ${
       isActive
-        ? "bg-primary-blue text-white"
+        ? "bg-primary-blue text-white shadow-sm"
         : "text-primary-black hover:bg-gray-100"
     }`;
 
   return (
     <div className="min-h-screen bg-primary-white">
-      <header className="border-b bg-white shadow-sm">
+      <ConfirmDialog
+        isOpen={isSessionWarningOpen}
+        title="Session expiring soon"
+        message="You have been inactive. Your supplier session will expire soon. Choose Stay Signed In to continue working."
+        confirmLabel="Stay Signed In"
+        cancelLabel="Logout"
+        variant="warning"
+        onConfirm={staySignedIn}
+        onCancel={logoutNow}
+      />
+      <header className="sticky top-0 z-40 border-b bg-white/95 shadow-sm backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h1 className="text-xl font-bold text-primary-blue">SpendFlow</h1>
@@ -38,13 +57,14 @@ function SupplierPortalLayout() {
               Payments
             </NavLink>
 
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size="sm"
               onClick={handleLogout}
-              className="whitespace-nowrap rounded-lg border px-3 py-2 text-sm font-semibold text-primary-black hover:bg-gray-50"
             >
               Logout
-            </button>
+            </Button>
           </nav>
         </div>
       </header>

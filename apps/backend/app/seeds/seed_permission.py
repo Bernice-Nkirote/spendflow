@@ -24,6 +24,19 @@ DEFAULT_PERMISSIONS = [
     "po.reject",
     "po.dispatch",
 
+    # Suppliers
+    "suppliers.create",
+    "suppliers.view",
+    "suppliers.update",
+    "suppliers.delete",
+    "suppliers.import",
+
+    # Exchange Rates
+    "exchange_rates.create",
+    "exchange_rates.view",
+    "exchange_rates.update",
+    "exchange_rates.delete",
+
     # Invoices
     "invoice.create",
     "invoice.view",
@@ -81,6 +94,11 @@ ROLE_PERMISSION_MAP = {
         "po.cancel",
         "po.dispatch",
 
+        "suppliers.create",
+        "suppliers.view",
+        "suppliers.update",
+        "suppliers.import",
+
         "invoice.view",
 
         "reports.pr.view",
@@ -105,6 +123,10 @@ ROLE_PERMISSION_MAP = {
         "payment.update",
         "payment.submit",
         "payment.cancel",
+
+        "exchange_rates.create",
+        "exchange_rates.view",
+        "exchange_rates.update",
 
         "reports.payments.view",
         "reports.payments.export",

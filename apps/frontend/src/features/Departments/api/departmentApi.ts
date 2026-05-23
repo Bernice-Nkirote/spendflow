@@ -3,10 +3,38 @@ import type {
   Department,
   DepartmentCreatePayload,
   DepartmentUpdatePayload,
+  PaginatedDepartmentsResponse,
 } from "../types/department.types";
 
 export async function getDepartments(): Promise<Department[]> {
   const response = await axiosInstance.get<Department[]>("/departments/");
+  return response.data;
+}
+
+export async function getDepartmentOptions(): Promise<Department[]> {
+  const response = await axiosInstance.get<Department[]>(
+    "/departments/options",
+  );
+  return response.data;
+}
+
+export async function getPaginatedDepartments({
+  skip,
+  limit,
+}: {
+  skip: number;
+  limit: number;
+}): Promise<PaginatedDepartmentsResponse> {
+  const response = await axiosInstance.get<PaginatedDepartmentsResponse>(
+    "/departments/paginated",
+    {
+      params: {
+        skip,
+        limit,
+      },
+    },
+  );
+
   return response.data;
 }
 

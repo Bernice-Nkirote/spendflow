@@ -1,53 +1,147 @@
+import axios from "axios";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import Button from "../../../components/ui/Button";
 import Card from "../../../components/ui/Card";
+import ConfirmDialog from "../../../components/ui/ConfirmDialog";
+import EmptyState from "../../../components/ui/EmptyState";
+import ErrorState from "../../../components/ui/ErrorState";
+import FloatingAlert from "../../../components/ui/FloatingAlert";
+import Input from "../../../components/ui/Input";
+import LoadingState from "../../../components/ui/LoadingState";
+import PageContainer from "../../../components/ui/PageContainer";
+import PageHeader from "../../../components/ui/PageHeader";
+import Pagination from "../../../components/ui/Pagination";
+import StatusBadge from "../../../components/ui/StatusBadge";
+import TableWrapper from "../../../components/ui/TableWrapper";
+import { useFloatingAlert } from "../../../components/ui/useFloatingAlert";
+import { getStoredUser } from "../../../utils/permissions";
+
 import {
   activateRole,
   createRole,
   deactivateRole,
   deleteRole,
-  getRoles,
+  getPaginatedRoles,
   updateRole,
 } from "../api/roleApi";
+
 import type { Role } from "../types/role.types";
 
+function getPositiveNumberFromSearchParam(
+  value: string | null,
+  fallback: number,
+) {
+  const parsedValue = Number(value);
+
+  return Number.isFinite(parsedValue) && parsedValue > 0
+    ? parsedValue
+    : fallback;
+}
+
+function getApiErrorMessage(error: unknown, fallback: string) {
+  if (axios.isAxiosError(error)) {
+    const detail = error.response?.data?.detail;
+
+    if (typeof detail === "string") {
+      return detail;
+    }
+  }
+
+  return fallback;
+}
+
 function RolesPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const page = getPositiveNumberFromSearchParam(searchParams.get("page"), 1);
+  const pageSize = getPositiveNumberFromSearchParam(
+    searchParams.get("page_size"),
+    10,
+  );
+  const skip = (page - 1) * pageSize;
+  const currentUser = getStoredUser();
+
+  const canAccessAdminPage =
+    currentUser?.role_name === "Admin" ||
+    currentUser?.is_company_owner === true;
+
   const [roles, setRoles] = useState<Role[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [editingRole, setEditingRole] = useState<Role | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [recordsLoading, setRecordsLoading] = useState(true);
+  const [recordsError, setRecordsError] = useState<string | null>(null);
+
   const [isSaving, setIsSaving] = useState(false);
   const [actionRoleId, setActionRoleId] = useState<string | null>(null);
-  const [error, setError] = useState("");
 
-  async function loadRoles() {
-    try {
-      setIsLoading(true);
-      setError("");
-      const data = await getRoles();
-      setRoles(data);
-    } catch (err: any) {
-      setError(err?.response?.data?.detail ?? "Failed to load roles.");
-    } finally {
-      setIsLoading(false);
+  const [roleToDeactivate, setRoleToDeactivate] = useState<Role | null>(null);
+  const [roleToDelete, setRoleToDelete] = useState<Role | null>(null);
+  const [confirmError, setConfirmError] = useState("");
+
+  const { alert, showAlert, clearAlert } = useFloatingAlert();
+
+  function updatePaginationSearchParams(
+    nextPage: number,
+    nextPageSize: number,
+  ) {
+    setSearchParams((currentParams) => {
+      const nextParams = new URLSearchParams(currentParams);
+
+      nextParams.set("page", String(nextPage));
+      nextParams.set("page_size", String(nextPageSize));
+
+      return nextParams;
+    });
+  }
+
+  function handlePageChange(nextPage: number) {
+    updatePaginationSearchParams(nextPage, pageSize);
+  }
+
+  function handlePageSizeChange(nextPageSize: number) {
+    updatePaginationSearchParams(1, nextPageSize);
+  }
+
+  async function loadRoles(nextSkip = skip, nextLimit = pageSize) {
+    if (!canAccessAdminPage) {
+      setInitialLoading(false);
+      setRecordsLoading(false);
+      return;
     }
+    try {
+      setRecordsLoading(true);
+      setRecordsError(null);
+
+      const response = await getPaginatedRoles({
+        skip: nextSkip,
+        limit: nextLimit,
+      });
+
+      setRoles(response.rows);
+      setTotalCount(response.total_count);
+    } catch (error) {
+      setRecordsError(getApiErrorMessage(error, "Failed to load roles."));
+    } finally {
+      setRecordsLoading(false);
+      setInitialLoading(false);
+    }
+  }
+
+  async function resetToFirstPageAndReloadRoles() {
+    updatePaginationSearchParams(1, pageSize);
+    await loadRoles(0, pageSize);
   }
 
   useEffect(() => {
     loadRoles();
-  }, []);
-
-  useEffect(() => {
-    if (!error) return;
-
-    const timer = window.setTimeout(() => {
-      setError("");
-    }, 5000);
-
-    return () => window.clearTimeout(timer);
-  }, [error]);
+  }, [skip, pageSize, canAccessAdminPage]);
 
   function resetForm() {
     setName("");
@@ -59,17 +153,23 @@ function RolesPage() {
     setEditingRole(role);
     setName(role.name);
     setDescription(role.description ?? "");
+
+    if (role.is_system_role) {
+      showAlert(
+        "warning",
+        "System roles are protected and cannot be modified.",
+      );
+    }
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError("");
 
     const trimmedName = name.trim();
     const trimmedDescription = description.trim();
 
     if (!trimmedName) {
-      setError("Role name is required.");
+      showAlert("error", "Role name is required.");
       return;
     }
 
@@ -81,255 +181,372 @@ function RolesPage() {
           name: trimmedName,
           description: trimmedDescription || null,
         });
+
+        showAlert("success", "Role updated successfully.");
       } else {
         await createRole({
           name: trimmedName,
           description: trimmedDescription || null,
           is_active: true,
         });
+
+        showAlert("success", "Role created successfully.");
       }
 
       resetForm();
-      await loadRoles();
-    } catch (err: any) {
-      setError(err?.response?.data?.detail ?? "Failed to save role.");
+      await resetToFirstPageAndReloadRoles();
+    } catch (error) {
+      showAlert("error", getApiErrorMessage(error, "Failed to save role."));
     } finally {
       setIsSaving(false);
     }
   }
 
-  async function handleToggleStatus(role: Role) {
-    try {
-      setActionRoleId(role.id);
-      setError("");
-
-      if (role.is_active) {
-        if (role.name.trim().toLowerCase() === "admin") {
-          setError(
-            "The Admin role cannot be deactivated because it protects system access.",
-          );
-          return;
-        }
-
-        const confirmed = window.confirm(
-          `Deactivate role "${role.name}"? This will only work if the role is not assigned to users or approval workflows.`,
-        );
-
-        if (!confirmed) return;
-
-        await deactivateRole(role.id);
-      } else {
-        await activateRole(role.id);
-      }
-
-      await loadRoles();
-    } catch (err: any) {
-      setError(err?.response?.data?.detail ?? "Failed to update role status.");
-    } finally {
-      setActionRoleId(null);
-    }
-  }
-
-  async function handleDelete(role: Role) {
-    setError("");
-
-    if (role.name.trim().toLowerCase() === "admin") {
-      setError(
-        "The Admin role cannot be deleted because it protects system access.",
+  function handleToggleStatus(role: Role) {
+    if (role.is_system_role) {
+      showAlert(
+        "warning",
+        "System roles cannot be deactivated because they protect company governance.",
       );
       return;
     }
 
-    const confirmed = window.confirm(
-      `Delete role "${role.name}"? This will only work if the role is not assigned to users, permissions, or approval workflows.`,
-    );
+    if (role.is_active) {
+      setConfirmError("");
+      setRoleToDeactivate(role);
+      return;
+    }
 
-    if (!confirmed) return;
+    activateInactiveRole(role);
+  }
 
+  async function activateInactiveRole(role: Role) {
     try {
       setActionRoleId(role.id);
 
-      await deleteRole(role.id);
-      await loadRoles();
-    } catch (err: any) {
-      setError(
-        err?.response?.data?.detail ??
-          "Failed to delete role. If this role is already used, deactivate it or reassign users first.",
+      await activateRole(role.id);
+
+      showAlert("success", "Role activated successfully.");
+
+      await resetToFirstPageAndReloadRoles();
+    } catch (error) {
+      showAlert(
+        "error",
+        getApiErrorMessage(error, "Failed to update role status."),
       );
     } finally {
       setActionRoleId(null);
     }
   }
 
+  async function confirmDeactivateRole() {
+    if (!roleToDeactivate) return;
+
+    try {
+      setActionRoleId(roleToDeactivate.id);
+
+      await deactivateRole(roleToDeactivate.id);
+
+      showAlert("success", "Role deactivated successfully.");
+
+      setRoleToDeactivate(null);
+      setConfirmError("");
+
+      await resetToFirstPageAndReloadRoles();
+    } catch (error) {
+      setConfirmError(
+        getApiErrorMessage(error, "Failed to update role status."),
+      );
+    } finally {
+      setActionRoleId(null);
+    }
+  }
+
+  function handleDelete(role: Role) {
+    if (role.is_system_role) {
+      showAlert(
+        "warning",
+        "System roles cannot be deleted because they protect company governance.",
+      );
+      return;
+    }
+
+    setConfirmError("");
+    setRoleToDelete(role);
+  }
+
+  async function confirmDeleteRole() {
+    if (!roleToDelete) return;
+
+    try {
+      setActionRoleId(roleToDelete.id);
+
+      await deleteRole(roleToDelete.id);
+
+      showAlert("success", "Role deleted successfully.");
+
+      setRoleToDelete(null);
+      setConfirmError("");
+
+      await resetToFirstPageAndReloadRoles();
+    } catch (error) {
+      setConfirmError(
+        getApiErrorMessage(
+          error,
+          "Failed to delete role. If this role is already used, deactivate it or reassign users first.",
+        ),
+      );
+    } finally {
+      setActionRoleId(null);
+    }
+  }
+
+  if (!canAccessAdminPage) {
+    return (
+      <PageContainer>
+        <PageHeader
+          title="Roles"
+          description="Create and manage company roles used for permissions, user access, and procurement approval workflows."
+        />
+
+        <ErrorState message="Admin access is required to manage roles." />
+      </PageContainer>
+    );
+  }
+
   return (
-    <div className="relative space-y-6">
-      {error && (
-        <div className="fixed right-4 top-20 z-[9999] max-w-md rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 shadow-lg">
-          <div className="flex items-start justify-between gap-3">
-            <p>{error}</p>
-            <button
-              type="button"
-              onClick={() => setError("")}
-              className="text-red-700 hover:text-red-900"
-              aria-label="Dismiss alert"
-            >
-              ×
-            </button>
-          </div>
-        </div>
+    <PageContainer>
+      {alert && (
+        <FloatingAlert
+          type={alert.type}
+          message={alert.message}
+          onClose={clearAlert}
+        />
       )}
 
-      <Card>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <h2 className="text-lg font-semibold text-primary-black">
-              {editingRole ? "Edit role" : "Add role"}
-            </h2>
-            <p className="mt-1 text-sm text-gray-600">
-              Create roles before assigning users or configuring workflow
-              approval levels.
-            </p>
-          </div>
+      <ConfirmDialog
+        isOpen={Boolean(roleToDeactivate)}
+        title="Deactivate role"
+        message={`Deactivate role "${roleToDeactivate?.name}"? This will only work if the role is not assigned to users or approval workflows.`}
+        confirmLabel="Deactivate"
+        variant="warning"
+        isLoading={actionRoleId === roleToDeactivate?.id}
+        errorMessage={confirmError}
+        onConfirm={confirmDeactivateRole}
+        onCancel={() => {
+          setRoleToDeactivate(null);
+          setConfirmError("");
+        }}
+      />
 
-          <div className="grid gap-4 lg:grid-cols-[1fr_1.5fr_auto] lg:items-end">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Role name
-              </label>
-              <input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="e.g. Admin, Approver, Requester"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-blue"
+      <ConfirmDialog
+        isOpen={Boolean(roleToDelete)}
+        title="Delete role"
+        message={`Delete role "${roleToDelete?.name}"? This will only work if the role is not assigned to users, permissions, or approval workflows.`}
+        confirmLabel="Delete"
+        variant="danger"
+        isLoading={actionRoleId === roleToDelete?.id}
+        errorMessage={confirmError}
+        onConfirm={confirmDeleteRole}
+        onCancel={() => {
+          setRoleToDelete(null);
+          setConfirmError("");
+        }}
+      />
+
+      <PageHeader
+        title="Roles"
+        description="Create and manage company roles used for permissions, user access, and procurement approval workflows."
+      />
+
+      {initialLoading && <LoadingState />}
+
+      {!initialLoading && (
+        <>
+          <Card>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <h2 className="text-lg font-semibold text-primary-black">
+                  {editingRole ? "Edit role" : "Add role"}
+                </h2>
+
+                <p className="mt-1 text-sm text-gray-600">
+                  Create roles before assigning users or configuring workflow
+                  approval levels.
+                </p>
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-[1fr_1.5fr_auto] lg:items-end">
+                <Input
+                  label="Role name"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  placeholder="e.g. Admin, Approver, Requester"
+                />
+
+                <Input
+                  label="Description"
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  placeholder="Short description of this role"
+                />
+
+                <div className="flex gap-2">
+                  <Button
+                    type="submit"
+                    disabled={isSaving}
+                    className="min-w-[100px]"
+                  >
+                    {isSaving ? "Saving..." : editingRole ? "Update" : "Create"}
+                  </Button>
+
+                  {editingRole && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={resetForm}
+                      disabled={isSaving}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </form>
+          </Card>
+
+          <Card>
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold text-primary-black">
+                Role list
+              </h2>
+
+              <p className="mt-1 text-sm text-gray-600">
+                Deactivate roles instead of deleting them when they are already
+                used by users or approval workflows.
+              </p>
+            </div>
+
+            {recordsLoading && roles.length > 0 && (
+              <p className="mb-3 rounded-lg border border-blue-100 bg-blue-50 px-4 py-2 text-sm text-blue-700">
+                Updating roles...
+              </p>
+            )}
+
+            {recordsError ? (
+              <ErrorState message={recordsError} />
+            ) : roles.length === 0 && !recordsLoading ? (
+              <EmptyState
+                title="No roles found"
+                message="Add your first role to start assigning users and approvers."
               />
-            </div>
+            ) : recordsLoading && roles.length === 0 ? (
+              <LoadingState message="Loading roles..." />
+            ) : (
+              <>
+                <TableWrapper minWidth="850px">
+                  <table className="w-full text-left text-sm">
+                    <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
+                      <tr>
+                        <th className="px-4 py-3">Role</th>
+                        <th className="px-4 py-3">Description</th>
+                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
 
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Description
-              </label>
-              <input
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                placeholder="Short description of this role"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-primary-blue"
-              />
-            </div>
+                    <tbody className="divide-y">
+                      {roles.map((role) => {
+                        const isActionLoading = actionRoleId === role.id;
 
-            <div className="flex gap-2">
-              <Button type="submit" disabled={isSaving}>
-                {isSaving ? "Saving..." : editingRole ? "Update" : "Create"}
-              </Button>
+                        return (
+                          <tr key={role.id} className="hover:bg-gray-50">
+                            <td className="px-4 py-3">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-medium text-primary-black">
+                                  {role.name}
+                                </span>
 
-              {editingRole && (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={resetForm}
-                  disabled={isSaving}
-                >
-                  Cancel
-                </Button>
-              )}
-            </div>
-          </div>
-        </form>
-      </Card>
+                                {role.is_system_role && (
+                                  <StatusBadge variant="info">
+                                    System Role
+                                  </StatusBadge>
+                                )}
+                              </div>
+                            </td>
 
-      <Card>
-        <div className="mb-4">
-          <h2 className="text-lg font-semibold text-primary-black">
-            Role list
-          </h2>
-          <p className="mt-1 text-sm text-gray-600">
-            Deactivate roles instead of deleting them when they are already used
-            by users or approval workflows.
-          </p>
-        </div>
+                            <td className="px-4 py-3 text-gray-600">
+                              {role.description || "No description"}
+                            </td>
 
-        {isLoading ? (
-          <p className="text-sm text-gray-600">Loading roles...</p>
-        ) : roles.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gray-300 p-6 text-center">
-            <p className="text-sm font-medium text-primary-black">
-              No roles found
-            </p>
-            <p className="mt-1 text-sm text-gray-600">
-              Add your first role to start assigning users and approvers.
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-left text-sm">
-              <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
-                <tr>
-                  <th className="px-4 py-3">Role</th>
-                  <th className="px-4 py-3">Description</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
+                            <td className="px-4 py-3">
+                              <StatusBadge
+                                variant={role.is_active ? "success" : "neutral"}
+                              >
+                                {role.is_active ? "Active" : "Inactive"}
+                              </StatusBadge>
+                            </td>
 
-              <tbody className="divide-y">
-                {roles.map((role) => (
-                  <tr key={role.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-primary-black">
-                      {role.name}
-                    </td>
+                            <td className="px-4 py-3">
+                              <div className="flex justify-end gap-2 whitespace-nowrap">
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={() => startEdit(role)}
+                                  disabled={role.is_system_role}
+                                >
+                                  Edit
+                                </Button>
 
-                    <td className="px-4 py-3 text-gray-600">
-                      {role.description || "No description"}
-                    </td>
+                                <Button
+                                  type="button"
+                                  variant={
+                                    role.is_active ? "secondary" : "primary"
+                                  }
+                                  size="sm"
+                                  onClick={() => handleToggleStatus(role)}
+                                  disabled={
+                                    isActionLoading || role.is_system_role
+                                  }
+                                  className="min-w-[92px]"
+                                >
+                                  {role.is_active ? "Deactivate" : "Activate"}
+                                </Button>
 
-                    <td className="px-4 py-3">
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                          role.is_active
-                            ? "bg-green-50 text-green-700"
-                            : "bg-gray-100 text-gray-600"
-                        }`}
-                      >
-                        {role.is_active ? "Active" : "Inactive"}
-                      </span>
-                    </td>
+                                <Button
+                                  type="button"
+                                  variant="danger"
+                                  size="sm"
+                                  onClick={() => handleDelete(role)}
+                                  disabled={
+                                    isActionLoading || role.is_system_role
+                                  }
+                                >
+                                  Delete
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </TableWrapper>
 
-                    <td className="px-4 py-3">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          onClick={() => startEdit(role)}
-                        >
-                          Edit
-                        </Button>
-
-                        <Button
-                          type="button"
-                          variant="secondary"
-                          onClick={() => handleToggleStatus(role)}
-                          disabled={actionRoleId === role.id}
-                        >
-                          {role.is_active ? "Deactivate" : "Activate"}
-                        </Button>
-
-                        <Button
-                          type="button"
-                          variant="danger"
-                          onClick={() => handleDelete(role)}
-                          disabled={actionRoleId === role.id}
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
-    </div>
+                <Pagination
+                  page={page}
+                  pageSize={pageSize}
+                  totalItems={totalCount}
+                  onPageChange={handlePageChange}
+                  onPageSizeChange={handlePageSizeChange}
+                />
+              </>
+            )}
+          </Card>
+        </>
+      )}
+    </PageContainer>
   );
 }
 

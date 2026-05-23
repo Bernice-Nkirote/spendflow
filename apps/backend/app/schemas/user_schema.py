@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr
@@ -19,6 +19,14 @@ class UserLogin(BaseModel):
     password: str
 
 class UserPasswordSetup(BaseModel):
+    token: str
+    password: str
+
+class ForgotPasswordRequest(BaseModel):
+    company_name: str
+    email: EmailStr
+
+class ResetPasswordRequest(BaseModel):
     token: str
     password: str
 
@@ -45,6 +53,7 @@ class UserRead(BaseModel):
     phone_number: Optional[str] = None
 
     is_active: bool
+    is_company_owner: bool
     has_completed_onboarding: bool
     onboarded_at: Optional[datetime] = None
 
@@ -52,3 +61,7 @@ class UserRead(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class PaginatedUserResponse(BaseModel):
+    rows: List[UserRead]
+    total_count: int

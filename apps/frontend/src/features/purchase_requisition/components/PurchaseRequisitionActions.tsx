@@ -8,6 +8,7 @@ import {
 } from "../api/purchaseRequisitionApi";
 
 import type { PurchaseRequisitionDetails } from "../types/purchaseRequisition.types";
+import { userHasPermission } from "../../../utils/permissions";
 
 type Props = {
   purchaseRequisition: PurchaseRequisitionDetails;
@@ -24,9 +25,14 @@ export default function PurchaseRequisitionActions({
     "submit" | "cancel" | null
   >(null);
 
-  const canSubmit = purchaseRequisition.status === "DRAFT";
+  const hasSubmitPermission = userHasPermission("pr.submit");
+  const hasCancelPermission = userHasPermission("pr.cancel");
+
+  const canSubmit =
+    purchaseRequisition.status === "DRAFT" && hasSubmitPermission;
 
   const canCancel =
+    hasCancelPermission &&
     purchaseRequisition.status !== "CANCELLED" &&
     purchaseRequisition.status !== "CONVERTED_TO_PO";
 
@@ -92,6 +98,7 @@ export default function PurchaseRequisitionActions({
       {canCancel && (
         <Button
           type="button"
+          variant="danger"
           disabled={loadingAction !== null}
           onClick={handleCancel}
         >

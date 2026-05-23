@@ -5,8 +5,8 @@ from uuid import UUID
 from fastapi import HTTPException, status
 
 from app.models.exchange_rate import ExchangeRate
-from app.repositories.exchange_rate_repository import ExchangeRateRepository
 from app.repositories.company_repository import CompanyRepository
+from app.repositories.exchange_rate_repository import ExchangeRateRepository
 from app.schemas.exchange_rate_schema import ExchangeRateCreate, ExchangeRateUpdate
 
 
@@ -15,9 +15,34 @@ class ExchangeRateService:
         self,
         repo: ExchangeRateRepository,
         company_repo: CompanyRepository | None = None,
+        permission_service=None,
     ):
         self.repo = repo
         self.company_repo = company_repo
+        self.permission_service = permission_service
+
+    def _require_permission(
+        self,
+        role_id: UUID,
+        company_id: UUID,
+        permission_name: str,
+        error_message: str,
+    ) -> None:
+        if self.permission_service is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Permission service is required.",
+            )
+
+        if not self.permission_service.role_has_permission(
+            role_id=role_id,
+            permission_name=permission_name,
+            company_id=company_id,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=error_message,
+            )
 
     def _normalize_currency(self, currency: str) -> str:
         normalized = currency.strip().upper()
@@ -67,7 +92,15 @@ class ExchangeRateService:
         data: ExchangeRateCreate,
         company_id: UUID,
         created_by: UUID | None,
+        actor_role_id: UUID,
     ) -> ExchangeRate:
+        self._require_permission(
+            role_id=actor_role_id,
+            company_id=company_id,
+            permission_name="exchange_rates.create",
+            error_message="You do not have permission to create exchange rates.",
+        )
+
         from_currency = self._normalize_currency(data.from_currency)
         to_currency = self._normalize_currency(data.to_currency)
 
@@ -83,6 +116,7 @@ class ExchangeRateService:
             to_currency=to_currency,
             effective_date=data.effective_date,
         )
+
         if existing_rate:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -109,8 +143,17 @@ class ExchangeRateService:
         self,
         exchange_rate_id: UUID,
         company_id: UUID,
+        actor_role_id: UUID,
     ) -> ExchangeRate:
+        self._require_permission(
+            role_id=actor_role_id,
+            company_id=company_id,
+            permission_name="exchange_rates.view",
+            error_message="You do not have permission to view exchange rates.",
+        )
+
         exchange_rate = self.repo.get_by_id(exchange_rate_id, company_id)
+
         if not exchange_rate:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -122,9 +165,17 @@ class ExchangeRateService:
     def get_all_exchange_rates(
         self,
         company_id: UUID,
+        actor_role_id: UUID,
         skip: int = 0,
         limit: int = 100,
     ) -> list[ExchangeRate]:
+        self._require_permission(
+            role_id=actor_role_id,
+            company_id=company_id,
+            permission_name="exchange_rates.view",
+            error_message="You do not have permission to view exchange rates.",
+        )
+
         if skip < 0:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -139,13 +190,61 @@ class ExchangeRateService:
 
         return self.repo.get_all(company_id=company_id, skip=skip, limit=limit)
 
+    def get_paginated_exchange_rates(
+        self,
+        company_id: UUID,
+        actor_role_id: UUID,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> dict:
+        self._require_permission(
+            role_id=actor_role_id,
+            company_id=company_id,
+            permission_name="exchange_rates.view",
+            error_message="You do not have permission to view exchange rates.",
+        )
+
+        if skip < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Skip cannot be negative",
+            )
+
+        if limit <= 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Limit must be greater than zero",
+            )
+
+        exchange_rates = self.repo.get_all(
+            company_id=company_id,
+            skip=skip,
+            limit=limit,
+        )
+
+        total_count = self.repo.count_all(company_id)
+
+        return {
+            "rows": exchange_rates,
+            "total_count": total_count,
+        }
+
     def get_latest_exchange_rate(
         self,
         company_id: UUID,
         from_currency: str,
         to_currency: str,
         as_of_date: date,
+        actor_role_id: UUID | None = None,
     ) -> ExchangeRate:
+        if actor_role_id is not None:
+            self._require_permission(
+                role_id=actor_role_id,
+                company_id=company_id,
+                permission_name="exchange_rates.view",
+                error_message="You do not have permission to view exchange rates.",
+            )
+
         normalized_from_currency = self._normalize_currency(from_currency)
         normalized_to_currency = self._normalize_currency(to_currency)
 
@@ -161,6 +260,7 @@ class ExchangeRateService:
             to_currency=normalized_to_currency,
             as_of_date=as_of_date,
         )
+
         if not exchange_rate:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -210,8 +310,22 @@ class ExchangeRateService:
         exchange_rate_id: UUID,
         data: ExchangeRateUpdate,
         company_id: UUID,
+        actor_role_id: UUID,
     ) -> ExchangeRate:
-        exchange_rate = self.get_exchange_rate(exchange_rate_id, company_id)
+        self._require_permission(
+            role_id=actor_role_id,
+            company_id=company_id,
+            permission_name="exchange_rates.update",
+            error_message="You do not have permission to update exchange rates.",
+        )
+
+        exchange_rate = self.repo.get_by_id(exchange_rate_id, company_id)
+
+        if not exchange_rate:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Exchange rate not found",
+            )
 
         update_data = data.model_dump(exclude_unset=True)
 
@@ -228,8 +342,22 @@ class ExchangeRateService:
         self,
         exchange_rate_id: UUID,
         company_id: UUID,
+        actor_role_id: UUID,
     ) -> None:
-        exchange_rate = self.get_exchange_rate(exchange_rate_id, company_id)
+        self._require_permission(
+            role_id=actor_role_id,
+            company_id=company_id,
+            permission_name="exchange_rates.delete",
+            error_message="You do not have permission to delete exchange rates.",
+        )
+
+        exchange_rate = self.repo.get_by_id(exchange_rate_id, company_id)
+
+        if not exchange_rate:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Exchange rate not found",
+            )
 
         self.repo.delete(exchange_rate)
         self.repo.db.commit()

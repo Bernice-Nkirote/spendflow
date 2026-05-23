@@ -23,3 +23,8 @@ export type ExchangeRateUpdatePayload = {
   source?: string;
   effective_date?: string;
 };
+
+export type PaginatedExchangeRatesResponse = {
+  rows: ExchangeRate[];
+  total_count: number;
+};

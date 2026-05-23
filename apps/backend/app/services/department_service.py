@@ -7,7 +7,6 @@ from app.models.department import Department
 from app.repositories.department_repository import DepartmentRepository
 from app.schemas.department_schema import DepartmentCreate, DepartmentUpdate
 
-
 class DepartmentService:
     def __init__(self, repo: DepartmentRepository):
         self.repo = repo
@@ -56,6 +55,36 @@ class DepartmentService:
 
     def get_all_departments(self, company_id: UUID) -> list[Department]:
         return self.repo.get_all(company_id)
+
+    def get_paginated_departments(
+        self,
+        company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> dict:
+        if skip < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Skip must be zero or greater.",
+            )
+
+        if limit < 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Limit must be greater than zero.",
+            )
+
+        departments = self.repo.get_all(
+            company_id=company_id,
+            skip=skip,
+            limit=limit,
+        )
+        total_count = self.repo.count_all(company_id)
+
+        return {
+            "rows": departments,
+            "total_count": total_count,
+        }
 
     def update_department(
         self,

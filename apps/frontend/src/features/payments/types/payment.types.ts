@@ -50,3 +50,8 @@ export type PaymentListParams = {
   skip?: number;
   limit?: number;
 };
+
+export type PaginatedPaymentResponse = {
+  rows: PaymentListItem[];
+  total_count: number;
+};

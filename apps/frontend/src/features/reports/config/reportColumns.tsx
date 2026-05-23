@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+
+import Button from "../../../components/ui/Button";
 import ReportStatusBadge from "../components/ReportStatusBadge";
 import type { ReportTableColumn } from "../components/ReportTable";
 import type {
@@ -17,14 +19,79 @@ import {
   formatQuantity,
 } from "../utils/reportFormatter";
 
+function TruncatedText({
+  value,
+  maxWidth = "max-w-[180px]",
+  className = "",
+}: {
+  value: unknown;
+  maxWidth?: string;
+  className?: string;
+}) {
+  const text = String(value ?? "-");
+
+  return (
+    <span
+      className={`block truncate ${maxWidth} ${className}`}
+      title={text === "-" ? undefined : text}
+    >
+      {text}
+    </span>
+  );
+}
+
+function NowrapText({
+  value,
+  className = "",
+}: {
+  value: unknown;
+  className?: string;
+}) {
+  return (
+    <span className={`whitespace-nowrap ${className}`}>
+      {String(value ?? "-")}
+    </span>
+  );
+}
+
+function ActionLink({
+  to,
+  state,
+  label = "View",
+}: {
+  to: string;
+  state: Record<string, string>;
+  label?: string;
+}) {
+  return (
+    <div className="flex justify-end">
+      <Link to={to} state={state}>
+        <Button type="button" variant="secondary" size="sm">
+          {label}
+        </Button>
+      </Link>
+    </div>
+  );
+}
+
+function renderDate(value: unknown) {
+  return <NowrapText value={formatDate(value as string)} />;
+}
+
+function renderStatus(value: unknown) {
+  return <ReportStatusBadge status={String(value ?? "")} />;
+}
+
 function renderMoneyWithCurrency(
   amount: string | null | undefined,
   currency: string | null | undefined,
 ) {
+  if (amount === null || amount === undefined || amount === "") return "-";
+
   return (
-    <div>
+    <div className="whitespace-nowrap">
       <div className="font-medium">
-        {formatMoney(amount ?? "0", currency ?? undefined)}
+        {formatMoney(amount, currency ?? undefined)}
       </div>
       <div className="text-xs text-primary-gray">{currency ?? "-"}</div>
     </div>
@@ -37,75 +104,56 @@ export const prColumns: ReportTableColumn<PRReportItem>[] = [
     header: "PR Number",
     accessor: "pr_number",
     sortable: true,
-    render: (value) => (
-      <span className="whitespace-nowrap font-medium">
-        {String(value ?? "-")}
-      </span>
-    ),
+    render: (value) => <NowrapText value={value} className="font-medium" />,
   },
   {
     header: "Title",
     accessor: "title",
-    render: (value) => (
-      <span
-        className="block max-w-[180px] truncate"
-        title={String(value ?? "")}
-      >
-        {String(value ?? "-")}
-      </span>
-    ),
+    render: (value) => <TruncatedText value={value} maxWidth="max-w-[180px]" />,
   },
   {
     header: "Requester",
     accessor: "requested_by_name",
-    render: (value) => (
-      <span
-        className="block max-w-[140px] truncate"
-        title={String(value ?? "")}
-      >
-        {String(value ?? "-")}
-      </span>
-    ),
+    render: (value) => <TruncatedText value={value} maxWidth="max-w-[150px]" />,
   },
   {
     header: "Item",
     accessor: "item_name",
-    render: (value) => (
-      <span
-        className="block max-w-[200px] truncate"
-        title={String(value ?? "")}
-      >
-        {String(value ?? "-")}
-      </span>
-    ),
+    render: (value) => <TruncatedText value={value} maxWidth="max-w-[200px]" />,
   },
   {
     header: "Qty",
     accessor: "quantity",
     sortable: true,
     align: "right",
-    render: (value) => formatQuantity(value as string),
+    render: (value) => <NowrapText value={formatQuantity(value as string)} />,
   },
   {
     header: "Unit Price",
     accessor: "unit_price",
     sortable: true,
     align: "right",
-    render: (value, row) => formatMoney(value as string, row.currency),
+    render: (value, row) => (
+      <NowrapText value={formatMoney(value as string, row.currency)} />
+    ),
   },
   {
     header: "Line Total",
     accessor: "line_total",
     sortable: true,
     align: "right",
-    render: (value, row) => formatMoney(value as string, row.currency),
+    render: (value, row) => (
+      <NowrapText value={formatMoney(value as string, row.currency)} />
+    ),
   },
   {
     header: "PR Total",
     accessor: "pr_total_amount",
     sortable: true,
     align: "right",
-    render: (value, row) => formatMoney(value as string, row.currency),
+    render: (value, row) => (
+      <NowrapText value={formatMoney(value as string, row.currency)} />
+    ),
   },
   {
     header: "Base Amount",
@@ -113,31 +161,27 @@ export const prColumns: ReportTableColumn<PRReportItem>[] = [
     sortable: true,
     align: "right",
     render: (value, row) =>
-      value ? renderMoneyWithCurrency(value as string, row.base_currency) : "-",
+      renderMoneyWithCurrency(value as string | null, row.base_currency),
   },
   {
     header: "Status",
     accessor: "status",
-    render: (value) => <ReportStatusBadge status={String(value ?? "")} />,
+    render: renderStatus,
   },
   {
     header: "Created",
     accessor: "created_at",
     sortable: true,
-    render: (value) => (
-      <span className="whitespace-nowrap">{formatDate(value as string)}</span>
-    ),
+    render: renderDate,
   },
   {
     header: "Actions",
     accessor: "pr_id",
     render: (value) => (
-      <Link
+      <ActionLink
         to={`/purchase-requisitions/${value}`}
-        className="whitespace-nowrap text-sm font-medium text-primary-blue hover:underline"
-      >
-        View Details
-      </Link>
+        state={{ from: "reports", report: "purchase-requisitions" }}
+      />
     ),
   },
 ];
@@ -148,64 +192,52 @@ export const poColumns: ReportTableColumn<POReportItem>[] = [
     header: "PO Number",
     accessor: "po_number",
     sortable: true,
-    render: (value) => (
-      <span className="whitespace-nowrap font-medium">
-        {String(value ?? "-")}
-      </span>
-    ),
+    render: (value) => <NowrapText value={value} className="font-medium" />,
   },
   {
     header: "Supplier",
     accessor: "supplier_name",
     sortable: true,
-    render: (value) => (
-      <span
-        className="block max-w-[160px] truncate"
-        title={String(value ?? "")}
-      >
-        {String(value ?? "-")}
-      </span>
-    ),
+    render: (value) => <TruncatedText value={value} maxWidth="max-w-[170px]" />,
   },
   {
     header: "Item",
     accessor: "item_name",
-    render: (value) => (
-      <span
-        className="block max-w-[200px] truncate"
-        title={String(value ?? "")}
-      >
-        {String(value ?? "-")}
-      </span>
-    ),
+    render: (value) => <TruncatedText value={value} maxWidth="max-w-[200px]" />,
   },
   {
     header: "Qty",
     accessor: "quantity",
     sortable: true,
     align: "right",
-    render: (value) => formatQuantity(value as string),
+    render: (value) => <NowrapText value={formatQuantity(value as string)} />,
   },
   {
     header: "Unit Price",
     accessor: "unit_price",
     sortable: true,
     align: "right",
-    render: (value, row) => formatMoney(value as string, row.currency),
+    render: (value, row) => (
+      <NowrapText value={formatMoney(value as string, row.currency)} />
+    ),
   },
   {
     header: "Line Total",
     accessor: "line_total",
     sortable: true,
     align: "right",
-    render: (value, row) => formatMoney(value as string, row.currency),
+    render: (value, row) => (
+      <NowrapText value={formatMoney(value as string, row.currency)} />
+    ),
   },
   {
     header: "PO Total",
     accessor: "po_total_amount",
     sortable: true,
     align: "right",
-    render: (value, row) => formatMoney(value as string, row.currency),
+    render: (value, row) => (
+      <NowrapText value={formatMoney(value as string, row.currency)} />
+    ),
   },
   {
     header: "Base Amount",
@@ -213,31 +245,27 @@ export const poColumns: ReportTableColumn<POReportItem>[] = [
     sortable: true,
     align: "right",
     render: (value, row) =>
-      value ? renderMoneyWithCurrency(value as string, row.base_currency) : "-",
+      renderMoneyWithCurrency(value as string | null, row.base_currency),
   },
   {
     header: "Status",
     accessor: "status",
-    render: (value) => <ReportStatusBadge status={String(value ?? "")} />,
+    render: renderStatus,
   },
   {
     header: "Created",
     accessor: "created_at",
     sortable: true,
-    render: (value) => (
-      <span className="whitespace-nowrap">{formatDate(value as string)}</span>
-    ),
+    render: renderDate,
   },
   {
     header: "Actions",
     accessor: "po_id",
     render: (value) => (
-      <Link
+      <ActionLink
         to={`/purchase-orders/${value}`}
-        className="whitespace-nowrap text-sm font-medium text-primary-blue hover:underline"
-      >
-        View Details
-      </Link>
+        state={{ from: "reports", report: "purchase-orders" }}
+      />
     ),
   },
 ];
@@ -248,72 +276,64 @@ export const invoiceColumns: ReportTableColumn<InvoiceReportItem>[] = [
     header: "Invoice No.",
     accessor: "invoice_number",
     sortable: true,
-    render: (value) => (
-      <span className="whitespace-nowrap font-medium">
-        {String(value ?? "-")}
-      </span>
-    ),
+    render: (value) => <NowrapText value={value} className="font-medium" />,
   },
   {
     header: "Supplier",
     accessor: "supplier_name",
     sortable: true,
-    render: (value) => (
-      <span
-        className="block max-w-[160px] truncate"
-        title={String(value ?? "")}
-      >
-        {String(value ?? "-")}
-      </span>
-    ),
+    render: (value) => <TruncatedText value={value} maxWidth="max-w-[170px]" />,
   },
   {
     header: "PO Number",
     accessor: "po_number",
     sortable: true,
-    render: (value) => (
-      <span className="whitespace-nowrap">{String(value ?? "-")}</span>
-    ),
+    render: (value) => <NowrapText value={value} />,
   },
   {
     header: "Item",
     accessor: "item_description",
-    render: (value) => (
-      <span
-        className="block max-w-[220px] truncate"
-        title={String(value ?? "")}
-      >
-        {String(value ?? "-")}
-      </span>
-    ),
+    render: (value) => <TruncatedText value={value} maxWidth="max-w-[220px]" />,
   },
   {
     header: "Qty",
     accessor: "quantity",
     align: "right",
     sortable: true,
-    render: (value) => formatQuantity(value as string),
+    render: (value) => <NowrapText value={formatQuantity(value as string)} />,
   },
   {
     header: "Unit Price",
     accessor: "unit_price",
     align: "right",
     sortable: true,
-    render: (value) => formatMoney(value as string),
+    render: (value, row) => (
+      <NowrapText
+        value={formatMoney(value as string, row.currency ?? undefined)}
+      />
+    ),
   },
   {
     header: "Line Total",
     accessor: "line_total",
     align: "right",
     sortable: true,
-    render: (value) => formatMoney(value as string),
+    render: (value, row) => (
+      <NowrapText
+        value={formatMoney(value as string, row.currency ?? undefined)}
+      />
+    ),
   },
   {
     header: "Invoice Total",
     accessor: "invoice_total_amount",
     align: "right",
     sortable: true,
-    render: (value) => formatMoney(value as string),
+    render: (value, row) => (
+      <NowrapText
+        value={formatMoney(value as string, row.currency ?? undefined)}
+      />
+    ),
   },
   {
     header: "Base Amount",
@@ -321,31 +341,27 @@ export const invoiceColumns: ReportTableColumn<InvoiceReportItem>[] = [
     sortable: true,
     align: "right",
     render: (value, row) =>
-      value ? renderMoneyWithCurrency(value as string, row.base_currency) : "-",
+      renderMoneyWithCurrency(value as string | null, row.base_currency),
   },
   {
     header: "Status",
     accessor: "status",
-    render: (value) => <ReportStatusBadge status={String(value ?? "")} />,
+    render: renderStatus,
   },
   {
     header: "Created",
     accessor: "created_at",
     sortable: true,
-    render: (value) => (
-      <span className="whitespace-nowrap">{formatDate(value as string)}</span>
-    ),
+    render: renderDate,
   },
   {
     header: "Actions",
     accessor: "invoice_id",
     render: (value) => (
-      <Link
+      <ActionLink
         to={`/invoices/${value}`}
-        className="whitespace-nowrap text-sm font-medium text-primary-blue hover:underline"
-      >
-        View Details
-      </Link>
+        state={{ from: "reports", report: "invoices" }}
+      />
     ),
   },
 ];
@@ -357,113 +373,85 @@ export const outstandingInvoiceColumns: ReportTableColumn<OutstandingInvoiceRepo
       header: "Invoice No.",
       accessor: "invoice_number",
       sortable: true,
-      render: (value) => (
-        <span className="whitespace-nowrap font-medium">
-          {String(value ?? "-")}
-        </span>
-      ),
+      render: (value) => <NowrapText value={value} className="font-medium" />,
     },
     {
       header: "Supplier",
       accessor: "supplier_name",
       sortable: true,
       render: (value) => (
-        <span
-          className="block max-w-[160px] truncate"
-          title={String(value ?? "")}
-        >
-          {String(value ?? "-")}
-        </span>
+        <TruncatedText value={value} maxWidth="max-w-[170px]" />
       ),
     },
     {
       header: "PO Number",
       accessor: "po_number",
       sortable: true,
-      render: (value) => (
-        <span className="whitespace-nowrap">{String(value ?? "-")}</span>
-      ),
+      render: (value) => <NowrapText value={value} />,
     },
     {
       header: "Total Amount",
       accessor: "total_amount",
       align: "right",
       sortable: true,
-      render: (value) => formatMoney(value as string),
+      render: (value) => <NowrapText value={formatMoney(value as string)} />,
     },
     {
       header: "Amount Paid",
       accessor: "amount_paid",
       align: "right",
       sortable: true,
-      render: (value) => formatMoney(value as string),
+      render: (value) => <NowrapText value={formatMoney(value as string)} />,
     },
     {
       header: "Outstanding",
       accessor: "outstanding_amount",
       align: "right",
       sortable: true,
-      render: (value) => formatMoney(value as string),
+      render: (value) => <NowrapText value={formatMoney(value as string)} />,
     },
     {
       header: "Status",
       accessor: "status",
-      render: (value) => <ReportStatusBadge status={String(value ?? "")} />,
+      render: renderStatus,
     },
     {
       header: "Created",
       accessor: "created_at",
       sortable: true,
-      render: (value) => (
-        <span className="whitespace-nowrap">{formatDate(value as string)}</span>
-      ),
+      render: renderDate,
     },
     {
       header: "Actions",
       accessor: "invoice_id",
       render: (value) => (
-        <Link
+        <ActionLink
           to={`/reports/outstanding-invoices/${value}`}
-          className="whitespace-nowrap text-sm font-medium text-primary-blue hover:underline"
-        >
-          View Details
-        </Link>
+          state={{ from: "reports", report: "outstanding-invoices" }}
+        />
       ),
     },
   ];
 
-// PAYMENT INVOICE COLUMNS
+// PAYMENT COLUMNS
 export const paymentColumns: ReportTableColumn<PaymentReportItem>[] = [
   {
     header: "Reference",
     accessor: "payment_reference",
     sortable: true,
-    render: (value) => (
-      <span className="whitespace-nowrap font-medium">
-        {String(value ?? "-")}
-      </span>
-    ),
+    render: (value) => <NowrapText value={value} className="font-medium" />,
   },
   {
     header: "Invoice No.",
     accessor: "invoice_number",
     sortable: true,
-    render: (value) => (
-      <span className="whitespace-nowrap">{String(value ?? "-")}</span>
-    ),
+    render: (value) => <NowrapText value={value} />,
   },
   {
     header: "Supplier",
     accessor: "supplier_name",
     sortable: true,
-    render: (value) => (
-      <span
-        className="block max-w-[160px] truncate"
-        title={String(value ?? "")}
-      >
-        {String(value ?? "-")}
-      </span>
-    ),
+    render: (value) => <TruncatedText value={value} maxWidth="max-w-[170px]" />,
   },
   {
     header: "Amount",
@@ -479,60 +467,45 @@ export const paymentColumns: ReportTableColumn<PaymentReportItem>[] = [
     align: "right",
     sortable: true,
     render: (value, row) =>
-      value ? renderMoneyWithCurrency(value as string, row.base_currency) : "-",
+      renderMoneyWithCurrency(value as string | null, row.base_currency),
   },
   {
     header: "Method",
     accessor: "payment_method",
-    render: (value) => (
-      <span className="whitespace-nowrap">{String(value ?? "-")}</span>
-    ),
+    render: (value) => <NowrapText value={value} />,
   },
   {
     header: "Created By",
     accessor: "created_by_name",
-    render: (value) => (
-      <span
-        className="block max-w-[140px] truncate"
-        title={String(value ?? "")}
-      >
-        {String(value ?? "-")}
-      </span>
-    ),
+    render: (value) => <TruncatedText value={value} maxWidth="max-w-[150px]" />,
   },
   {
     header: "Status",
     accessor: "status",
-    render: (value) => <ReportStatusBadge status={String(value ?? "")} />,
+    render: renderStatus,
   },
   {
     header: "Created",
     accessor: "created_at",
     sortable: true,
-    render: (value) => (
-      <span className="whitespace-nowrap">{formatDate(value as string)}</span>
-    ),
+    render: renderDate,
   },
   {
     header: "Paid At",
     accessor: "paid_at",
     sortable: true,
     render: (value) => (
-      <span className="whitespace-nowrap">
-        {value ? formatDate(value as string) : "-"}
-      </span>
+      <NowrapText value={value ? formatDate(value as string) : "-"} />
     ),
   },
   {
     header: "Actions",
     accessor: "payment_id",
     render: (value) => (
-      <Link
+      <ActionLink
         to={`/payments/${value}`}
-        className="whitespace-nowrap text-sm font-medium text-primary-blue hover:underline"
-      >
-        View Details
-      </Link>
+        state={{ from: "reports", report: "payments" }}
+      />
     ),
   },
 ];
@@ -545,12 +518,11 @@ export const supplierSpendColumns: ReportTableColumn<SupplierSpendReportItem>[] 
       accessor: "supplier_name",
       sortable: true,
       render: (value) => (
-        <span
-          className="block max-w-[180px] truncate font-medium"
-          title={String(value ?? "")}
-        >
-          {String(value ?? "-")}
-        </span>
+        <TruncatedText
+          value={value}
+          maxWidth="max-w-[190px]"
+          className="font-medium"
+        />
       ),
     },
     {
@@ -558,44 +530,56 @@ export const supplierSpendColumns: ReportTableColumn<SupplierSpendReportItem>[] 
       accessor: "total_invoice_amount",
       align: "right",
       sortable: true,
-      render: (value) => formatMoney(value as string),
+      render: (value, row) => (
+        <NowrapText
+          value={formatMoney(value as string, row.base_currency ?? undefined)}
+        />
+      ),
     },
     {
       header: "Paid Total",
       accessor: "total_paid_amount",
       align: "right",
       sortable: true,
-      render: (value) => formatMoney(value as string),
+      render: (value, row) => (
+        <NowrapText
+          value={formatMoney(value as string, row.base_currency ?? undefined)}
+        />
+      ),
     },
     {
       header: "Outstanding",
       accessor: "outstanding_amount",
       align: "right",
       sortable: true,
-      render: (value) => formatMoney(value as string),
+      render: (value, row) => (
+        <NowrapText
+          value={formatMoney(value as string, row.base_currency ?? undefined)}
+        />
+      ),
     },
     {
       header: "Invoices",
       accessor: "invoice_count",
       align: "right",
       sortable: true,
+      render: (value) => <NowrapText value={value} />,
     },
     {
       header: "Payments",
       accessor: "payment_count",
       align: "right",
       sortable: true,
+      render: (value) => <NowrapText value={value} />,
     },
     {
       header: "Actions",
       accessor: "supplier_id",
       render: (value) => (
-        <Link
+        <ActionLink
           to={`/reports/supplier-spend/${value}`}
-          className="whitespace-nowrap text-sm font-medium text-primary-blue hover:underline"
-        >
-          View Details
-        </Link>
+          state={{ from: "reports", report: "supplier-spend" }}
+        />
       ),
     },
   ];
@@ -607,41 +591,28 @@ export const supplierLeadTimeColumns: ReportTableColumn<SupplierLeadTimeReportIt
       header: "PO Number",
       accessor: "po_number",
       sortable: true,
-      render: (value) => (
-        <span className="whitespace-nowrap font-medium">
-          {String(value ?? "-")}
-        </span>
-      ),
+      render: (value) => <NowrapText value={value} className="font-medium" />,
     },
     {
       header: "Supplier",
       accessor: "supplier_name",
       sortable: true,
       render: (value) => (
-        <span
-          className="block max-w-[180px] truncate"
-          title={String(value ?? "")}
-        >
-          {String(value ?? "-")}
-        </span>
+        <TruncatedText value={value} maxWidth="max-w-[190px]" />
       ),
     },
     {
       header: "Invoice No.",
       accessor: "invoice_number",
       sortable: true,
-      render: (value) => (
-        <span className="whitespace-nowrap">{String(value ?? "-")}</span>
-      ),
+      render: (value) => <NowrapText value={value} />,
     },
     {
       header: "Issued",
       accessor: "issued_at",
       sortable: true,
       render: (value) => (
-        <span className="whitespace-nowrap">
-          {value ? formatDate(value as string) : "-"}
-        </span>
+        <NowrapText value={value ? formatDate(value as string) : "-"} />
       ),
     },
     {
@@ -649,9 +620,7 @@ export const supplierLeadTimeColumns: ReportTableColumn<SupplierLeadTimeReportIt
       accessor: "invoice_created_at",
       sortable: true,
       render: (value) => (
-        <span className="whitespace-nowrap">
-          {value ? formatDate(value as string) : "-"}
-        </span>
+        <NowrapText value={value ? formatDate(value as string) : "-"} />
       ),
     },
     {
@@ -660,23 +629,23 @@ export const supplierLeadTimeColumns: ReportTableColumn<SupplierLeadTimeReportIt
       align: "right",
       sortable: true,
       render: (value) => (
-        <span className="whitespace-nowrap">
-          {value === null || value === undefined
-            ? "-"
-            : `${Number(value).toFixed(1)} days`}
-        </span>
+        <NowrapText
+          value={
+            value === null || value === undefined
+              ? "-"
+              : `${Number(value).toFixed(1)} days`
+          }
+        />
       ),
     },
     {
       header: "Actions",
       accessor: "po_id",
       render: (value) => (
-        <Link
+        <ActionLink
           to={`/reports/supplier-lead-time/${value}`}
-          className="whitespace-nowrap text-sm font-medium text-primary-blue hover:underline"
-        >
-          View Details
-        </Link>
+          state={{ from: "reports", report: "supplier-lead-time" }}
+        />
       ),
     },
   ];

@@ -68,3 +68,8 @@ export type InvoiceListParams = {
   skip?: number;
   limit?: number;
 };
+
+export type InvoicePaginatedResponse = {
+  rows: InvoiceListItem[];
+  total_count: number;
+};

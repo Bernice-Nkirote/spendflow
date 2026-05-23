@@ -1,4 +1,6 @@
 import { Link } from "react-router-dom";
+import Button from "../../../components/ui/Button";
+import TableWrapper from "../../../components/ui/TableWrapper";
 
 import type { PurchaseRequisitionListItem } from "../types/purchaseRequisition.types";
 import PurchaseRequisitionStatusBadge from "./PurchaseRequisitionStatusBadge";
@@ -24,40 +26,39 @@ export default function PurchaseRequisitionTable({
   purchaseRequisitions,
 }: Props) {
   return (
-    <div className="overflow-x-auto rounded-xl border bg-white shadow-sm">
-      <table className="min-w-[1000px] divide-y divide-gray-200 text-sm">
+    <TableWrapper minWidth="1000px">
+      <table className="w-full divide-y divide-gray-200 text-sm">
         <thead className="bg-gray-50">
           <tr>
-            <th className="px-4 py-3 text-left font-medium text-primary-gray">
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
               PR Number
             </th>
-            <th className="px-4 py-3 text-left font-medium text-primary-gray">
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
               Title
             </th>
-            <th className="px-4 py-3 text-right font-medium text-primary-gray">
+            <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
               Original Amount
             </th>
-            <th className="px-4 py-3 text-right font-medium text-primary-gray">
+            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
               Base Amount
             </th>
-            <th className="px-4 py-3 text-left font-medium text-primary-gray">
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
               Status
             </th>
-            <th className="px-4 py-3 text-right font-medium text-primary-gray">
+            <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
               Items
             </th>
-            <th className="px-4 py-3 text-left font-medium text-primary-gray">
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
               Created
             </th>
-            <th className="px-4 py-3 text-left font-medium text-primary-gray">
+            <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
               Actions
             </th>
           </tr>
         </thead>
-
         <tbody className="divide-y divide-gray-100 bg-white">
           {purchaseRequisitions.map((pr) => (
-            <tr key={pr.id} className="hover:bg-gray-50">
+            <tr key={pr.id} className="transition hover:bg-gray-50">
               <td className="whitespace-nowrap px-4 py-3 font-medium text-primary-black">
                 {pr.pr_number}
               </td>
@@ -104,20 +105,18 @@ export default function PurchaseRequisitionTable({
                 {formatDate(pr.created_at)}
               </td>
               <td className="whitespace-nowrap px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <Link
-                    to={`/purchase-requisitions/${pr.id}`}
-                    className="text-sm font-medium text-primary-blue hover:underline"
-                  >
-                    View Details
+                <div className="flex items-center gap-2">
+                  <Link to={`/purchase-requisitions/${pr.id}`}>
+                    <Button type="button" variant="secondary" size="sm">
+                      View
+                    </Button>
                   </Link>
 
                   {pr.status === "DRAFT" && (
-                    <Link
-                      to={`/purchase-requisitions/${pr.id}/edit`}
-                      className="text-sm font-medium text-primary-blue hover:underline"
-                    >
-                      Edit
+                    <Link to={`/purchase-requisitions/${pr.id}/edit`}>
+                      <Button type="button" variant="secondary" size="sm">
+                        Edit
+                      </Button>
                     </Link>
                   )}
                 </div>
@@ -126,6 +125,6 @@ export default function PurchaseRequisitionTable({
           ))}
         </tbody>
       </table>
-    </div>
+    </TableWrapper>
   );
 }

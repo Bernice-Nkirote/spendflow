@@ -1,22 +1,27 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+
+import BackButton from "../../../components/ui/BackButton";
+import Button from "../../../components/ui/Button";
+import Card from "../../../components/ui/Card";
+import ConfirmDialog from "../../../components/ui/ConfirmDialog";
+import ErrorState from "../../../components/ui/ErrorState";
+import FloatingAlert from "../../../components/ui/FloatingAlert";
+import LoadingState from "../../../components/ui/LoadingState";
+import PageContainer from "../../../components/ui/PageContainer";
+import PageHeader from "../../../components/ui/PageHeader";
+import { formatCurrency } from "../../../utils/formatCurrency";
 import {
   createApprovalAction,
   getApprovalActionsByInstance,
   getApprovalInstanceById,
 } from "../api/approvalApi";
+import ApprovalStatusBadge from "../components/ApprovalStatusBadge";
 import type {
   ActionType,
   ApprovalAction,
   ApprovalInstance,
 } from "../types/approval.types";
-import ApprovalStatusBadge from "../components/ApprovalStatusBadge";
-import { formatCurrency } from "../../../utils/formatCurrency";
-
-import Button from "../../../components/ui/Button";
-import ErrorState from "../../../components/ui/ErrorState";
-import LoadingState from "../../../components/ui/LoadingState";
-import FloatingAlert from "../../../components/ui/FloatingAlert";
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "-";
@@ -31,7 +36,6 @@ function formatRate(value: string | number | null | undefined) {
   if (!value) return "-";
 
   const numericValue = Number(value);
-
   if (Number.isNaN(numericValue)) return "-";
 
   return numericValue.toLocaleString("en-KE", {
@@ -40,12 +44,30 @@ function formatRate(value: string | number | null | undefined) {
   });
 }
 
+function getEntityLink(instance: ApprovalInstance) {
+  const returnTo = encodeURIComponent(`/approvals/${instance.id}`);
+
+  switch (instance.entity_type) {
+    case "PR":
+      return `/purchase-requisitions/${instance.entity_id}?returnTo=${returnTo}`;
+    case "PO":
+      return `/purchase-orders/${instance.entity_id}?returnTo=${returnTo}`;
+    case "INVOICE":
+      return `/invoices/${instance.entity_id}?returnTo=${returnTo}`;
+    case "PAYMENT":
+      return `/payments/${instance.entity_id}?returnTo=${returnTo}`;
+    default:
+      return null;
+  }
+}
+
 function ApprovalDetailPage() {
   const { instanceId } = useParams();
 
   const [instance, setInstance] = useState<ApprovalInstance | null>(null);
   const [actions, setActions] = useState<ApprovalAction[]>([]);
   const [comment, setComment] = useState("");
+  const [selectedAction, setSelectedAction] = useState<ActionType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -77,16 +99,21 @@ function ApprovalDetailPage() {
     loadApproval();
   }, [instanceId]);
 
-  async function handleAction(action: ActionType) {
-    if (!instance) return;
-
-    if (!instance.current_level_id) {
-      setError("This approval does not have a current workflow level.");
+  function openActionDialog(action: ActionType) {
+    if (action === "REJECTED" && !comment.trim()) {
+      setError("A rejection comment is required.");
       return;
     }
 
-    if (action === "REJECTED" && !comment.trim()) {
-      setError("A rejection comment is required.");
+    setSelectedAction(action);
+  }
+
+  async function handleConfirmAction() {
+    if (!instance || !selectedAction) return;
+
+    if (!instance.current_level_id) {
+      setError("This approval does not have a current workflow level.");
+      setSelectedAction(null);
       return;
     }
 
@@ -98,7 +125,7 @@ function ApprovalDetailPage() {
       await createApprovalAction({
         instance_id: instance.id,
         level_id: instance.current_level_id,
-        action,
+        action: selectedAction,
         comment: comment.trim() || null,
       });
 
@@ -110,8 +137,9 @@ function ApprovalDetailPage() {
       setInstance(updatedInstance);
       setActions(updatedActions);
       setComment("");
+      setSelectedAction(null);
 
-      if (action === "REJECTED") {
+      if (selectedAction === "REJECTED") {
         setSuccessMessage(
           "Rejection recorded. This request has been rejected.",
         );
@@ -140,37 +168,34 @@ function ApprovalDetailPage() {
   }
 
   if (isLoading) {
-    return <LoadingState />;
+    return (
+      <PageContainer>
+        <LoadingState message="Loading approval details..." />
+      </PageContainer>
+    );
   }
 
   if (error && !instance) {
-    return <ErrorState message={error} />;
+    return (
+      <PageContainer>
+        <ErrorState message={error} />
+      </PageContainer>
+    );
   }
 
   if (!instance) {
-    return <ErrorState message="Approval not found." />;
+    return (
+      <PageContainer>
+        <ErrorState message="Approval not found." />
+      </PageContainer>
+    );
   }
 
   const isPending = instance.status === "PENDING";
   const entityLink = getEntityLink(instance);
 
-  function getEntityLink(instance: ApprovalInstance) {
-    switch (instance.entity_type) {
-      case "PR":
-        return `/purchase-requisitions/${instance.entity_id}?returnTo=/approvals/${instance.id}`;
-      case "PO":
-        return `/purchase-orders/${instance.entity_id}`;
-      case "INVOICE":
-        return `/invoices/${instance.entity_id}`;
-      case "PAYMENT":
-        return `/payments/${instance.entity_id}`;
-      default:
-        return null;
-    }
-  }
-
   return (
-    <div className="space-y-6">
+    <PageContainer>
       {successMessage && (
         <FloatingAlert
           type="success"
@@ -187,249 +212,234 @@ function ApprovalDetailPage() {
         />
       )}
 
-      <div>
-        <Link
-          to="/approvals"
-          className="text-sm font-medium text-primary-blue hover:underline"
-        >
-          ← Back to approvals page
-        </Link>
+      <BackButton fallbackLabel="Back to Approvals" fallbackTo="/approvals" />
 
-        <h1 className="mt-3 text-3xl font-bold text-gray-900">
-          Approval Detail
-        </h1>
-
-        <p className="mt-1 text-sm text-gray-500">
-          Review and act on this approval request.
-        </p>
-      </div>
+      <PageHeader
+        title="Approval Detail"
+        description="Review approval information, action history, and approve or reject this request."
+        actions={<ApprovalStatusBadge status={instance.status} />}
+      />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Approval Information
-            </h2>
+          <Card className="space-y-5">
+            <div>
+              <h2 className="text-lg font-semibold text-primary-black">
+                Approval Information
+              </h2>
+              <p className="mt-1 text-sm text-gray-600">
+                Business-readable approval details for this procurement request.
+              </p>
+            </div>
 
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Reference
-                </p>
-                <p className="mt-1 text-sm font-semibold text-gray-900">
-                  {instance.entity_reference ?? "Not available"}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Entity Type
-                </p>
-                <p className="mt-1 text-sm font-semibold text-gray-900">
-                  {instance.entity_type}
-                </p>
-              </div>
-
-              <div className="sm:col-span-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Title / Description
-                </p>
-                <p className="mt-1 text-sm font-semibold text-gray-900">
-                  {instance.entity_title ?? "Not available"}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Requester / Creator
-                </p>
-                <p className="mt-1 text-base font-semibold text-primary-black">
-                  {instance.requester_name ?? "Not available"}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Original Amount
-                </p>
-                <p className="mt-1 text-base font-semibold text-primary-black">
-                  {instance.total_amount !== null &&
+            <div className="grid gap-4 sm:grid-cols-2">
+              <InfoItem label="Reference" value={instance.entity_reference} />
+              <InfoItem label="Entity Type" value={instance.entity_type} />
+              <InfoItem
+                label="Title / Description"
+                value={instance.entity_title}
+                className="sm:col-span-2"
+              />
+              <InfoItem
+                label="Requester / Creator"
+                value={instance.requester_name}
+              />
+              <InfoItem
+                label="Original Amount"
+                value={
+                  instance.total_amount !== null &&
                   instance.total_amount !== undefined
                     ? formatCurrency(
                         instance.total_amount,
                         instance.currency || "KES",
                       )
-                    : "Not available"}
-                </p>
-                <p className="mt-1 text-xs text-gray-500">
-                  Transaction currency: {instance.currency ?? "-"}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Base Amount for Approval
-                </p>
-                <p className="mt-1 text-base font-semibold text-primary-black">
-                  {instance.base_amount !== null &&
+                    : null
+                }
+                helper={`Transaction currency: ${instance.currency ?? "-"}`}
+              />
+              <InfoItem
+                label="Base Amount for Approval"
+                value={
+                  instance.base_amount !== null &&
                   instance.base_amount !== undefined &&
                   instance.base_currency
                     ? formatCurrency(
                         instance.base_amount,
                         instance.base_currency,
                       )
-                    : "Not available"}
-                </p>
-                <p className="mt-1 text-xs text-gray-500">
-                  Used to evaluate approval thresholds
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Exchange Rate
-                </p>
-                <p className="mt-1 text-base font-semibold text-primary-black">
-                  {formatRate(instance.exchange_rate)}
-                </p>
-                <p className="mt-1 text-xs text-gray-500">
-                  {instance.currency ?? "-"}
-                  {instance.base_currency ? ` → ${instance.base_currency}` : ""}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Exchange Rate Date
-                </p>
-                <p className="mt-1 text-base font-semibold text-primary-black">
-                  {formatDate(instance.exchange_rate_date)}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Workflow
-                </p>
-                <p className="mt-1 text-base font-semibold text-primary-black">
-                  {instance.workflow_name ?? "Not available"}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Current approval level
-                </p>
-                <p className="mt-1 text-base font-semibold text-primary-black">
-                  {instance.current_level_name ?? "No active level"}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                  Status
-                </p>
-                <div className="mt-1">
-                  <ApprovalStatusBadge status={instance.status} />
-                </div>
-              </div>
+                    : null
+                }
+                helper="Used to evaluate approval thresholds"
+              />
+              <InfoItem
+                label="Exchange Rate"
+                value={formatRate(instance.exchange_rate)}
+                helper={`${instance.currency ?? "-"}${
+                  instance.base_currency ? ` → ${instance.base_currency}` : ""
+                }`}
+              />
+              <InfoItem
+                label="Exchange Rate Date"
+                value={formatDate(instance.exchange_rate_date)}
+              />
+              <InfoItem label="Workflow" value={instance.workflow_name} />
+              <InfoItem
+                label="Current Approval Level"
+                value={instance.current_level_name ?? "No active level"}
+              />
             </div>
 
             {entityLink && (
-              <div className="mt-6">
-                <Link
-                  to={entityLink}
-                  className="inline-flex rounded-lg bg-primary-blue px-4 py-2 text-sm font-semibold text-white hover:bg-primary-blue/90"
-                >
-                  View {instance.entity_type} Details
+              <div className="pt-2">
+                <Link to={entityLink}>
+                  <Button type="button">
+                    View {instance.entity_type} Details
+                  </Button>
                 </Link>
               </div>
             )}
-          </div>
+          </Card>
 
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Action History
-            </h2>
+          <Card className="space-y-5">
+            <div>
+              <h2 className="text-lg font-semibold text-primary-black">
+                Action History
+              </h2>
+              <p className="mt-1 text-sm text-gray-600">
+                Approval decisions and comments recorded for this request.
+              </p>
+            </div>
 
             {actions.length === 0 ? (
-              <p className="mt-4 text-sm text-gray-500">
+              <p className="text-sm text-gray-500">
                 No actions have been taken yet.
               </p>
             ) : (
-              <div className="mt-4 space-y-3">
+              <div className="space-y-3">
                 {actions.map((action) => (
                   <div
                     key={action.id}
-                    className="rounded-lg border bg-gray-50 p-4"
+                    className="rounded-xl border border-gray-200 bg-gray-50 p-4"
                   >
-                    <p className="text-sm font-semibold text-gray-900">
-                      {action.action === "APPROVED" ? "Approved" : "Rejected"}{" "}
-                      by {action.user_name ?? "Unknown user"}
-                    </p>
-                    <div className="mt-2 rounded-md bg-white p-3 text-sm text-gray-700">
-                      <span className="font-medium text-gray-900">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <p className="text-sm font-semibold text-primary-black">
+                        {action.action === "APPROVED" ? "Approved" : "Rejected"}{" "}
+                        by {action.user_name ?? "Unknown user"}
+                      </p>
+                      <span className="whitespace-nowrap text-xs text-gray-500">
+                        {formatDate(action.created_at)}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 rounded-lg bg-white p-3 text-sm text-gray-700">
+                      <span className="font-medium text-primary-black">
                         Comment:{" "}
                       </span>
                       {action.comment || "No comment provided."}
                     </div>
-                    <p className="mt-2 text-xs text-gray-400">
-                      {new Intl.DateTimeFormat("en-KE", {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      }).format(new Date(action.created_at))}
-                    </p>
                   </div>
                 ))}
               </div>
             )}
-          </div>
+          </Card>
         </div>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900">
-            Approval Action
-          </h2>
+        <Card className="space-y-5 self-start">
+          <div>
+            <h2 className="text-lg font-semibold text-primary-black">
+              Approval Action
+            </h2>
+            <p className="mt-1 text-sm text-gray-600">
+              Record your approval decision for this request.
+            </p>
+          </div>
 
           {!isPending ? (
-            <p className="mt-4 text-sm text-gray-500">
+            <p className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-600">
               This approval is no longer pending.
             </p>
           ) : (
             <>
-              <label className="mt-4 block text-sm font-medium text-gray-700">
-                Comment
-              </label>
+              <div>
+                <label
+                  htmlFor="approval-comment"
+                  className="block text-sm font-medium text-primary-black"
+                >
+                  Comment
+                </label>
+                <textarea
+                  id="approval-comment"
+                  value={comment}
+                  onChange={(event) => setComment(event.target.value)}
+                  rows={4}
+                  className="mt-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-primary-black outline-none transition placeholder:text-gray-400 focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
+                  placeholder="Add a comment. Required when rejecting."
+                />
+              </div>
 
-              <textarea
-                value={comment}
-                onChange={(event) => setComment(event.target.value)}
-                rows={4}
-                className="mt-2 w-full rounded-lg border px-3 py-2 text-sm focus:border-primary-blue focus:outline-none focus:ring-1 focus:ring-primary-blue"
-                placeholder="Add a comment. Required when rejecting."
-              />
-              <div className="mt-5 flex flex-col gap-3 sm:flex-row lg:flex-col">
+              <div className="flex flex-col gap-3 sm:flex-row lg:flex-col">
                 <Button
                   type="button"
-                  onClick={() => handleAction("APPROVED")}
+                  variant="success"
+                  onClick={() => openActionDialog("APPROVED")}
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Submitting..." : "Approve"}
+                  Approve
                 </Button>
 
                 <Button
                   type="button"
                   variant="danger"
-                  onClick={() => handleAction("REJECTED")}
+                  onClick={() => openActionDialog("REJECTED")}
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? "Submitting..." : "Reject"}
+                  Reject
                 </Button>
               </div>
             </>
           )}
-        </div>
+        </Card>
       </div>
+
+      <ConfirmDialog
+        isOpen={selectedAction !== null}
+        title={
+          selectedAction === "REJECTED"
+            ? "Reject approval request?"
+            : "Approve request?"
+        }
+        message={
+          selectedAction === "REJECTED"
+            ? "This will reject the approval request. This action should only be taken after reviewing the procurement details."
+            : "This will record your approval decision for this request."
+        }
+        confirmLabel={selectedAction === "REJECTED" ? "Reject" : "Approve"}
+        variant={selectedAction === "REJECTED" ? "danger" : "info"}
+        isLoading={isSubmitting}
+        onConfirm={handleConfirmAction}
+        onCancel={() => setSelectedAction(null)}
+      />
+    </PageContainer>
+  );
+}
+
+type InfoItemProps = {
+  label: string;
+  value?: string | number | null;
+  helper?: string;
+  className?: string;
+};
+
+function InfoItem({ label, value, helper, className = "" }: InfoItemProps) {
+  return (
+    <div className={className}>
+      <p className="text-xs font-semibold uppercase tracking-wide text-primary-gray">
+        {label}
+      </p>
+      <p className="mt-1 text-sm font-semibold text-primary-black">
+        {value ?? "Not available"}
+      </p>
+      {helper && <p className="mt-1 text-xs text-gray-500">{helper}</p>}
     </div>
   );
 }

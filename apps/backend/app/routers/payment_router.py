@@ -20,7 +20,13 @@ from app.repositories.po_repository import PurchaseOrderRepository
 from app.repositories.company_repository import CompanyRepository
 from app.repositories.exchange_rate_repository import ExchangeRateRepository
 
-from app.schemas.payment_schema import PaymentCreate, PaymentRead, PaymentUpdate, PaymentDetailRead
+from app.schemas.payment_schema import (
+    PaginatedPaymentResponse,
+    PaymentCreate,
+    PaymentRead,
+    PaymentUpdate,
+    PaymentDetailRead,
+)
 
 from app.services.audit_log_service import AuditLogService
 from app.services.approval_instance_service import ApprovalInstanceService
@@ -141,6 +147,18 @@ def get_payments_by_status(
         limit=limit,
     )
 
+@router.get("/paginated", response_model=PaginatedPaymentResponse)
+def get_paginated_payments(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1),
+    current_user=Depends(get_current_user),
+    service: PaymentService = Depends(get_payment_service),
+):
+    return service.get_paginated_payments(
+        company_id=current_user.company_id,
+        skip=skip,
+        limit=limit,
+    )
 
 @router.get("/{payment_id}", response_model=PaymentDetailRead)
 def get_payment(

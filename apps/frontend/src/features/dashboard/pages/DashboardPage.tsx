@@ -36,12 +36,21 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
-        <p className="mt-1 max-w-3xl text-sm text-gray-500">
-          Overview of procurement activity, approvals, spending, and operational
-          performance.
-        </p>
+      <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+        <div className="max-w-3xl">
+          <p className="text-sm font-medium text-primary-blue">
+            SpendFlow Overview
+          </p>
+
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-primary-black sm:text-3xl">
+            Dashboard
+          </h1>
+
+          <p className="mt-2 text-sm leading-6 text-primary-gray">
+            Monitor procurement activity, approval workload, supplier spend, and
+            reporting activity from one central workspace.
+          </p>
+        </div>
       </section>
 
       {loading && <LoadingState message="Loading dashboard data..." />}
@@ -50,7 +59,7 @@ export default function DashboardPage() {
 
       {!loading && !error && (
         <>
-          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <section className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
             <SummaryCard
               title="Purchase Requisitions"
               value={data?.summary.totalPurchaseRequisitions ?? 0}
@@ -83,22 +92,22 @@ export default function DashboardPage() {
             />
           </section>
 
-          <section className="grid gap-6 xl:grid-cols-3">
-            <Card className="xl:col-span-2">
+          <section className="grid gap-6 2xl:grid-cols-2">
+            <Card className="shadow-md">
               <WorkflowOverview data={data?.workflow} />
             </Card>
 
-            <Card>
+            <Card className="shadow-md">
               <ApprovalQueue items={data?.approvalQueue} />
             </Card>
           </section>
 
-          <section className="grid gap-6 xl:grid-cols-2">
-            <Card>
+          <section className="grid items-start gap-6 xl:grid-cols-2">
+            <Card className="shadow-md">
               <RecentActivity items={data?.recentActivity} />
             </Card>
 
-            <Card>
+            <Card className="shadow-md">
               <ReportingSnapshot data={data?.reportingSnapshot} />
             </Card>
           </section>

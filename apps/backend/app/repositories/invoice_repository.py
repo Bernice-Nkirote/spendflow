@@ -59,6 +59,16 @@ class InvoiceRepository:
             .all()
         )
 
+    def count_all(
+        self,
+        company_id: UUID,
+    ) -> int:
+        return (
+            self.db.query(Invoice)
+            .filter(Invoice.company_id == company_id)
+            .count()
+        )
+
     def get_by_invoice_number(
         self,
         invoice_number: str,
@@ -145,6 +155,20 @@ class InvoiceRepository:
             .offset(skip)
             .limit(limit)
             .all()
+        )
+
+    def count_by_supplier(
+        self,
+        supplier_id: UUID,
+        company_id: UUID,
+    ) -> int:
+        return (
+            self.db.query(Invoice)
+            .filter(
+                Invoice.supplier_id == supplier_id,
+                Invoice.company_id == company_id,
+            )
+            .count()
         )
 
     def update(self, invoice: Invoice) -> Invoice:

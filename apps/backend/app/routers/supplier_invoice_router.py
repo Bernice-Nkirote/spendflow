@@ -15,6 +15,7 @@ from app.schemas.invoice_line_item_schema import (
 )
 from app.schemas.invoice_schema import (
     InvoiceCreate,
+    InvoicePaginatedRead,
     InvoiceDetailRead,
     InvoiceRead,
     InvoiceUpdate,
@@ -119,6 +120,26 @@ def get_all_supplier_invoices(
         limit=limit,
     )
 
+
+@router.get("/paginated/list", response_model=InvoicePaginatedRead)
+def get_paginated_supplier_invoices(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1),
+    current_supplier=Depends(get_current_supplier),
+    supplier_repo: SupplierRepository = Depends(get_supplier_repo),
+    service: InvoiceService = Depends(get_invoice_service),
+):
+    company_id = _get_supplier_company_id(
+        current_supplier=current_supplier,
+        supplier_repo=supplier_repo,
+    )
+
+    return service.get_all_invoices_by_supplier_paginated(
+        supplier_id=current_supplier.supplier_id,
+        company_id=company_id,
+        skip=skip,
+        limit=limit,
+    )
 
 @router.get("/{invoice_id}", response_model=InvoiceDetailRead)
 def get_supplier_invoice(

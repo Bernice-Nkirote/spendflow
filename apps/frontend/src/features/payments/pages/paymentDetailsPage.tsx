@@ -1,19 +1,25 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
+import BackButton from "../../../components/ui/BackButton";
+import Button from "../../../components/ui/Button";
+import Card from "../../../components/ui/Card";
 import ErrorState from "../../../components/ui/ErrorState";
-import LoadingState from "../../../components/ui/LoadingState";
 import FloatingAlert from "../../../components/ui/FloatingAlert";
+import LoadingState from "../../../components/ui/LoadingState";
+import PageContainer from "../../../components/ui/PageContainer";
+import PageHeader from "../../../components/ui/PageHeader";
+import StatusBadge from "../../../components/ui/StatusBadge";
 
 import { formatCurrency } from "../../../utils/formatCurrency";
-import { getPaymentById, getPaymentsByInvoice } from "../api/paymentApi";
-import { getInvoiceById } from "../../invoices/api/invoiceApi";
-import type { InvoiceDetails } from "../../invoices/types/invoice.types";
-import type { PaymentDetails } from "../types/payment.types";
 import { getApprovalInstancesByEntity } from "../../approvals/api/approvalApi";
 import type { ApprovalInstance } from "../../approvals/types/approval.types";
+import { getInvoiceById } from "../../invoices/api/invoiceApi";
+import type { InvoiceDetails } from "../../invoices/types/invoice.types";
+import { getPaymentById, getPaymentsByInvoice } from "../api/paymentApi";
 import PaymentActions from "../components/PaymentActions";
 import PaymentStatusBadge from "../components/PaymentStatusBadge";
+import type { PaymentDetails } from "../types/payment.types";
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "-";
@@ -38,7 +44,11 @@ function formatRate(value: string | number | null | undefined) {
 }
 
 function formatPaymentMethod(value: string) {
-  return value.replaceAll("_", " ");
+  return value
+    .toLowerCase()
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }
 
 function getReservedPaymentTotal(payments: PaymentDetails[]) {
@@ -53,14 +63,17 @@ function getReservedPaymentTotal(payments: PaymentDetails[]) {
 export default function PaymentDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [payment, setPayment] = useState<PaymentDetails | null>(null);
   const [invoice, setInvoice] = useState<InvoiceDetails | null>(null);
   const [invoicePayments, setInvoicePayments] = useState<PaymentDetails[]>([]);
   const [paymentApproval, setPaymentApproval] =
     useState<ApprovalInstance | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
@@ -76,14 +89,14 @@ export default function PaymentDetailsPage() {
         setLoading(true);
         setError(null);
 
-        const response = await getPaymentById(id);
-        setPayment(response);
+        const paymentResponse = await getPaymentById(id);
+        setPayment(paymentResponse);
 
         const [invoiceResponse, invoicePaymentResponse, approvalResponse] =
           await Promise.all([
-            getInvoiceById(response.invoice_id),
-            getPaymentsByInvoice(response.invoice_id),
-            getApprovalInstancesByEntity(response.id),
+            getInvoiceById(paymentResponse.invoice_id),
+            getPaymentsByInvoice(paymentResponse.invoice_id),
+            getApprovalInstancesByEntity(paymentResponse.id),
           ]);
 
         const pendingApproval =
@@ -115,12 +128,13 @@ export default function PaymentDetailsPage() {
   const invoiceTotal = Number(invoice?.total_amount ?? 0);
   const reservedTotal = getReservedPaymentTotal(invoicePayments);
   const balanceRemaining = Math.max(invoiceTotal - reservedTotal, 0);
+
   const hasPendingApproval =
     payment.status === "PENDING_APPROVAL" &&
     paymentApproval?.status === "PENDING";
 
   return (
-    <div className="flex min-w-0 flex-col gap-6">
+    <PageContainer>
       {actionSuccess && (
         <FloatingAlert
           type="success"
@@ -137,80 +151,84 @@ export default function PaymentDetailsPage() {
         />
       )}
 
-      <div className="flex flex-col gap-4 rounded-xl border bg-white p-4 shadow-sm sm:p-5 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
-          <Link
-            to="/payments"
-            className="text-sm font-medium text-primary-blue hover:underline"
-          >
-            ← Back to Payments
-          </Link>
+      <BackButton fallbackLabel="Back to Payments" fallbackTo="/payments" />
 
-          <h1 className="mt-3 text-2xl font-semibold text-primary-black">
-            Payment for {payment.invoice_number ?? "Invoice"}
-          </h1>
+      <PageHeader
+        title={`Payment for ${payment.invoice_number ?? "Invoice"}`}
+        description={`Supplier: ${payment.supplier_name ?? "Unknown supplier"}`}
+        actions={<PaymentStatusBadge status={payment.status} />}
+      />
 
-          <p className="mt-1 text-sm text-primary-gray">
-            Supplier: {payment.supplier_name ?? "-"}
-          </p>
+      <Card>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-primary-black">
+              Payment Actions
+            </h2>
+            <p className="mt-1 text-sm text-gray-600">
+              Created {formatDate(payment.created_at)} by{" "}
+              {payment.created_by_name ?? "Unknown user"}.
+            </p>
+          </div>
+
+          <div className="flex flex-col items-start gap-2 sm:items-end">
+            {hasPendingApproval ? (
+              <>
+                <StatusBadge variant="warning">
+                  Payment submitted for approval
+                </StatusBadge>
+
+                {paymentApproval && (
+                  <Link
+                    to={`/approvals/${paymentApproval.id}`}
+                    state={{
+                      from: "payments",
+                      label: "Back to Payment",
+                      to: `/payments/${payment.id}`,
+                    }}
+                  >
+                    <Button type="button" variant="secondary" size="sm">
+                      View Approval Request
+                    </Button>
+                  </Link>
+                )}
+              </>
+            ) : (
+              <PaymentActions
+                payment={payment}
+                onUpdated={(updatedPayment) => {
+                  setPayment(updatedPayment);
+                  setActionError(null);
+                  setActionSuccess(
+                    "Payment submitted for approval successfully.",
+                  );
+
+                  getApprovalInstancesByEntity(updatedPayment.id).then(
+                    (approvals) => {
+                      const pendingApproval =
+                        approvals.find(
+                          (approval) => approval.status === "PENDING",
+                        ) ?? null;
+
+                      setPaymentApproval(pendingApproval);
+                    },
+                  );
+                }}
+                onDeleted={() => {
+                  navigate("/payments");
+                }}
+                onError={(message) => {
+                  setActionSuccess(null);
+                  setActionError(message);
+                }}
+              />
+            )}
+          </div>
         </div>
+      </Card>
 
-        <div className="flex flex-col gap-2 sm:flex-row lg:flex-col lg:items-end">
-          <PaymentStatusBadge status={payment.status} />
-
-          <span className="text-sm text-primary-gray">
-            Created {formatDate(payment.created_at)}
-          </span>
-
-          {hasPendingApproval ? (
-            <div className="max-w-xs rounded-lg border border-yellow-200 bg-yellow-50 px-3 py-2 text-xs text-yellow-700">
-              <p className="font-semibold">
-                Payment submitted for approval and awaiting review.
-              </p>
-
-              {paymentApproval && (
-                <Link
-                  to={`/approvals/${paymentApproval.id}`}
-                  className="mt-2 inline-flex font-semibold text-yellow-800 hover:underline"
-                >
-                  View Approval Request
-                </Link>
-              )}
-            </div>
-          ) : (
-            <PaymentActions
-              payment={payment}
-              onUpdated={(updatedPayment) => {
-                setPayment(updatedPayment);
-                setActionError(null);
-                setActionSuccess(
-                  "Payment submitted for approval successfully.",
-                );
-
-                getApprovalInstancesByEntity(updatedPayment.id).then(
-                  (approvals) => {
-                    const pendingApproval =
-                      approvals.find(
-                        (approval) => approval.status === "PENDING",
-                      ) ?? null;
-
-                    setPaymentApproval(pendingApproval);
-                  },
-                );
-              }}
-              onDeleted={() => {
-                navigate("/payments");
-              }}
-              onError={(message) => {
-                setActionSuccess(null);
-                setActionError(message);
-              }}
-            />
-          )}
-        </div>
-      </div>
       <section className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
+        <Card>
           <p className="text-sm text-primary-gray">Original Payment</p>
           <p className="mt-2 text-2xl font-semibold text-primary-black">
             {formatCurrency(Number(payment.amount ?? 0), paymentCurrency)}
@@ -218,9 +236,9 @@ export default function PaymentDetailsPage() {
           <p className="mt-1 text-xs text-primary-gray">
             Transaction currency: {paymentCurrency ?? "-"}
           </p>
-        </div>
+        </Card>
 
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
+        <Card>
           <p className="text-sm text-primary-gray">Base Amount</p>
           <p className="mt-2 text-2xl font-semibold text-primary-black">
             {payment.base_amount && payment.base_currency
@@ -233,9 +251,9 @@ export default function PaymentDetailsPage() {
           <p className="mt-1 text-xs text-primary-gray">
             Used for approval thresholds
           </p>
-        </div>
+        </Card>
 
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
+        <Card>
           <p className="text-sm text-primary-gray">Exchange Rate</p>
           <p className="mt-2 text-2xl font-semibold text-primary-black">
             {formatRate(payment.exchange_rate)}
@@ -244,9 +262,9 @@ export default function PaymentDetailsPage() {
             {payment.currency ?? invoice?.currency ?? "-"}
             {payment.base_currency ? ` → ${payment.base_currency}` : ""}
           </p>
-        </div>
+        </Card>
 
-        <div className="rounded-xl border bg-white p-4 shadow-sm">
+        <Card>
           <p className="text-sm text-primary-gray">Balance Remaining</p>
           <p className="mt-2 text-2xl font-semibold text-primary-black">
             {formatCurrency(balanceRemaining, paymentCurrency)}
@@ -254,10 +272,10 @@ export default function PaymentDetailsPage() {
           <p className="mt-1 text-xs text-primary-gray">
             Rate date: {formatDate(payment.exchange_rate_date)}
           </p>
-        </div>
+        </Card>
       </section>
 
-      <section className="rounded-xl border bg-white p-4 shadow-sm sm:p-5">
+      <Card>
         <h2 className="text-lg font-semibold text-primary-black">
           Payment Information
         </h2>
@@ -274,6 +292,11 @@ export default function PaymentDetailsPage() {
 
               <Link
                 to={`/invoices/${payment.invoice_id}`}
+                state={{
+                  from: "payments",
+                  label: "Back to Payment",
+                  to: location.pathname,
+                }}
                 className="text-sm font-medium text-primary-blue hover:underline"
               >
                 View Invoice
@@ -354,7 +377,7 @@ export default function PaymentDetailsPage() {
             </p>
           </div>
         </div>
-      </section>
-    </div>
+      </Card>
+    </PageContainer>
   );
 }

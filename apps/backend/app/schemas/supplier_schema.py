@@ -36,6 +36,10 @@ class SupplierRead(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class PaginatedSupplierResponse(BaseModel):
+    rows: list[SupplierRead]
+    total_count: int
+
 # SUPPLIER IMPORT 
 class SupplierImportError(BaseModel):
     row: int

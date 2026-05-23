@@ -188,3 +188,61 @@ class EmailService:
             subject=subject,
             body=body,
         )
+
+        # PASSWORD RESET INTERNAL USER
+    def send_password_reset_email(
+        self,
+        to_email: str,
+        user_name: str,
+        reset_link: str,
+    ) -> None:
+        greeting_name = user_name.strip() if user_name and user_name.strip() else "User"
+
+        subject = "Reset your SpendFlow password"
+        body = (
+            f"Dear {greeting_name},\n\n"
+            "We received a request to reset your SpendFlow password.\n\n"
+            "Please use the link below to create a new password:\n\n"
+            f"{reset_link}\n\n"
+            "For security, this link will expire in 60 minutes. "
+            "If you did not request this reset, you can safely ignore this email.\n\n"
+            "Best regards,\n"
+            "SpendFlow Team"
+        )
+
+        self.send_email(
+            to_email=to_email,
+            subject=subject,
+            body=body,
+        )
+
+        # PASSWORD RESET SUPPLIER USER 
+    def send_supplier_password_reset_email(
+        self,
+        to_email: str,
+        supplier_name: str,
+        reset_link: str,
+    ) -> None:
+        greeting_name = (
+            supplier_name.strip()
+            if supplier_name and supplier_name.strip()
+            else "Supplier"
+        )
+
+        subject = "Reset your SpendFlow supplier portal password"
+        body = (
+            f"Dear {greeting_name},\n\n"
+            "We received a request to reset your SpendFlow supplier portal password.\n\n"
+            "Please use the link below to create a new password:\n\n"
+            f"{reset_link}\n\n"
+            "For security, this link will expire in 10 minutes. "
+            "If you did not request this reset, you can safely ignore this email.\n\n"
+            "Best regards,\n"
+            "SpendFlow Team"
+        )
+
+        self.send_email(
+            to_email=to_email,
+            subject=subject,
+            body=body,
+        )

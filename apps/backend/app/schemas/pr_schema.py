@@ -55,6 +55,12 @@ class PurchaseRequisitionRead(BaseModel):
         json_encoders={Decimal: lambda v: format(v, ".2f")},
     )
 
+class PurchaseRequisitionPaginatedRead(BaseModel):
+    rows: list[PurchaseRequisitionRead]
+    total_count: int
+
+    model_config = ConfigDict(from_attributes=True)
+
 class PurchaseRequisitionDetailRead(PurchaseRequisitionRead):
     department_name: Optional[str] = None
     requested_by_name: Optional[str] = None

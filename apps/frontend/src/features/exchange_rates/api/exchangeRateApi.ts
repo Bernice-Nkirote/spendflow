@@ -3,10 +3,31 @@ import type {
   ExchangeRate,
   ExchangeRateCreatePayload,
   ExchangeRateUpdatePayload,
+  PaginatedExchangeRatesResponse,
 } from "../types/exchangeRate.types";
 
 export async function getExchangeRates(): Promise<ExchangeRate[]> {
   const response = await axiosInstance.get<ExchangeRate[]>("/exchange-rates/");
+  return response.data;
+}
+
+export async function getPaginatedExchangeRates({
+  skip,
+  limit,
+}: {
+  skip: number;
+  limit: number;
+}): Promise<PaginatedExchangeRatesResponse> {
+  const response = await axiosInstance.get<PaginatedExchangeRatesResponse>(
+    "/exchange-rates/paginated",
+    {
+      params: {
+        skip,
+        limit,
+      },
+    },
+  );
+
   return response.data;
 }
 

@@ -8,7 +8,7 @@ from app.core.database import get_db
 from app.core.auth_dependancy import get_current_admin_user
 from app.models.user import User
 from app.repositories.audit_log_repository import AuditLogRepository
-from app.schemas.audit_log_schema import AuditLogRead
+from app.schemas.audit_log_schema import PaginatedAuditLogResponse, AuditLogRead
 from app.services.audit_log_service import AuditLogService
 
 
@@ -32,6 +32,34 @@ def get_audit_logs(
 ):
     return service.get_audit_logs(
         company_id=current_user.company_id,
+        skip=skip,
+        limit=limit,
+    )
+
+
+@router.get("/paginated", response_model=PaginatedAuditLogResponse)
+def get_paginated_audit_logs(
+    entity_type: str | None = None,
+    entity_id: UUID | None = None,
+    action: str | None = None,
+    actor_user_id: UUID | None = None,
+    actor_supplier_user_id: UUID | None = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    current_user: User = Depends(get_current_admin_user),
+    service: AuditLogService = Depends(get_audit_log_service),
+):
+    return service.search_paginated_audit_logs(
+        company_id=current_user.company_id,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        action=action,
+        actor_user_id=actor_user_id,
+        actor_supplier_user_id=actor_supplier_user_id,
+        date_from=date_from,
+        date_to=date_to,
         skip=skip,
         limit=limit,
     )

@@ -69,6 +69,11 @@ export type PurchaseOrderListParams = {
   limit?: number;
 };
 
+export type PurchaseOrderPaginatedResponse = {
+  rows: PurchaseOrderListItem[];
+  total_count: number;
+};
+
 export type PurchaseOrderItemCreate = {
   item_name: string;
   description?: string | null;

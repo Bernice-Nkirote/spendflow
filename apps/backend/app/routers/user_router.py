@@ -8,10 +8,17 @@ from app.core.database import get_db
 from app.repositories.user_repository import UserRepository
 from app.repositories.user_onboarding_token_repository import UserOnboardingTokenRepository
 from app.repositories.audit_log_repository import AuditLogRepository
+from app.repositories.company_repository import CompanyRepository
+from app.repositories.user_password_reset_token_repository import UserPasswordResetTokenRepository
 from app.services.audit_log_service import AuditLogService
 from app.services.notifications.email_service import EmailService
 from app.core.config import settings
-from app.schemas.user_schema import UserCreate, UserRead, UserUpdate
+from app.schemas.user_schema import (
+     UserCreate, 
+     UserRead, 
+     UserUpdate,
+     PaginatedUserResponse,
+)
 from app.services.user_service import UserService
 
 
@@ -25,6 +32,8 @@ router = APIRouter(
 def get_user_service(db: Session = Depends(get_db)) -> UserService:
     repo = UserRepository(db)
     onboarding_token_repo = UserOnboardingTokenRepository(db)
+    password_reset_token_repo = UserPasswordResetTokenRepository(db)
+    company_repo = CompanyRepository(db)
 
     audit_log_repo = AuditLogRepository(db)
     audit_log_service = AuditLogService(audit_log_repo)
@@ -39,11 +48,13 @@ def get_user_service(db: Session = Depends(get_db)) -> UserService:
     )
 
     return UserService(
-        repo=repo,
-        onboarding_token_repo=onboarding_token_repo,
-        audit_log_service=audit_log_service,
-        email_service=email_service,
-    )
+    repo=repo,
+    onboarding_token_repo=onboarding_token_repo,
+    password_reset_token_repo=password_reset_token_repo,
+    company_repo=company_repo,
+    audit_log_service=audit_log_service,
+    email_service=email_service,
+)
 
 
 @router.post("/", response_model=UserRead, status_code=status.HTTP_201_CREATED)
@@ -67,6 +78,19 @@ def get_all_users(
     current_user=Depends(get_current_admin_user),
 ):
     return service.get_all_users(
+        company_id=current_user.company_id,
+        skip=skip,
+        limit=limit,
+    )
+
+@router.get("/paginated", response_model=PaginatedUserResponse)
+def get_paginated_users(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1),
+    service: UserService = Depends(get_user_service),
+    current_user=Depends(get_current_admin_user),
+):
+    return service.get_paginated_users(
         company_id=current_user.company_id,
         skip=skip,
         limit=limit,
@@ -100,8 +124,12 @@ def update_user(
     service: UserService = Depends(get_user_service),
     current_user=Depends(get_current_admin_user),
 ):
-    return service.update_user(user_id, user_data, current_user.company_id)
-
+    return service.update_user(
+        user_id=user_id,
+        user_data=user_data,
+        company_id=current_user.company_id,
+        actor_user_id=current_user.id,
+    )
 
 @router.patch("/{user_id}/activate", response_model=UserRead)
 def activate_user(
