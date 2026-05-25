@@ -6,15 +6,23 @@ import Card from "../../../components/ui/Card";
 import EmptyState from "../../../components/ui/EmptyState";
 import ErrorState from "../../../components/ui/ErrorState";
 import LoadingState from "../../../components/ui/LoadingState";
+import MobileFloatingTableAction from "../../../components/ui/MobileFloatingTableAction";
 import PageContainer from "../../../components/ui/PageContainer";
 import PageHeader from "../../../components/ui/PageHeader";
 import Pagination from "../../../components/ui/Pagination";
 import TableWrapper from "../../../components/ui/TableWrapper";
+import {
+  stickyLeftCell,
+  stickyLeftHeader,
+  stickyRightCell,
+  stickyRightHeader,
+} from "../../../components/ui/tableStickyStyles";
+
 import { userHasPermission } from "../../../utils/permissions";
 
 import { formatCurrency } from "../../../utils/formatCurrency";
 import { getPaginatedInvoices } from "../api/invoiceApi";
-import { getPurchaseOrders } from "../../purchase_orders/api/purchaseOrderApi";
+import { getPurchaseOrdersReadyForInvoicing } from "../../purchase_orders/api/purchaseOrderApi";
 import PurchaseOrderStatusBadge from "../../purchase_orders/components/PurchaseOrderStatusBadge";
 import InvoiceTable from "../components/InvoiceTable";
 
@@ -26,6 +34,8 @@ export default function InvoicesPage() {
   const [readyPurchaseOrders, setReadyPurchaseOrders] = useState<
     PurchaseOrderListItem[]
   >([]);
+  const [selectedMobileReadyPo, setSelectedMobileReadyPo] =
+    useState<PurchaseOrderListItem | null>(null);
 
   const [totalCount, setTotalCount] = useState(0);
   const [page, setPage] = useState(1);
@@ -40,39 +50,37 @@ export default function InvoicesPage() {
   const skip = (page - 1) * pageSize;
   const canCreateInvoice = userHasPermission("invoice.create");
 
+  function toggleReadyPoMobileActions(purchaseOrder: PurchaseOrderListItem) {
+    setSelectedMobileReadyPo((current) =>
+      current?.id === purchaseOrder.id ? null : purchaseOrder,
+    );
+  }
+
   useEffect(() => {
     async function fetchInvoicesPageData() {
+      if (!canCreateInvoice) {
+        setReadyPurchaseOrders([]);
+        setInitialLoading(false);
+        return;
+      }
+
       try {
         setInitialLoading(true);
         setError(null);
 
-        const [invoiceResponse, purchaseOrderResponse] = await Promise.all([
-          getPaginatedInvoices({ skip: 0, limit: 100 }),
-          getPurchaseOrders(),
-        ]);
+        const purchaseOrderResponse =
+          await getPurchaseOrdersReadyForInvoicing();
 
-        const invoicedPurchaseOrderIds = new Set(
-          invoiceResponse.rows
-            .map((invoice) => invoice.purchase_order_id)
-            .filter(Boolean),
-        );
-
-        setReadyPurchaseOrders(
-          purchaseOrderResponse.filter(
-            (purchaseOrder) =>
-              ["APPROVED", "SENT"].includes(purchaseOrder.status) &&
-              !invoicedPurchaseOrderIds.has(purchaseOrder.id),
-          ),
-        );
+        setReadyPurchaseOrders(purchaseOrderResponse);
       } catch {
-        setError("Failed to load invoice page data.");
+        setError("Failed to load purchase orders ready for invoicing.");
       } finally {
         setInitialLoading(false);
       }
     }
 
     fetchInvoicesPageData();
-  }, []);
+  }, [canCreateInvoice]);
 
   useEffect(() => {
     async function fetchInvoiceRecords() {
@@ -136,7 +144,9 @@ export default function InvoicesPage() {
                     <table className="w-full divide-y divide-gray-200 bg-white text-sm">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                          <th
+                            className={`${stickyLeftHeader} whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray`}
+                          >
                             PO Number
                           </th>
                           <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
@@ -148,7 +158,9 @@ export default function InvoicesPage() {
                           <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
                             Amount
                           </th>
-                          <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                          <th
+                            className={`${stickyRightHeader} hidden px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray lg:table-cell`}
+                          >
                             Action
                           </th>
                         </tr>
@@ -158,10 +170,21 @@ export default function InvoicesPage() {
                         {readyPurchaseOrders.map((purchaseOrder) => (
                           <tr
                             key={purchaseOrder.id}
-                            className="hover:bg-gray-50"
+                            className="group hover:bg-gray-50"
                           >
-                            <td className="whitespace-nowrap px-4 py-3 font-medium text-primary-black">
-                              {purchaseOrder.po_number}
+                            <td
+                              className={`${stickyLeftCell} whitespace-nowrap px-4 py-3 font-medium text-primary-black`}
+                            >
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  toggleReadyPoMobileActions(purchaseOrder)
+                                }
+                                className="block max-w-[220px] text-left lg:pointer-events-none"
+                                title="Tap to show actions"
+                              >
+                                {purchaseOrder.po_number}
+                              </button>
                             </td>
 
                             <td className="px-4 py-3 text-primary-black">
@@ -182,7 +205,9 @@ export default function InvoicesPage() {
                               )}
                             </td>
 
-                            <td className="whitespace-nowrap px-4 py-3 text-right">
+                            <td
+                              className={`${stickyRightCell} hidden whitespace-nowrap px-4 py-3 text-right lg:table-cell`}
+                            >
                               <Link
                                 to={`/invoices/new?purchaseOrderId=${purchaseOrder.id}&from=invoices`}
                               >
@@ -204,6 +229,22 @@ export default function InvoicesPage() {
               )}
             </Card>
           )}
+          <MobileFloatingTableAction
+            isOpen={Boolean(selectedMobileReadyPo)}
+            reference={selectedMobileReadyPo?.po_number ?? ""}
+            label="Selected purchase order"
+            onClose={() => setSelectedMobileReadyPo(null)}
+          >
+            {selectedMobileReadyPo && (
+              <Link
+                to={`/invoices/new?purchaseOrderId=${selectedMobileReadyPo.id}&from=invoices`}
+              >
+                <Button type="button" variant="secondary" size="sm">
+                  Create Invoice
+                </Button>
+              </Link>
+            )}
+          </MobileFloatingTableAction>
 
           <Card>
             <div className="mb-4">

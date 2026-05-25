@@ -30,6 +30,16 @@ export async function getPaginatedPurchaseOrders(
   return response.data;
 }
 
+export async function getPurchaseOrdersReadyForInvoicing(): Promise<
+  PurchaseOrderListItem[]
+> {
+  const response = await axiosInstance.get<PurchaseOrderListItem[]>(
+    "/purchase-orders/ready-for-invoicing",
+  );
+
+  return response.data;
+}
+
 export async function getPurchaseOrderById(
   id: string,
 ): Promise<PurchaseOrderDetails> {

@@ -10,11 +10,16 @@ import ErrorState from "../../../components/ui/ErrorState";
 import FloatingAlert from "../../../components/ui/FloatingAlert";
 import Input from "../../../components/ui/Input";
 import LoadingState from "../../../components/ui/LoadingState";
+import MobileFloatingTableAction from "../../../components/ui/MobileFloatingTableAction";
 import PageContainer from "../../../components/ui/PageContainer";
 import PageHeader from "../../../components/ui/PageHeader";
 import Pagination from "../../../components/ui/Pagination";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import TableWrapper from "../../../components/ui/TableWrapper";
+import {
+  stickyLeftCell,
+  stickyLeftHeader,
+} from "../../../components/ui/tableStickyStyles";
 import { useFloatingAlert } from "../../../components/ui/useFloatingAlert";
 import { getStoredUser, userHasPermission } from "../../../utils/permissions";
 
@@ -99,6 +104,8 @@ function ExchangeRatesPage() {
   const [actionRateId, setActionRateId] = useState<string | null>(null);
 
   const [rateToDelete, setRateToDelete] = useState<ExchangeRate | null>(null);
+  const [selectedMobileExchangeRate, setSelectedMobileExchangeRate] =
+    useState<ExchangeRate | null>(null);
   const [confirmError, setConfirmError] = useState("");
 
   const { alert, showAlert, clearAlert } = useFloatingAlert();
@@ -266,6 +273,12 @@ function ExchangeRatesPage() {
     } finally {
       setIsSaving(false);
     }
+  }
+
+  function toggleMobileExchangeRateActions(exchangeRate: ExchangeRate) {
+    setSelectedMobileExchangeRate((current) =>
+      current?.id === exchangeRate.id ? null : exchangeRate,
+    );
   }
 
   function handleDelete(exchangeRate: ExchangeRate) {
@@ -496,22 +509,42 @@ function ExchangeRatesPage() {
                   <table className="w-full text-left text-sm">
                     <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
                       <tr>
-                        <th className="px-4 py-3">Currency pair</th>
+                        <th
+                          className={`${stickyLeftHeader} whitespace-nowrap px-4 py-3`}
+                        >
+                          Currency pair
+                        </th>
                         <th className="px-4 py-3">Rate</th>
                         <th className="px-4 py-3">Effective date</th>
                         <th className="px-4 py-3">Source</th>
                         {(canUpdateExchangeRates || canDeleteExchangeRates) && (
-                          <th className="px-4 py-3 text-right">Actions</th>
+                          <th className="hidden px-4 py-3 text-right lg:table-cell">
+                            Actions
+                          </th>
                         )}
                       </tr>
                     </thead>
 
                     <tbody className="divide-y">
                       {exchangeRates.map((exchangeRate) => (
-                        <tr key={exchangeRate.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 font-medium text-primary-black">
-                            {exchangeRate.from_currency} →{" "}
-                            {exchangeRate.to_currency}
+                        <tr
+                          key={exchangeRate.id}
+                          className="group hover:bg-gray-50"
+                        >
+                          <td
+                            className={`${stickyLeftCell} whitespace-nowrap px-4 py-3 font-medium text-primary-black`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() =>
+                                toggleMobileExchangeRateActions(exchangeRate)
+                              }
+                              className="block max-w-[220px] text-left lg:pointer-events-none"
+                              title="Tap to show actions"
+                            >
+                              {exchangeRate.from_currency} →{" "}
+                              {exchangeRate.to_currency}
+                            </button>
                           </td>
 
                           <td className="px-4 py-3 text-gray-700">
@@ -535,7 +568,7 @@ function ExchangeRatesPage() {
                           </td>
                           {(canUpdateExchangeRates ||
                             canDeleteExchangeRates) && (
-                            <td className="px-4 py-3">
+                            <td className="hidden px-4 py-3 lg:table-cell">
                               <div className="flex justify-end gap-2 whitespace-nowrap">
                                 {canUpdateExchangeRates && (
                                   <Button
@@ -567,6 +600,48 @@ function ExchangeRatesPage() {
                     </tbody>
                   </table>
                 </TableWrapper>
+
+                <MobileFloatingTableAction
+                  isOpen={Boolean(selectedMobileExchangeRate)}
+                  reference={
+                    selectedMobileExchangeRate
+                      ? `${selectedMobileExchangeRate.from_currency} → ${selectedMobileExchangeRate.to_currency}`
+                      : ""
+                  }
+                  label="Selected exchange rate"
+                  onClose={() => setSelectedMobileExchangeRate(null)}
+                >
+                  {selectedMobileExchangeRate && (
+                    <>
+                      {canUpdateExchangeRates && (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => startEdit(selectedMobileExchangeRate)}
+                        >
+                          Edit
+                        </Button>
+                      )}
+
+                      {canDeleteExchangeRates && (
+                        <Button
+                          type="button"
+                          variant="danger"
+                          size="sm"
+                          onClick={() =>
+                            handleDelete(selectedMobileExchangeRate)
+                          }
+                          disabled={
+                            actionRateId === selectedMobileExchangeRate.id
+                          }
+                        >
+                          Delete
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </MobileFloatingTableAction>
 
                 <Pagination
                   page={page}

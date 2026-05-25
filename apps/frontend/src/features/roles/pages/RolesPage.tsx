@@ -10,11 +10,16 @@ import ErrorState from "../../../components/ui/ErrorState";
 import FloatingAlert from "../../../components/ui/FloatingAlert";
 import Input from "../../../components/ui/Input";
 import LoadingState from "../../../components/ui/LoadingState";
+import MobileFloatingTableAction from "../../../components/ui/MobileFloatingTableAction";
 import PageContainer from "../../../components/ui/PageContainer";
 import PageHeader from "../../../components/ui/PageHeader";
 import Pagination from "../../../components/ui/Pagination";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import TableWrapper from "../../../components/ui/TableWrapper";
+import {
+  stickyLeftCell,
+  stickyLeftHeader,
+} from "../../../components/ui/tableStickyStyles";
 import { useFloatingAlert } from "../../../components/ui/useFloatingAlert";
 import { getStoredUser } from "../../../utils/permissions";
 
@@ -83,6 +88,9 @@ function RolesPage() {
 
   const [roleToDeactivate, setRoleToDeactivate] = useState<Role | null>(null);
   const [roleToDelete, setRoleToDelete] = useState<Role | null>(null);
+  const [selectedMobileRole, setSelectedMobileRole] = useState<Role | null>(
+    null,
+  );
   const [confirmError, setConfirmError] = useState("");
 
   const { alert, showAlert, clearAlert } = useFloatingAlert();
@@ -200,6 +208,10 @@ function RolesPage() {
     } finally {
       setIsSaving(false);
     }
+  }
+
+  function toggleMobileRoleActions(role: Role) {
+    setSelectedMobileRole((current) => (current?.id === role.id ? null : role));
   }
 
   function handleToggleStatus(role: Role) {
@@ -448,10 +460,14 @@ function RolesPage() {
                   <table className="w-full text-left text-sm">
                     <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
                       <tr>
-                        <th className="px-4 py-3">Role</th>
+                        <th className={`${stickyLeftHeader} px-4 py-3`}>
+                          Role
+                        </th>
                         <th className="px-4 py-3">Description</th>
                         <th className="px-4 py-3">Status</th>
-                        <th className="px-4 py-3 text-right">Actions</th>
+                        <th className="hidden px-4 py-3 text-right lg:table-cell">
+                          Actions
+                        </th>
                       </tr>
                     </thead>
 
@@ -460,19 +476,26 @@ function RolesPage() {
                         const isActionLoading = actionRoleId === role.id;
 
                         return (
-                          <tr key={role.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-3">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className="font-medium text-primary-black">
-                                  {role.name}
-                                </span>
+                          <tr key={role.id} className="group hover:bg-gray-50">
+                            <td className={`${stickyLeftCell} px-4 py-3`}>
+                              <button
+                                type="button"
+                                onClick={() => toggleMobileRoleActions(role)}
+                                className="block max-w-[260px] text-left lg:pointer-events-none"
+                                title="Tap to show actions"
+                              >
+                                <span className="flex flex-wrap items-center gap-2">
+                                  <span className="font-medium text-primary-black">
+                                    {role.name}
+                                  </span>
 
-                                {role.is_system_role && (
-                                  <StatusBadge variant="info">
-                                    System Role
-                                  </StatusBadge>
-                                )}
-                              </div>
+                                  {role.is_system_role && (
+                                    <StatusBadge variant="info">
+                                      System Role
+                                    </StatusBadge>
+                                  )}
+                                </span>
+                              </button>
                             </td>
 
                             <td className="px-4 py-3 text-gray-600">
@@ -487,7 +510,7 @@ function RolesPage() {
                               </StatusBadge>
                             </td>
 
-                            <td className="px-4 py-3">
+                            <td className="hidden px-4 py-3 lg:table-cell">
                               <div className="flex justify-end gap-2 whitespace-nowrap">
                                 <Button
                                   type="button"
@@ -533,6 +556,58 @@ function RolesPage() {
                     </tbody>
                   </table>
                 </TableWrapper>
+
+                <MobileFloatingTableAction
+                  isOpen={Boolean(selectedMobileRole)}
+                  reference={selectedMobileRole?.name ?? ""}
+                  label="Selected role"
+                  onClose={() => setSelectedMobileRole(null)}
+                >
+                  {selectedMobileRole && (
+                    <>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => startEdit(selectedMobileRole)}
+                        disabled={selectedMobileRole.is_system_role}
+                      >
+                        Edit
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant={
+                          selectedMobileRole.is_active ? "secondary" : "primary"
+                        }
+                        size="sm"
+                        onClick={() => handleToggleStatus(selectedMobileRole)}
+                        disabled={
+                          actionRoleId === selectedMobileRole.id ||
+                          selectedMobileRole.is_system_role
+                        }
+                        className="min-w-[92px]"
+                      >
+                        {selectedMobileRole.is_active
+                          ? "Deactivate"
+                          : "Activate"}
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="danger"
+                        size="sm"
+                        onClick={() => handleDelete(selectedMobileRole)}
+                        disabled={
+                          actionRoleId === selectedMobileRole.id ||
+                          selectedMobileRole.is_system_role
+                        }
+                      >
+                        Delete
+                      </Button>
+                    </>
+                  )}
+                </MobileFloatingTableAction>
 
                 <Pagination
                   page={page}

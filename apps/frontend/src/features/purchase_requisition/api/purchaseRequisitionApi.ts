@@ -70,6 +70,16 @@ export async function getPaginatedPurchaseRequisitions(
   return response.data;
 }
 
+export async function getPurchaseRequisitionsReadyForPO(): Promise<
+  PurchaseRequisitionListItem[]
+> {
+  const response = await axiosInstance.get<PurchaseRequisitionListItem[]>(
+    "/purchase-requisitions/ready-for-po",
+  );
+
+  return response.data;
+}
+
 // GET PR BY ID
 export async function getPurchaseRequisitionById(
   requisitionId: string,

@@ -26,7 +26,7 @@ export type CreateUserPayload = {
   name: string;
   email: string;
   phone_number?: string | null;
-  department_id?: string | null;
+  department_id: string;
   role_id: string;
 };
 

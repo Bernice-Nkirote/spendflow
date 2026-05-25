@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 import Button from "../../../components/ui/Button";
 import Card from "../../../components/ui/Card";
+import MobileFloatingTableAction from "../../../components/ui/MobileFloatingTableAction";
 import EmptyState from "../../../components/ui/EmptyState";
 import ErrorState from "../../../components/ui/ErrorState";
 import LoadingState from "../../../components/ui/LoadingState";
@@ -10,11 +11,16 @@ import PageContainer from "../../../components/ui/PageContainer";
 import PageHeader from "../../../components/ui/PageHeader";
 import Pagination from "../../../components/ui/Pagination";
 import TableWrapper from "../../../components/ui/TableWrapper";
-
+import {
+  stickyLeftCell,
+  stickyLeftHeader,
+  stickyRightCell,
+  stickyRightHeader,
+} from "../../../components/ui/tableStickyStyles";
 import { formatCurrency } from "../../../utils/formatCurrency";
 import { userHasPermission } from "../../../utils/permissions";
 
-import { getPaginatedPurchaseRequisitions } from "../../purchase_requisition/api/purchaseRequisitionApi";
+import { getPurchaseRequisitionsReadyForPO } from "../../purchase_requisition/api/purchaseRequisitionApi";
 import PurchaseRequisitionStatusBadge from "../../purchase_requisition/components/PurchaseRequisitionStatusBadge";
 import type { PurchaseRequisitionListItem } from "../../purchase_requisition/types/purchaseRequisition.types";
 
@@ -31,6 +37,9 @@ export default function PurchaseOrdersPage() {
   const [approvedPurchaseRequisitions, setApprovedPurchaseRequisitions] =
     useState<PurchaseRequisitionListItem[]>([]);
 
+  const [selectedMobilePr, setSelectedMobilePr] =
+    useState<PurchaseRequisitionListItem | null>(null);
+
   const [totalCount, setTotalCount] = useState(0);
 
   const [page, setPage] = useState(1);
@@ -45,25 +54,31 @@ export default function PurchaseOrdersPage() {
   const skip = (page - 1) * pageSize;
   const canCreatePO = userHasPermission("po.create");
 
+  function toggleApprovedPrMobileActions(
+    purchaseRequisition: PurchaseRequisitionListItem,
+  ) {
+    setSelectedMobilePr((current) =>
+      current?.id === purchaseRequisition.id ? null : purchaseRequisition,
+    );
+  }
+
   useEffect(() => {
     async function fetchPurchaseOrdersPageData() {
       try {
         setInitialLoading(true);
         setError(null);
 
+        if (!canCreatePO) {
+          setApprovedPurchaseRequisitions([]);
+          setInitialLoading(false);
+          return;
+        }
+
         const purchaseRequisitionResponse =
-          await getPaginatedPurchaseRequisitions({
-            skip: 0,
-            limit: 100,
-          });
+          await getPurchaseRequisitionsReadyForPO();
 
         setApprovedPurchaseRequisitions(
-          purchaseRequisitionResponse.rows
-            .filter(
-              (purchaseRequisition) =>
-                purchaseRequisition.status === "APPROVED",
-            )
-            .slice(0, APPROVED_PR_LIMIT),
+          purchaseRequisitionResponse.slice(0, APPROVED_PR_LIMIT),
         );
       } catch {
         setError("Failed to load purchase order page data.");
@@ -147,7 +162,9 @@ export default function PurchaseOrdersPage() {
                   <table className="w-full divide-y divide-gray-200 text-sm">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                        <th
+                          className={`${stickyLeftHeader} px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray`}
+                        >
                           PR Number
                         </th>
                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
@@ -159,7 +176,9 @@ export default function PurchaseOrdersPage() {
                         <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
                           Amount
                         </th>
-                        <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                        <th
+                          className={`${stickyRightHeader} hidden px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray lg:table-cell`}
+                        >
                           Action
                         </th>
                       </tr>
@@ -170,10 +189,23 @@ export default function PurchaseOrdersPage() {
                         (purchaseRequisition) => (
                           <tr
                             key={purchaseRequisition.id}
-                            className="hover:bg-gray-50"
+                            className="group hover:bg-gray-50"
                           >
-                            <td className="whitespace-nowrap px-4 py-3 font-medium text-primary-black">
-                              {purchaseRequisition.pr_number}
+                            <td
+                              className={`${stickyLeftCell} whitespace-nowrap px-4 py-3 font-medium text-primary-black`}
+                            >
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  toggleApprovedPrMobileActions(
+                                    purchaseRequisition,
+                                  )
+                                }
+                                className="block max-w-[220px] text-left lg:pointer-events-none"
+                                title="Tap to show actions"
+                              >
+                                {purchaseRequisition.pr_number}
+                              </button>
                             </td>
 
                             <td className="px-4 py-3 text-primary-black">
@@ -198,7 +230,9 @@ export default function PurchaseOrdersPage() {
                               )}
                             </td>
 
-                            <td className="whitespace-nowrap px-4 py-3 text-right">
+                            <td
+                              className={`${stickyRightCell} hidden whitespace-nowrap px-4 py-3 text-right lg:table-cell`}
+                            >
                               <Link
                                 to={`/purchase-orders/from-requisition/${purchaseRequisition.id}`}
                                 state={{
@@ -224,6 +258,26 @@ export default function PurchaseOrdersPage() {
               )}
             </Card>
           )}
+          <MobileFloatingTableAction
+            isOpen={Boolean(selectedMobilePr)}
+            reference={selectedMobilePr?.pr_number ?? ""}
+            label="Selected approved PR"
+            onClose={() => setSelectedMobilePr(null)}
+          >
+            {selectedMobilePr && (
+              <Link
+                to={`/purchase-orders/from-requisition/${selectedMobilePr.id}`}
+                state={{
+                  from: "purchase-orders",
+                  label: "Back to Purchase Orders",
+                }}
+              >
+                <Button type="button" variant="secondary" size="sm">
+                  Create PO
+                </Button>
+              </Link>
+            )}
+          </MobileFloatingTableAction>
 
           <Card>
             <div className="mb-4">

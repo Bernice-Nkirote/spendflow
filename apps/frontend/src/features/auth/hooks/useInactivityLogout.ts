@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
-// const INACTIVITY_LIMIT_MS = 30 * 60 * 1000;
-// const WARNING_BEFORE_LOGOUT_MS = 2 * 60 * 1000;
-
-const INACTIVITY_LIMIT_MS = 30 * 1000;
-const WARNING_BEFORE_LOGOUT_MS = 10 * 1000;
+const INACTIVITY_LIMIT_MS = 30 * 60 * 1000;
+const WARNING_BEFORE_LOGOUT_MS = 2 * 60 * 1000;
 
 function clearInternalSession() {
   localStorage.removeItem("access_token");

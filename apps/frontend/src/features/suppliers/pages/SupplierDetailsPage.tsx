@@ -10,9 +10,15 @@ import ErrorState from "../../../components/ui/ErrorState";
 import FloatingAlert from "../../../components/ui/FloatingAlert";
 import Input from "../../../components/ui/Input";
 import LoadingState from "../../../components/ui/LoadingState";
+import MobileFloatingTableAction from "../../../components/ui/MobileFloatingTableAction";
 import PageContainer from "../../../components/ui/PageContainer";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import TableWrapper from "../../../components/ui/TableWrapper";
+import {
+  stickyLeftCell,
+  stickyLeftHeader,
+} from "../../../components/ui/tableStickyStyles";
+
 import { useFloatingAlert } from "../../../components/ui/useFloatingAlert";
 import { getStoredUser, userHasPermission } from "../../../utils/permissions";
 
@@ -106,6 +112,8 @@ function SupplierDetailsPage() {
   const [supplierUserToToggleStatus, setSupplierUserToToggleStatus] =
     useState<SupplierUser | null>(null);
   const [supplierUserToResendSetup, setSupplierUserToResendSetup] =
+    useState<SupplierUser | null>(null);
+  const [selectedMobileSupplierUser, setSelectedMobileSupplierUser] =
     useState<SupplierUser | null>(null);
   const [actionId, setActionId] = useState<string | null>(null);
   const [confirmError, setConfirmError] = useState("");
@@ -326,6 +334,12 @@ function SupplierDetailsPage() {
     } finally {
       setActionId(null);
     }
+  }
+
+  function toggleMobileSupplierUserActions(user: SupplierUser) {
+    setSelectedMobileSupplierUser((current) =>
+      current?.id === user.id ? null : user,
+    );
   }
 
   function handleResendSetupLink(user: SupplierUser) {
@@ -705,7 +719,9 @@ function SupplierDetailsPage() {
                 <table className="w-full table-fixed text-left text-sm">
                   <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
                     <tr>
-                      <th className="w-[38%] whitespace-nowrap px-4 py-3">
+                      <th
+                        className={`${stickyLeftHeader} w-[38%] whitespace-nowrap px-4 py-3`}
+                      >
                         Email
                       </th>
                       <th className="w-[18%] whitespace-nowrap px-4 py-3">
@@ -714,7 +730,7 @@ function SupplierDetailsPage() {
                       <th className="w-[18%] whitespace-nowrap px-4 py-3">
                         Created
                       </th>
-                      <th className="w-[26%] whitespace-nowrap px-4 py-3 text-right">
+                      <th className="hidden w-[26%] whitespace-nowrap px-4 py-3 text-right lg:table-cell">
                         Actions
                       </th>
                     </tr>
@@ -726,11 +742,20 @@ function SupplierDetailsPage() {
                       const isActionLoading = actionId === user.id;
 
                       return (
-                        <tr key={user.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 text-primary-black">
-                            <span className="block truncate" title={user.email}>
+                        <tr key={user.id} className="group hover:bg-gray-50">
+                          <td
+                            className={`${stickyLeftCell} px-4 py-3 text-primary-black`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() =>
+                                toggleMobileSupplierUserActions(user)
+                              }
+                              className="block max-w-[260px] truncate text-left lg:pointer-events-none"
+                              title="Tap to show actions"
+                            >
                               {user.email}
-                            </span>
+                            </button>
                           </td>
 
                           <td className="px-4 py-3">
@@ -743,7 +768,7 @@ function SupplierDetailsPage() {
                             {formatDate(user.created_at)}
                           </td>
 
-                          <td className="px-4 py-3">
+                          <td className="hidden px-4 py-3 lg:table-cell">
                             <div className="flex justify-end gap-2 whitespace-nowrap">
                               {!user.has_completed_onboarding &&
                                 user.is_active && (
@@ -779,6 +804,49 @@ function SupplierDetailsPage() {
                 </table>
               </TableWrapper>
             )}
+
+            <MobileFloatingTableAction
+              isOpen={Boolean(selectedMobileSupplierUser)}
+              reference={selectedMobileSupplierUser?.email ?? ""}
+              label="Selected supplier portal user"
+              onClose={() => setSelectedMobileSupplierUser(null)}
+            >
+              {selectedMobileSupplierUser && (
+                <>
+                  {!selectedMobileSupplierUser.has_completed_onboarding &&
+                    selectedMobileSupplierUser.is_active && (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() =>
+                          handleResendSetupLink(selectedMobileSupplierUser)
+                        }
+                        disabled={actionId === selectedMobileSupplierUser.id}
+                      >
+                        {actionId === selectedMobileSupplierUser.id
+                          ? "Sending..."
+                          : "Resend"}
+                      </Button>
+                    )}
+
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setConfirmError("");
+                      setSupplierUserToToggleStatus(selectedMobileSupplierUser);
+                    }}
+                    disabled={actionId === selectedMobileSupplierUser.id}
+                  >
+                    {selectedMobileSupplierUser.is_active
+                      ? "Deactivate"
+                      : "Activate"}
+                  </Button>
+                </>
+              )}
+            </MobileFloatingTableAction>
           </div>
         </Card>
       )}

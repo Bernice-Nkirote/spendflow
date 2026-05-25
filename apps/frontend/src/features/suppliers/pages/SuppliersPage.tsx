@@ -11,11 +11,16 @@ import ErrorState from "../../../components/ui/ErrorState";
 import FloatingAlert from "../../../components/ui/FloatingAlert";
 import Input from "../../../components/ui/Input";
 import LoadingState from "../../../components/ui/LoadingState";
+import MobileFloatingTableAction from "../../../components/ui/MobileFloatingTableAction";
 import PageContainer from "../../../components/ui/PageContainer";
 import PageHeader from "../../../components/ui/PageHeader";
 import Pagination from "../../../components/ui/Pagination";
 import PhoneInputField from "../../../components/ui/PhoneInputField";
 import TableWrapper from "../../../components/ui/TableWrapper";
+import {
+  stickyLeftCell,
+  stickyLeftHeader,
+} from "../../../components/ui/tableStickyStyles";
 import { useFloatingAlert } from "../../../components/ui/useFloatingAlert";
 import { getStoredUser, userHasPermission } from "../../../utils/permissions";
 
@@ -103,6 +108,8 @@ function SuppliersPage() {
   const [supplierToDelete, setSupplierToDelete] = useState<Supplier | null>(
     null,
   );
+  const [selectedMobileSupplier, setSelectedMobileSupplier] =
+    useState<Supplier | null>(null);
   const [actionSupplierId, setActionSupplierId] = useState<string | null>(null);
   const [confirmError, setConfirmError] = useState("");
 
@@ -260,6 +267,12 @@ function SuppliersPage() {
     } finally {
       setIsImporting(false);
     }
+  }
+
+  function toggleMobileSupplierActions(supplier: Supplier) {
+    setSelectedMobileSupplier((current) =>
+      current?.id === supplier.id ? null : supplier,
+    );
   }
 
   function handleToggleSupplier(supplier: Supplier) {
@@ -585,7 +598,9 @@ function SuppliersPage() {
                   <table className="w-full table-fixed text-left text-sm">
                     <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
                       <tr>
-                        <th className="w-[18%] whitespace-nowrap px-4 py-3">
+                        <th
+                          className={`${stickyLeftHeader} w-[18%] whitespace-nowrap px-4 py-3`}
+                        >
                           Supplier
                         </th>
                         <th className="w-[16%] whitespace-nowrap px-4 py-3">
@@ -610,8 +625,8 @@ function SuppliersPage() {
                           <th
                             className={
                               canDeleteSuppliers
-                                ? "w-[28%] whitespace-nowrap px-4 py-3 text-right"
-                                : "w-[20%] whitespace-nowrap px-4 py-3 text-right"
+                                ? "hidden w-[28%] whitespace-nowrap px-4 py-3 text-right lg:table-cell"
+                                : "hidden w-[20%] whitespace-nowrap px-4 py-3 text-right lg:table-cell"
                             }
                           >
                             Actions
@@ -622,14 +637,23 @@ function SuppliersPage() {
 
                     <tbody className="divide-y">
                       {suppliers.map((supplier) => (
-                        <tr key={supplier.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 font-medium text-primary-black">
-                            <span
-                              className="block truncate"
-                              title={supplier.name}
+                        <tr
+                          key={supplier.id}
+                          className="group hover:bg-gray-50"
+                        >
+                          <td
+                            className={`${stickyLeftCell} px-4 py-3 font-medium text-primary-black`}
+                          >
+                            <button
+                              type="button"
+                              onClick={() =>
+                                toggleMobileSupplierActions(supplier)
+                              }
+                              className="block max-w-[260px] truncate text-left lg:pointer-events-none"
+                              title="Tap to show actions"
                             >
                               {supplier.name}
-                            </span>
+                            </button>
                           </td>
 
                           <td className="px-4 py-3 text-primary-black">
@@ -661,7 +685,7 @@ function SuppliersPage() {
                           </td>
 
                           {hasRowActions && (
-                            <td className="px-4 py-3">
+                            <td className="hidden px-4 py-3 lg:table-cell">
                               <div
                                 className={
                                   canDeleteSuppliers
@@ -742,6 +766,87 @@ function SuppliersPage() {
                     </tbody>
                   </table>
                 </TableWrapper>
+
+                <MobileFloatingTableAction
+                  isOpen={Boolean(selectedMobileSupplier)}
+                  reference={selectedMobileSupplier?.name ?? ""}
+                  label="Selected supplier"
+                  onClose={() => setSelectedMobileSupplier(null)}
+                >
+                  {selectedMobileSupplier && (
+                    <>
+                      {canViewSuppliers && (
+                        <Link
+                          to={`/suppliers/${selectedMobileSupplier.id}`}
+                          state={{
+                            from: "suppliers",
+                            label: "Back to Suppliers",
+                            to: "/suppliers",
+                          }}
+                        >
+                          <Button type="button" size="sm">
+                            View
+                          </Button>
+                        </Link>
+                      )}
+
+                      {canUpdateSuppliers && (
+                        <>
+                          {isAdminUser && (
+                            <Link
+                              to={`/suppliers/${selectedMobileSupplier.id}#portal-users`}
+                              state={{
+                                from: "suppliers",
+                                label: "Back to Suppliers",
+                                to: "/suppliers",
+                              }}
+                            >
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                              >
+                                Portal Users
+                              </Button>
+                            </Link>
+                          )}
+
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={() =>
+                              handleToggleSupplier(selectedMobileSupplier)
+                            }
+                            disabled={
+                              actionSupplierId === selectedMobileSupplier.id
+                            }
+                          >
+                            {selectedMobileSupplier.is_active
+                              ? "Deactivate"
+                              : "Activate"}
+                          </Button>
+                        </>
+                      )}
+
+                      {canDeleteSuppliers && (
+                        <Button
+                          type="button"
+                          variant="danger"
+                          size="sm"
+                          onClick={() =>
+                            handleDeleteSupplier(selectedMobileSupplier)
+                          }
+                          disabled={
+                            actionSupplierId === selectedMobileSupplier.id
+                          }
+                        >
+                          Delete
+                        </Button>
+                      )}
+                    </>
+                  )}
+                </MobileFloatingTableAction>
 
                 <Pagination
                   page={page}

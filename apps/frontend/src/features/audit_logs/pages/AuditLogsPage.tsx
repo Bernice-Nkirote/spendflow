@@ -9,11 +9,16 @@ import ErrorState from "../../../components/ui/ErrorState";
 import FloatingAlert from "../../../components/ui/FloatingAlert";
 import Input from "../../../components/ui/Input";
 import LoadingState from "../../../components/ui/LoadingState";
+import MobileFloatingTableAction from "../../../components/ui/MobileFloatingTableAction";
 import PageContainer from "../../../components/ui/PageContainer";
 import PageHeader from "../../../components/ui/PageHeader";
 import Pagination from "../../../components/ui/Pagination";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import TableWrapper from "../../../components/ui/TableWrapper";
+import {
+  stickyLeftCell,
+  stickyLeftHeader,
+} from "../../../components/ui/tableStickyStyles";
 import { useFloatingAlert } from "../../../components/ui/useFloatingAlert";
 import { getStoredUser, userHasPermission } from "../../../utils/permissions";
 
@@ -138,6 +143,9 @@ function AuditLogsPage() {
   );
 
   const [expandedLogId, setExpandedLogId] = useState<string | null>(null);
+  const [selectedMobileLog, setSelectedMobileLog] = useState<AuditLog | null>(
+    null,
+  );
   const [initialLoading, setInitialLoading] = useState(true);
   const [recordsLoading, setRecordsLoading] = useState(true);
   const [recordsError, setRecordsError] = useState("");
@@ -265,6 +273,10 @@ function AuditLogsPage() {
       nextPageSize: pageSize,
       nextFilters: filters,
     });
+  }
+
+  function toggleMobileLogActions(log: AuditLog) {
+    setSelectedMobileLog((current) => (current?.id === log.id ? null : log));
   }
 
   function handleResetFilters() {
@@ -459,12 +471,16 @@ function AuditLogsPage() {
                   <table className="w-full text-left text-sm">
                     <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
                       <tr>
-                        <th className="px-4 py-3">Action</th>
+                        <th className={`${stickyLeftHeader} px-4 py-3`}>
+                          Action
+                        </th>
                         <th className="px-4 py-3">Entity</th>
                         <th className="px-4 py-3">Reference</th>
                         <th className="px-4 py-3">Actor</th>
                         <th className="px-4 py-3">Date</th>
-                        <th className="px-4 py-3 text-right">Details</th>
+                        <th className="hidden px-4 py-3 text-right lg:table-cell">
+                          Details
+                        </th>
                       </tr>
                     </thead>
 
@@ -474,12 +490,19 @@ function AuditLogsPage() {
 
                         return (
                           <Fragment key={log.id}>
-                            <tr className="hover:bg-gray-50">
-                              <td className="px-4 py-3">
-                                <StatusBadge variant="info">
-                                  {log.action_label ||
-                                    formatFallbackLabel(log.action)}
-                                </StatusBadge>
+                            <tr className="group hover:bg-gray-50">
+                              <td className={`${stickyLeftCell} px-4 py-3`}>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleMobileLogActions(log)}
+                                  className="block max-w-[220px] text-left lg:pointer-events-none"
+                                  title="Tap to show details"
+                                >
+                                  <StatusBadge variant="info">
+                                    {log.action_label ||
+                                      formatFallbackLabel(log.action)}
+                                  </StatusBadge>
+                                </button>
                               </td>
 
                               <td className="px-4 py-3">
@@ -509,7 +532,7 @@ function AuditLogsPage() {
                                 {formatDateTime(log.created_at)}
                               </td>
 
-                              <td className="px-4 py-3 text-right">
+                              <td className="hidden px-4 py-3 text-right lg:table-cell">
                                 <Button
                                   type="button"
                                   variant="secondary"
@@ -606,6 +629,36 @@ function AuditLogsPage() {
                     </tbody>
                   </table>
                 </TableWrapper>
+
+                <MobileFloatingTableAction
+                  isOpen={Boolean(selectedMobileLog)}
+                  reference={
+                    selectedMobileLog?.entity_reference ??
+                    selectedMobileLog?.action_label ??
+                    "Audit log"
+                  }
+                  label="Selected audit log"
+                  onClose={() => setSelectedMobileLog(null)}
+                >
+                  {selectedMobileLog && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setExpandedLogId((current) =>
+                          current === selectedMobileLog.id
+                            ? null
+                            : selectedMobileLog.id,
+                        );
+                      }}
+                    >
+                      {expandedLogId === selectedMobileLog.id
+                        ? "Hide Details"
+                        : "View Details"}
+                    </Button>
+                  )}
+                </MobileFloatingTableAction>
 
                 <Pagination
                   page={page}

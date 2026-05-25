@@ -10,6 +10,7 @@ import ErrorState from "../../../components/ui/ErrorState";
 import FloatingAlert from "../../../components/ui/FloatingAlert";
 import Input from "../../../components/ui/Input";
 import LoadingState from "../../../components/ui/LoadingState";
+import MobileFloatingTableAction from "../../../components/ui/MobileFloatingTableAction";
 import PageContainer from "../../../components/ui/PageContainer";
 import PageHeader from "../../../components/ui/PageHeader";
 import Pagination from "../../../components/ui/Pagination";
@@ -88,8 +89,10 @@ function DepartmentsPage() {
   const [departmentToDelete, setDepartmentToDelete] =
     useState<Department | null>(null);
 
-  const [confirmError, setConfirmError] = useState("");
+  const [selectedMobileDepartment, setSelectedMobileDepartment] =
+    useState<Department | null>(null);
 
+  const [confirmError, setConfirmError] = useState("");
   const [departmentToToggleStatus, setDepartmentToToggleStatus] =
     useState<Department | null>(null);
 
@@ -199,6 +202,12 @@ function DepartmentsPage() {
     } finally {
       setIsSaving(false);
     }
+  }
+
+  function toggleMobileDepartmentActions(department: Department) {
+    setSelectedMobileDepartment((current) =>
+      current?.id === department.id ? null : department,
+    );
   }
 
   function handleToggleStatus(department: Department) {
@@ -422,7 +431,9 @@ function DepartmentsPage() {
                       <tr>
                         <th className="px-4 py-3">Department</th>
                         <th className="px-4 py-3">Status</th>
-                        <th className="px-4 py-3 text-right">Actions</th>
+                        <th className="hidden px-4 py-3 text-right lg:table-cell">
+                          Actions
+                        </th>
                       </tr>
                     </thead>
 
@@ -434,7 +445,16 @@ function DepartmentsPage() {
                         return (
                           <tr key={department.id} className="hover:bg-gray-50">
                             <td className="px-4 py-3 font-medium text-primary-black">
-                              {department.name}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  toggleMobileDepartmentActions(department)
+                                }
+                                className="block max-w-[240px] truncate text-left lg:pointer-events-none"
+                                title="Tap to show actions"
+                              >
+                                {department.name}
+                              </button>
                             </td>
 
                             <td className="px-4 py-3">
@@ -447,7 +467,7 @@ function DepartmentsPage() {
                               </StatusBadge>
                             </td>
 
-                            <td className="px-4 py-3">
+                            <td className="hidden px-4 py-3 lg:table-cell">
                               <div className="flex justify-end gap-2 whitespace-nowrap">
                                 <Button
                                   type="button"
@@ -492,6 +512,59 @@ function DepartmentsPage() {
                     </tbody>
                   </table>
                 </TableWrapper>
+
+                <MobileFloatingTableAction
+                  isOpen={Boolean(selectedMobileDepartment)}
+                  reference={selectedMobileDepartment?.name ?? ""}
+                  label="Selected department"
+                  onClose={() => setSelectedMobileDepartment(null)}
+                >
+                  {selectedMobileDepartment && (
+                    <>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => startEdit(selectedMobileDepartment)}
+                      >
+                        Edit
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant={
+                          selectedMobileDepartment.is_active
+                            ? "secondary"
+                            : "primary"
+                        }
+                        size="sm"
+                        onClick={() =>
+                          handleToggleStatus(selectedMobileDepartment)
+                        }
+                        disabled={
+                          actionDepartmentId === selectedMobileDepartment.id
+                        }
+                        className="min-w-[92px]"
+                      >
+                        {selectedMobileDepartment.is_active
+                          ? "Deactivate"
+                          : "Activate"}
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="danger"
+                        size="sm"
+                        onClick={() => handleDelete(selectedMobileDepartment)}
+                        disabled={
+                          actionDepartmentId === selectedMobileDepartment.id
+                        }
+                      >
+                        Delete
+                      </Button>
+                    </>
+                  )}
+                </MobileFloatingTableAction>
 
                 <Pagination
                   page={page}

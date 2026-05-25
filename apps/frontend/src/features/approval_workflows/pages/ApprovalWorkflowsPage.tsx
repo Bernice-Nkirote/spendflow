@@ -11,10 +11,15 @@ import EmptyState from "../../../components/ui/EmptyState";
 import FloatingAlert from "../../../components/ui/FloatingAlert";
 import Input from "../../../components/ui/Input";
 import LoadingState from "../../../components/ui/LoadingState";
+import MobileFloatingTableAction from "../../../components/ui/MobileFloatingTableAction";
 import PageContainer from "../../../components/ui/PageContainer";
 import PageHeader from "../../../components/ui/PageHeader";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import TableWrapper from "../../../components/ui/TableWrapper";
+import {
+  stickyLeftCell,
+  stickyLeftHeader,
+} from "../../../components/ui/tableStickyStyles";
 import {
   activateApprovalWorkflow,
   createApprovalWorkflow,
@@ -52,6 +57,8 @@ function ApprovalWorkflowsPage() {
   const [editingWorkflow, setEditingWorkflow] =
     useState<ApprovalWorkflow | null>(null);
   const [workflowToToggle, setWorkflowToToggle] =
+    useState<ApprovalWorkflow | null>(null);
+  const [selectedMobileWorkflow, setSelectedMobileWorkflow] =
     useState<ApprovalWorkflow | null>(null);
 
   const [name, setName] = useState("");
@@ -95,6 +102,12 @@ function ApprovalWorkflowsPage() {
     setEditingWorkflow(workflow);
     setName(workflow.name);
     setEntityType(workflow.entity_type);
+  }
+
+  function toggleMobileWorkflowActions(workflow: ApprovalWorkflow) {
+    setSelectedMobileWorkflow((current) =>
+      current?.id === workflow.id ? null : workflow,
+    );
   }
 
   function getEntityTypeLabel(value: ApprovalEntityType) {
@@ -291,7 +304,9 @@ function ApprovalWorkflowsPage() {
             <table className="w-full divide-y divide-gray-200 bg-white text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                  <th
+                    className={`${stickyLeftHeader} whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray`}
+                  >
                     Workflow
                   </th>
                   <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
@@ -303,7 +318,7 @@ function ApprovalWorkflowsPage() {
                   <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
                     Status
                   </th>
-                  <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                  <th className="hidden whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray lg:table-cell">
                     Actions
                   </th>
                 </tr>
@@ -311,9 +326,18 @@ function ApprovalWorkflowsPage() {
 
               <tbody className="divide-y divide-gray-100 bg-white">
                 {workflows.map((workflow) => (
-                  <tr key={workflow.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-primary-black">
-                      {workflow.name}
+                  <tr key={workflow.id} className="group hover:bg-gray-50">
+                    <td
+                      className={`${stickyLeftCell} px-4 py-3 font-medium text-primary-black`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleMobileWorkflowActions(workflow)}
+                        className="block max-w-[260px] truncate text-left lg:pointer-events-none"
+                        title="Tap to show actions"
+                      >
+                        {workflow.name}
+                      </button>
                     </td>
 
                     <td className="whitespace-nowrap px-4 py-3 text-primary-black">
@@ -332,7 +356,7 @@ function ApprovalWorkflowsPage() {
                       </StatusBadge>
                     </td>
 
-                    <td className="whitespace-nowrap px-4 py-3 text-right">
+                    <td className="hidden whitespace-nowrap px-4 py-3 text-right lg:table-cell">
                       <div className="flex flex-wrap justify-end gap-2">
                         <Button
                           type="button"
@@ -370,6 +394,48 @@ function ApprovalWorkflowsPage() {
             </table>
           </TableWrapper>
         )}
+
+        <MobileFloatingTableAction
+          isOpen={Boolean(selectedMobileWorkflow)}
+          reference={selectedMobileWorkflow?.name ?? ""}
+          label="Selected approval workflow"
+          onClose={() => setSelectedMobileWorkflow(null)}
+        >
+          {selectedMobileWorkflow && (
+            <>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() =>
+                  navigate(`/approval-workflows/${selectedMobileWorkflow.id}`)
+                }
+              >
+                View Details
+              </Button>
+
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => startEdit(selectedMobileWorkflow)}
+              >
+                Edit
+              </Button>
+
+              <Button
+                type="button"
+                variant={
+                  selectedMobileWorkflow.is_active ? "secondary" : "success"
+                }
+                size="sm"
+                onClick={() => setWorkflowToToggle(selectedMobileWorkflow)}
+                disabled={actionWorkflowId === selectedMobileWorkflow.id}
+              >
+                {selectedMobileWorkflow.is_active ? "Deactivate" : "Activate"}
+              </Button>
+            </>
+          )}
+        </MobileFloatingTableAction>
       </Card>
 
       <ConfirmDialog

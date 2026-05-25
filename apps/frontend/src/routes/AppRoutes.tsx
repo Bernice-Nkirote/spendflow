@@ -106,6 +106,10 @@ function AppRoutes() {
             element={
               <PermissionRoute
                 requiredPermissions={[
+                  "pr.view",
+                  "po.view",
+                  "invoice.view",
+                  "payment.view",
                   "pr.approve",
                   "po.approve",
                   "invoice.approve",
@@ -121,6 +125,10 @@ function AppRoutes() {
             element={
               <PermissionRoute
                 requiredPermissions={[
+                  "pr.view",
+                  "po.view",
+                  "invoice.view",
+                  "payment.view",
                   "pr.approve",
                   "po.approve",
                   "invoice.approve",

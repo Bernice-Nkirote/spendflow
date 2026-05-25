@@ -10,12 +10,17 @@ import ErrorState from "../../../components/ui/ErrorState";
 import FloatingAlert from "../../../components/ui/FloatingAlert";
 import Input from "../../../components/ui/Input";
 import LoadingState from "../../../components/ui/LoadingState";
+import MobileFloatingTableAction from "../../../components/ui/MobileFloatingTableAction";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import PageContainer from "../../../components/ui/PageContainer";
 import PageHeader from "../../../components/ui/PageHeader";
 import Pagination from "../../../components/ui/Pagination";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import TableWrapper from "../../../components/ui/TableWrapper";
+import {
+  stickyLeftCell,
+  stickyLeftHeader,
+} from "../../../components/ui/tableStickyStyles";
 import { useFloatingAlert } from "../../../components/ui/useFloatingAlert";
 import PhoneInputField from "../../../components/ui/PhoneInputField";
 
@@ -92,6 +97,11 @@ function UsersPage() {
   );
   const [userToResendSetup, setUserToResendSetup] = useState<User | null>(null);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+
+  const [selectedMobileUser, setSelectedMobileUser] = useState<User | null>(
+    null,
+  );
+
   const [confirmError, setConfirmError] = useState("");
 
   const { alert, showAlert, clearAlert } = useFloatingAlert();
@@ -122,6 +132,10 @@ function UsersPage() {
 
   function handlePageChange(nextPage: number) {
     updatePaginationSearchParams(nextPage, pageSize);
+  }
+
+  function toggleMobileUserActions(user: User) {
+    setSelectedMobileUser((current) => (current?.id === user.id ? null : user));
   }
 
   function handlePageSizeChange(nextPageSize: number) {
@@ -251,6 +265,11 @@ function UsersPage() {
       return;
     }
 
+    if (!departmentId && !isProtectedOwner(editingUser)) {
+      showAlert("error", "Department is required for users.");
+      return;
+    }
+
     try {
       setIsSaving(true);
 
@@ -269,7 +288,7 @@ function UsersPage() {
           name: trimmedName,
           email: trimmedEmail,
           phone_number: normalizedPhoneNumber,
-          department_id: departmentId || null,
+          department_id: departmentId,
           role_id: roleId,
         });
 
@@ -505,7 +524,11 @@ function UsersPage() {
                     onChange={(event) => setDepartmentId(event.target.value)}
                     className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
                   >
-                    <option value="">No department</option>
+                    <option value="">
+                      {isProtectedOwner(editingUser)
+                        ? "No department"
+                        : "Select department"}
+                    </option>
                     {activeDepartments.map((department) => (
                       <option key={department.id} value={department.id}>
                         {department.name}
@@ -598,11 +621,13 @@ function UsersPage() {
                   <table className="w-full table-fixed text-left text-sm">
                     <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
                       <tr>
-                        <th className="w-[24%] px-4 py-3">User</th>
+                        <th className={`${stickyLeftHeader} w-[24%] px-4 py-3`}>
+                          User
+                        </th>
                         <th className="w-[15%] px-4 py-3">Role</th>
                         <th className="w-[15%] px-4 py-3">Department</th>
                         <th className="w-[12%] px-4 py-3">Status</th>
-                        <th className="w-[34%] px-4 py-3 text-right">
+                        <th className="hidden w-[34%] px-4 py-3 text-right lg:table-cell">
                           Actions
                         </th>
                       </tr>
@@ -614,23 +639,30 @@ function UsersPage() {
                         const isActionLoading = actionUserId === user.id;
 
                         return (
-                          <tr key={user.id} className="hover:bg-gray-50">
-                            <td className="px-4 py-3">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className="font-medium text-primary-black">
-                                  {user.name}
-                                </span>
+                          <tr key={user.id} className="group hover:bg-gray-50">
+                            <td className={`${stickyLeftCell} px-4 py-3`}>
+                              <button
+                                type="button"
+                                onClick={() => toggleMobileUserActions(user)}
+                                className="block w-full text-left lg:pointer-events-none"
+                                title="Tap to show actions"
+                              >
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="font-medium text-primary-black">
+                                    {user.name}
+                                  </span>
 
-                                {isProtectedOwner(user) && (
-                                  <StatusBadge variant="info">
-                                    Company Owner
-                                  </StatusBadge>
-                                )}
-                              </div>
+                                  {isProtectedOwner(user) && (
+                                    <StatusBadge variant="info">
+                                      Company Owner
+                                    </StatusBadge>
+                                  )}
+                                </div>
 
-                              <p className="mt-1 truncate text-xs text-gray-500">
-                                {user.email}
-                              </p>
+                                <p className="mt-1 truncate text-xs text-gray-500">
+                                  {user.email}
+                                </p>
+                              </button>
                             </td>
 
                             <td className="px-4 py-3 text-gray-700">
@@ -647,7 +679,7 @@ function UsersPage() {
                               </StatusBadge>
                             </td>
 
-                            <td className="px-4 py-3">
+                            <td className="hidden px-4 py-3 lg:table-cell">
                               <div className="flex items-center justify-end gap-2 whitespace-nowrap">
                                 <Button
                                   type="button"
@@ -710,6 +742,75 @@ function UsersPage() {
                     </tbody>
                   </table>
                 </TableWrapper>
+
+                <MobileFloatingTableAction
+                  isOpen={Boolean(selectedMobileUser)}
+                  reference={selectedMobileUser?.name ?? ""}
+                  label="Selected user"
+                  onClose={() => setSelectedMobileUser(null)}
+                >
+                  {selectedMobileUser && (
+                    <>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => startEdit(selectedMobileUser)}
+                      >
+                        Edit
+                      </Button>
+
+                      {!selectedMobileUser.has_completed_onboarding &&
+                        !isProtectedOwner(selectedMobileUser) && (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={() =>
+                              handleResendSetupLink(selectedMobileUser)
+                            }
+                            disabled={actionUserId === selectedMobileUser.id}
+                            className="min-w-[92px]"
+                          >
+                            {actionUserId === selectedMobileUser.id
+                              ? "Sending..."
+                              : "Resend"}
+                          </Button>
+                        )}
+
+                      <Button
+                        type="button"
+                        variant={
+                          selectedMobileUser.is_active ? "secondary" : "primary"
+                        }
+                        size="sm"
+                        onClick={() => handleToggleStatus(selectedMobileUser)}
+                        disabled={
+                          actionUserId === selectedMobileUser.id ||
+                          isProtectedOwner(selectedMobileUser)
+                        }
+                        className="min-w-[92px]"
+                      >
+                        {selectedMobileUser.is_active
+                          ? "Deactivate"
+                          : "Activate"}
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="danger"
+                        size="sm"
+                        onClick={() => handleDelete(selectedMobileUser)}
+                        disabled={
+                          actionUserId === selectedMobileUser.id ||
+                          isProtectedOwner(selectedMobileUser)
+                        }
+                      >
+                        Delete
+                      </Button>
+                    </>
+                  )}
+                </MobileFloatingTableAction>
 
                 <Pagination
                   page={page}

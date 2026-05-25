@@ -6,10 +6,17 @@ import Card from "../../../components/ui/Card";
 import EmptyState from "../../../components/ui/EmptyState";
 import ErrorState from "../../../components/ui/ErrorState";
 import LoadingState from "../../../components/ui/LoadingState";
+import MobileFloatingTableAction from "../../../components/ui/MobileFloatingTableAction";
 import PageContainer from "../../../components/ui/PageContainer";
 import PageHeader from "../../../components/ui/PageHeader";
 import Pagination from "../../../components/ui/Pagination";
 import TableWrapper from "../../../components/ui/TableWrapper";
+import {
+  stickyLeftCell,
+  stickyLeftHeader,
+  stickyRightCell,
+  stickyRightHeader,
+} from "../../../components/ui/tableStickyStyles";
 import { formatCurrency } from "../../../utils/formatCurrency";
 import {
   getPaginatedApprovalInstances,
@@ -44,6 +51,11 @@ function ApprovalQueuePage() {
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
 
   const [error, setError] = useState("");
+  const [selectedMobileApproval, setSelectedMobileApproval] = useState<{
+    instance: ApprovalInstance;
+    actionLabel: string;
+    actionVariant: "primary" | "secondary";
+  } | null>(null);
 
   useEffect(() => {
     async function loadPendingApprovals() {
@@ -108,99 +120,157 @@ function ApprovalQueuePage() {
     navigate(`/approvals/${instanceId}`);
   }
 
+  function toggleMobileApprovalActions(
+    instance: ApprovalInstance,
+    actionLabel: string,
+    actionVariant: "primary" | "secondary",
+  ) {
+    setSelectedMobileApproval((current) =>
+      current?.instance.id === instance.id
+        ? null
+        : { instance, actionLabel, actionVariant },
+    );
+  }
+
   function renderApprovalTable(
     instances: ApprovalInstance[],
     actionLabel: string,
     actionVariant: "primary" | "secondary",
     showLastComment = false,
   ) {
+    const isSelectedFromThisTable = instances.some(
+      (instance) => instance.id === selectedMobileApproval?.instance.id,
+    );
+
     return (
-      <TableWrapper minWidth="1100px">
-        <table className="w-full divide-y divide-gray-200 bg-white text-sm">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
-                Entity Type
-              </th>
-              <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
-                Reference
-              </th>
-              <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
-                Requester
-              </th>
-              <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
-                Amount
-              </th>
-              <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
-                Status
-              </th>
-              {showLastComment ? (
+      <>
+        <TableWrapper minWidth="1100px">
+          <table className="w-full divide-y divide-gray-200 bg-white text-sm">
+            <thead className="bg-gray-50">
+              <tr>
                 <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
-                  Last Comment
+                  Entity Type
                 </th>
-              ) : (
+                <th
+                  className={`${stickyLeftHeader} whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray`}
+                >
+                  Reference
+                </th>
                 <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
-                  Created
+                  Requester
                 </th>
-              )}
-              <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
-                Actions
-              </th>
-            </tr>
-          </thead>
+                <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                  Amount
+                </th>
+                <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                  Status
+                </th>
+                {showLastComment ? (
+                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                    Last Comment
+                  </th>
+                ) : (
+                  <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                    Created
+                  </th>
+                )}
+                <th
+                  className={`${stickyRightHeader} hidden whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray lg:table-cell`}
+                >
+                  Actions
+                </th>
+              </tr>
+            </thead>
 
-          <tbody className="divide-y divide-gray-100 bg-white">
-            {instances.map((instance) => {
-              const lastAction =
-                instance.actions?.[instance.actions.length - 1];
+            <tbody className="divide-y divide-gray-100 bg-white">
+              {instances.map((instance) => {
+                const lastAction =
+                  instance.actions?.[instance.actions.length - 1];
 
-              return (
-                <tr key={instance.id} className="hover:bg-gray-50">
-                  <td className="whitespace-nowrap px-4 py-3 font-medium text-primary-black">
-                    {instance.entity_type}
-                  </td>
+                return (
+                  <tr key={instance.id} className="group hover:bg-gray-50">
+                    <td className="whitespace-nowrap px-4 py-3 font-medium text-primary-black">
+                      {instance.entity_type}
+                    </td>
 
-                  <td className="px-4 py-3 font-medium text-primary-black">
-                    {instance.entity_reference || "Not available"}
-                  </td>
-
-                  <td className="px-4 py-3 text-primary-gray">
-                    {instance.requester_name || "Not available"}
-                  </td>
-
-                  <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-primary-black">
-                    {formatCurrency(
-                      Number(instance.total_amount ?? 0),
-                      instance.currency || "KES",
-                    )}
-                  </td>
-
-                  <td className="whitespace-nowrap px-4 py-3">
-                    <ApprovalStatusBadge status={instance.status} />
-                  </td>
-
-                  <td className="max-w-md px-4 py-3 text-primary-gray">
-                    {showLastComment
-                      ? lastAction?.comment || "No comment provided."
-                      : formatDate(instance.created_at)}
-                  </td>
-
-                  <td className="whitespace-nowrap px-4 py-3 text-right">
-                    <Button
-                      type="button"
-                      variant={actionVariant}
-                      size="sm"
-                      onClick={() => openApproval(instance.id)}
+                    <td
+                      className={`${stickyLeftCell} px-4 py-3 font-medium text-primary-black`}
                     >
-                      {actionLabel}
-                    </Button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </TableWrapper>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          toggleMobileApprovalActions(
+                            instance,
+                            actionLabel,
+                            actionVariant,
+                          )
+                        }
+                        className="block max-w-[220px] truncate text-left lg:pointer-events-none"
+                        title="Tap to show actions"
+                      >
+                        {instance.entity_reference || "Not available"}
+                      </button>
+                    </td>
+                    <td className="px-4 py-3 text-primary-gray">
+                      {instance.requester_name || "Not available"}
+                    </td>
+
+                    <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums text-primary-black">
+                      {formatCurrency(
+                        Number(instance.total_amount ?? 0),
+                        instance.currency || "KES",
+                      )}
+                    </td>
+
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <ApprovalStatusBadge status={instance.status} />
+                    </td>
+
+                    <td className="max-w-md px-4 py-3 text-primary-gray">
+                      {showLastComment
+                        ? lastAction?.comment || "No comment provided."
+                        : formatDate(instance.created_at)}
+                    </td>
+
+                    <td
+                      className={`${stickyRightCell} hidden whitespace-nowrap px-4 py-3 text-right lg:table-cell`}
+                    >
+                      <Button
+                        type="button"
+                        variant={actionVariant}
+                        size="sm"
+                        onClick={() => openApproval(instance.id)}
+                      >
+                        {actionLabel}
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </TableWrapper>
+
+        <MobileFloatingTableAction
+          isOpen={Boolean(selectedMobileApproval && isSelectedFromThisTable)}
+          reference={
+            selectedMobileApproval?.instance.entity_reference ?? "Approval"
+          }
+          label="Selected approval"
+          onClose={() => setSelectedMobileApproval(null)}
+        >
+          {selectedMobileApproval && isSelectedFromThisTable && (
+            <Button
+              type="button"
+              variant={selectedMobileApproval.actionVariant}
+              size="sm"
+              onClick={() => openApproval(selectedMobileApproval.instance.id)}
+            >
+              {selectedMobileApproval.actionLabel}
+            </Button>
+          )}
+        </MobileFloatingTableAction>
+      </>
     );
   }
 
