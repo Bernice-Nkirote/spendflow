@@ -71,6 +71,12 @@ class UserService:
                     detail="Phone number already exists in this company.",
                 )
 
+        if not user_data.department_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Department is required when creating a user.",
+            )
+
         raw_setup_token = generate_secure_token()
         token_hash_value = hash_token(raw_setup_token)
 
@@ -497,6 +503,16 @@ class UserService:
             )
 
         update_data = user_data.model_dump(exclude_unset=True)
+
+        if (
+            "department_id" in update_data
+            and update_data["department_id"] is None
+            and not user.is_company_owner
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Department is required for users. Only the company owner may remain without a department.",
+            )
 
         if user.is_company_owner:
             if "role_id" in update_data and update_data["role_id"] != user.role_id:

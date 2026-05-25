@@ -100,6 +100,7 @@ def get_my_pending_queue(
     return service.get_my_pending_queue(
         company_id=user.company_id,
         role_id=user.role_id,
+        department_id=user.department_id,
         skip=skip,
         limit=limit,
     )

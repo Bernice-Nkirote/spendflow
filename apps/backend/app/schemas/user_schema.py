@@ -9,7 +9,7 @@ class UserCreate(BaseModel):
     name: str
     email: EmailStr
     phone_number: Optional[str] = None
-    department_id: Optional[UUID] = None
+    department_id: UUID
     role_id: UUID
    
 

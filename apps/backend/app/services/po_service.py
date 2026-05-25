@@ -597,6 +597,30 @@ class PurchaseOrderService:
             total_count=total_count,
         )
 
+    def get_ready_for_invoicing_pos(
+        self,
+        company_id: UUID,
+        role_id: UUID,
+    ) -> list[PurchaseOrder]:
+        if not self.permission_service.role_has_permission(
+            role_id=role_id,
+            permission_name="invoice.create",
+            company_id=company_id,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to create invoices",
+            )
+
+        purchase_orders = self.po_repo.get_ready_for_invoicing(
+            company_id=company_id,
+        )
+
+        return [
+            self._enrich_po_readable_fields(po)
+            for po in purchase_orders
+        ]
+
     def get_all_pos_by_supplier(
         self,
         supplier_id: UUID,

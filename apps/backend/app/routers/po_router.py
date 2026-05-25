@@ -268,6 +268,18 @@ def get_purchase_orders_by_supplier(
         limit=limit,
     )
 
+@router.get(
+    "/ready-for-invoicing",
+    response_model=list[PurchaseOrderDetailRead],
+)
+def get_purchase_orders_ready_for_invoicing(
+    current_user=Depends(get_current_user),
+    service: PurchaseOrderService = Depends(get_purchase_order_service),
+):
+    return service.get_ready_for_invoicing_pos(
+        company_id=current_user.company_id,
+        role_id=current_user.role_id,
+    )
 
 @router.get("/{po_id}", response_model=PurchaseOrderDetailRead)
 def get_purchase_order(

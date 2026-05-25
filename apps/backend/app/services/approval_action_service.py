@@ -126,6 +126,18 @@ class ApprovalActionService:
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="User is not allowed to act on this workflow level",
             )
+        
+        if current_user.department_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User must belong to the workflow level department to approve this request",
+            )
+
+        if level.department_id != current_user.department_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User is not allowed to approve requests for this department",
+            )
 
         existing_action_for_instance = self.action_repo.get_by_instance_and_user(
             instance_id=data.instance_id,

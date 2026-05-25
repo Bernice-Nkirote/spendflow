@@ -3,6 +3,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.enums import POStatusEnum
+from app.models.invoice import Invoice
 from app.models.purchase_order import PurchaseOrder
 
 class PurchaseOrderRepository:
@@ -61,6 +62,39 @@ class PurchaseOrderRepository:
             .order_by(PurchaseOrder.created_at.desc())
             .offset(skip)
             .limit(limit)
+            .all()
+        )
+
+    def get_ready_for_invoicing(
+        self,
+        company_id: UUID,
+    ) -> list[PurchaseOrder]:
+        return (
+            self.db.query(PurchaseOrder)
+            .options(
+                joinedload(PurchaseOrder.supplier),
+                joinedload(PurchaseOrder.department),
+                joinedload(PurchaseOrder.creator),
+                joinedload(PurchaseOrder.submitter),
+                joinedload(PurchaseOrder.issuer),
+                joinedload(PurchaseOrder.signed_pdf_uploader),
+                joinedload(PurchaseOrder.purchase_requisition),
+                joinedload(PurchaseOrder.items),
+            )
+            .outerjoin(
+                Invoice,
+                (Invoice.purchase_order_id == PurchaseOrder.id)
+                & (Invoice.company_id == company_id),
+            )
+            .filter(
+                PurchaseOrder.company_id == company_id,
+                PurchaseOrder.status.in_([
+                    POStatusEnum.APPROVED,
+                    POStatusEnum.SENT,
+                ]),
+                Invoice.id.is_(None),
+            )
+            .order_by(PurchaseOrder.created_at.desc())
             .all()
         )
 

@@ -94,6 +94,25 @@ class PurchaseRequisitionRepository:
             .all()
         )
 
+    def get_ready_for_po(
+        self,
+        company_id: UUID,
+    ) -> list[PurchaseRequisition]:
+        return (
+            self.db.query(PurchaseRequisition)
+            .options(
+                joinedload(PurchaseRequisition.department),
+                joinedload(PurchaseRequisition.requester),
+                joinedload(PurchaseRequisition.items),
+            )
+            .filter(
+                PurchaseRequisition.company_id == company_id,
+                PurchaseRequisition.status == PRStatusEnum.APPROVED,
+            )
+            .order_by(PurchaseRequisition.created_at.desc())
+            .all()
+        )
+
     def get_by_department(
         self,
         department_id: UUID,

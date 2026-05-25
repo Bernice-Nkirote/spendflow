@@ -352,6 +352,23 @@ class PurchaseRequisitionService:
             total_count=total_count,
         )
 
+    def get_ready_for_po_requisitions(
+        self,
+        company_id: UUID,
+        role_id: UUID,
+    ) -> list[PurchaseRequisition]:
+        if not self.permission_service.role_has_permission(
+            role_id=role_id,
+            permission_name="po.create",
+            company_id=company_id,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to create purchase orders",
+            )
+
+        return self.requisition_repo.get_ready_for_po(company_id=company_id)
+
     def get_all_purchase_requisitions_by_status(
         self,
         pr_status: PRStatusEnum,

@@ -176,6 +176,19 @@ def get_purchase_requisitions_by_department(
     )
 
 
+@router.get(
+    "/ready-for-po",
+    response_model=list[PurchaseRequisitionRead],
+)
+def get_purchase_requisitions_ready_for_po(
+    current_user=Depends(get_current_user),
+    service: PurchaseRequisitionService = Depends(get_purchase_requisition_service),
+):
+    return service.get_ready_for_po_requisitions(
+        company_id=current_user.company_id,
+        role_id=current_user.role_id,
+    )
+
 @router.get("/{requisition_id}", response_model=PurchaseRequisitionDetailRead)
 def get_purchase_requisition(
     requisition_id: UUID,

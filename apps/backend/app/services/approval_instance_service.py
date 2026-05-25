@@ -400,6 +400,7 @@ class ApprovalInstanceService:
         self,
         company_id: uuid.UUID,
         role_id: uuid.UUID,
+        department_id: uuid.UUID | None,
         skip: int = 0,
         limit: int = 10,
     ) -> dict:
@@ -418,6 +419,7 @@ class ApprovalInstanceService:
         instances = self.repo.get_my_pending_queue(
             company_id=company_id,
             role_id=role_id,
+            department_id=department_id,
             skip=skip,
             limit=limit,
         )
@@ -425,6 +427,7 @@ class ApprovalInstanceService:
         total_count = self.repo.count_my_pending_queue(
             company_id=company_id,
             role_id=role_id,
+            department_id=department_id,
         )
 
         return {
