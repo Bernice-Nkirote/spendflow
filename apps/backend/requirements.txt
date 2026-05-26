@@ -25,6 +25,6 @@ python-dotenv
 # po pdf and email dependancies 
 Jinja2
 reportlab
-
+openpyxl
 # render
 gunicorn
