@@ -142,15 +142,15 @@ class EmailService:
     ) -> None:
         greeting_name = user_name.strip() if user_name and user_name.strip() else "User"
 
-        subject = "Your SpendFlow account has been created"
+        subject = "Your Tendaflow account has been created"
         body = (
             f"Dear {greeting_name},\n\n"
-            "Your SpendFlow user profile has been created.\n\n"
+            "Your Tendaflow user profile has been created.\n\n"
             "Please use the link below to set your password and activate your account:\n\n"
             f"{setup_link}\n\n"
             "For security, this link will expire. If the link expires, please contact your administrator.\n\n"
             "Best regards,\n"
-            "SpendFlow Team"
+            "Tendaflow Team"
         )
 
         self.send_email(
@@ -172,15 +172,15 @@ class EmailService:
             else "Supplier"
         )
 
-        subject = "Your SpendFlow supplier portal account has been created"
+        subject = "Your Tendaflow supplier portal account has been created"
         body = (
             f"Dear {greeting_name},\n\n"
-            "A supplier portal account has been created for you on SpendFlow.\n\n"
+            "A supplier portal account has been created for you on Tendaflow.\n\n"
             "Please use the link below to set your password and activate your supplier portal access:\n\n"
             f"{setup_link}\n\n"
             "For security, this link will expire in 24 hours. If the link expires, please contact the procurement team.\n\n"
             "Best regards,\n"
-            "SpendFlow Team"
+            "Tendaflow Team"
         )
 
         self.send_email(
@@ -198,16 +198,16 @@ class EmailService:
     ) -> None:
         greeting_name = user_name.strip() if user_name and user_name.strip() else "User"
 
-        subject = "Reset your SpendFlow password"
+        subject = "Reset your Tendaflow password"
         body = (
             f"Dear {greeting_name},\n\n"
-            "We received a request to reset your SpendFlow password.\n\n"
+            "We received a request to reset your Tendaflow password.\n\n"
             "Please use the link below to create a new password:\n\n"
             f"{reset_link}\n\n"
             "For security, this link will expire in 60 minutes. "
             "If you did not request this reset, you can safely ignore this email.\n\n"
             "Best regards,\n"
-            "SpendFlow Team"
+            "Tendaflow Team"
         )
 
         self.send_email(
@@ -229,16 +229,16 @@ class EmailService:
             else "Supplier"
         )
 
-        subject = "Reset your SpendFlow supplier portal password"
+        subject = "Reset your Tendaflow supplier portal password"
         body = (
             f"Dear {greeting_name},\n\n"
-            "We received a request to reset your SpendFlow supplier portal password.\n\n"
+            "We received a request to reset your Tendaflow supplier portal password.\n\n"
             "Please use the link below to create a new password:\n\n"
             f"{reset_link}\n\n"
             "For security, this link will expire in 10 minutes. "
             "If you did not request this reset, you can safely ignore this email.\n\n"
             "Best regards,\n"
-            "SpendFlow Team"
+            "Tendaflow Team"
         )
 
         self.send_email(

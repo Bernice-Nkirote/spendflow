@@ -14,7 +14,7 @@ email_service = EmailService(
 # ✅ then call it
 email_service.send_email(
     to_email="bernicemwirigi@gmail.com",
-    subject="SMTP Test - SpendFlow",
+    subject="SMTP Test - Tendaflow",
     body="Hello,\n\nThis is a test email.\n\nIf you received this, it works.",
 )
 
