@@ -240,9 +240,9 @@ function GlobalSearch({
         </button>
 
         {isSearchOpen && (
-          <div className="fixed inset-0 z-[80] bg-gray-700/25 px-3 pt-4 backdrop-blur-md">
-            <div className="mx-auto w-full max-w-md rounded-3xl border border-gray-200 bg-white p-3 shadow-2xl">
-              <div className="flex h-12 items-center rounded-2xl border border-grey/50 bg-white/55 px-3 shadow-lg shadow-blue-100/20 backdrop-blur-lg">
+          <div className="fixed inset-0 z-[80] bg-gradient-to-b from-[#E7ECEF]/55 via-[#DCE7F5]/45 to-[#C9DBF5]/55 px-3 pt-4 backdrop-blur-md">
+            <div className="mx-auto w-full max-w-md rounded-3xl border border-white/70 bg-white/90 p-3 shadow-[0_20px_45px_rgba(39,76,119,0.18)] backdrop-blur-xl">
+              <div className="flex h-12 items-center rounded-2xl border border-[#D7E3F4] bg-white/95 px-3 shadow-[0_8px_24px_rgba(39,76,119,0.14)] backdrop-blur-lg">
                 <span className="mr-3 shrink-0 text-primary-blue">
                   <SearchIcon />
                 </span>
@@ -279,7 +279,7 @@ function GlobalSearch({
               </div>
 
               {searchQuery.trim().length >= 2 && (
-                <div className="mt-3 max-h-[70vh] overflow-y-auto rounded-2xl border border-gray-100 bg-white p-3 [scrollbar-width:thin] [scrollbar-color:rgba(39,76,119,0.35)_transparent]">
+                <div className="mt-3 max-h-[70vh] overflow-y-auto rounded-2xl border border-[#D7E3F4] bg-white/95 p-3 shadow-sm [scrollbar-width:thin] [scrollbar-color:rgba(39,76,119,0.35)_transparent]">
                   {renderResults()}
                 </div>
               )}

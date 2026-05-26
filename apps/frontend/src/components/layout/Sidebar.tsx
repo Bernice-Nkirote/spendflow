@@ -61,14 +61,21 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
       <aside
         className={`
           fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 transform flex-col overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.25)_transparent]
-           bg-primary-blue text-white transition-transform duration-200
+           bg-[#274C77] text-white transition-transform duration-200
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
           lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 lg:shadow-[4px_0_12px_rgba(0,0,0,0.05)]
         `}
       >
-        <div className="border-b border-white/20 px-6 py-5">
-          <h1 className="text-2xl font-bold">SpendFlow</h1>
-          <p className="mt-1 text-sm text-white/70">Procurement System</p>
+        <div className="border-b border-white/20 px-5 py-5">
+          <img
+            src="/tendaflow-sidebar-logo-primary-polished.svg"
+            alt="Tendaflow"
+            className="h-auto w-full max-w-[190px] rounded-2xl object-contain shadow-[0_8px_20px_rgba(0,0,0,0.18)]"
+          />
+
+          <p className="mt-3 text-sm font-medium text-white/70">
+            Procurement System
+          </p>
         </div>
 
         <nav className="flex-1 space-y-5 px-4 py-5">
@@ -102,7 +109,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
         <div className="border-t border-white/10 px-5 py-4 text-xs text-white/55">
           <p className="font-semibold text-white/70">Gura Systems</p>
-          <p className="mt-1">SpendFlow © {currentYear}</p>
+          <p className="mt-1">Tendaflow © {currentYear}</p>
         </div>
       </aside>
     </>

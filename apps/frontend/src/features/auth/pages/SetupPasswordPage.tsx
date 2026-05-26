@@ -69,7 +69,7 @@ function SetupPasswordPage() {
       <section className="mx-auto max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-slate-900">
-            Set your SpendFlow password
+            Set your Tendaflow password
           </h1>
           <p className="mt-2 text-sm text-slate-600">
             Create your password to activate your account and sign in.

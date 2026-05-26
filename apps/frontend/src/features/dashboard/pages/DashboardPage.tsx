@@ -39,7 +39,7 @@ export default function DashboardPage() {
       <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
         <div className="max-w-3xl">
           <p className="text-sm font-medium text-primary-blue">
-            SpendFlow Overview
+            Tendaflow Overview
           </p>
 
           <h1 className="mt-2 text-2xl font-semibold tracking-tight text-primary-black sm:text-3xl">

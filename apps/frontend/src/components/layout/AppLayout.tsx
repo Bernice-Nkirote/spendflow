@@ -4,6 +4,7 @@ import { useInactivityLogout } from "../../features/auth/hooks/useInactivityLogo
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import ConfirmDialog from "../ui/ConfirmDialog";
+import ScrollToTopButton from "../ui/ScrollToTopButton";
 
 function AppLayout() {
   const { isSessionWarningOpen, staySignedIn, logoutNow } =
@@ -34,6 +35,7 @@ function AppLayout() {
           <main className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6">
             <Outlet />
           </main>
+          <ScrollToTopButton />
         </div>
       </div>
     </div>

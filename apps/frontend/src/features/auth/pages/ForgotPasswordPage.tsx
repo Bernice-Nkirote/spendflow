@@ -78,7 +78,7 @@ function ForgotPasswordPage() {
     <div className="flex min-h-screen items-center justify-center bg-primary-white px-4 py-8">
       <Card className="w-full max-w-md">
         <div className="mb-6 text-center">
-          <h1 className="text-3xl font-bold text-primary-blue">SpendFlow</h1>
+          <h1 className="text-3xl font-bold text-primary-blue">Tendaflow</h1>
           <p className="mt-2 text-sm text-primary-gray">
             Enter your company and email to receive a password reset link.
           </p>

@@ -153,7 +153,7 @@ function Topbar({ onMenuClick }: TopbarProps) {
 
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary-blue">
-              SpendFlow
+              Tendaflow
             </p>
 
             <h2 className="truncate text-base font-semibold text-primary-black sm:text-lg">
@@ -176,11 +176,11 @@ function Topbar({ onMenuClick }: TopbarProps) {
             {initials}
           </div>
           <div className="xl:hidden">
-            <GlobalSearch placeholder="Search SpendFlow..." variant="overlay" />
+            <GlobalSearch placeholder="Search Tendaflow..." variant="overlay" />
           </div>
 
           <div className="hidden xl:block">
-            <GlobalSearch placeholder="Search SpendFlow..." variant="inline" />
+            <GlobalSearch placeholder="Search Tendaflow..." variant="inline" />
           </div>
           <div ref={notificationRef} className="relative">
             <button

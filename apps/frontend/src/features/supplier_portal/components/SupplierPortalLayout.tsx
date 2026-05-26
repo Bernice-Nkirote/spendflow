@@ -37,7 +37,7 @@ function SupplierPortalLayout() {
       <header className="sticky top-0 z-40 border-b bg-white/95 shadow-sm backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-xl font-bold text-primary-blue">SpendFlow</h1>
+            <h1 className="text-xl font-bold text-primary-blue">Tendaflow</h1>
             <p className="text-sm text-primary-gray">Supplier Portal</p>
           </div>
 
