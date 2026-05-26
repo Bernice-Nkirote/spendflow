@@ -4,8 +4,12 @@ from app.core.config import settings
 
 
 # Creates the connection to PostgreSQL
-engine = create_engine(
-    settings.DATABASE_URL)
+database_url = settings.DATABASE_URL
+
+if database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+
+engine = create_engine(database_url)
 
 # creates sessions in the database and ensures session closes after someone manually closes it.
 SessionLocal = sessionmaker(
