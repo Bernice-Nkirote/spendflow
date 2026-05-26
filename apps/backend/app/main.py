@@ -1,11 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
 from app.core.config import settings
-from app.core.database import Base, engine
+# from app.core.database import Base, engine
 from app.routers import router as main_router
 
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)
 
 # Creates FASTAPI app for you
 app = FastAPI(
