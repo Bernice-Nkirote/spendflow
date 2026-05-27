@@ -1,4 +1,5 @@
 import uuid
+import traceback
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
@@ -40,102 +41,116 @@ class UserService:
         company_id: UUID,
         actor_user_id: UUID,
     ) -> User:
-        name = user_data.name.strip()
-        if not name:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User name is required.",
-            )
-
-        email = user_data.email.strip().lower()
-        if not email:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Email is required.",
-            )
-
-        phone_number = user_data.phone_number.strip() if user_data.phone_number else None
-
-        existing_user = self.repo.get_by_email(email, company_id)
-        if existing_user:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Email already exists in this company.",
-            )
-
-        if phone_number:
-            existing_phone = self.repo.get_by_phone_number(phone_number, company_id)
-            if existing_phone:
+        try:
+            name = user_data.name.strip()
+            if not name:
                 raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="Phone number already exists in this company.",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="User name is required.",
                 )
 
-        if not user_data.department_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Department is required when creating a user.",
+            email = user_data.email.strip().lower()
+            if not email:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Email is required.",
+                )
+
+            phone_number = user_data.phone_number.strip() if user_data.phone_number else None
+
+            existing_user = self.repo.get_by_email(email, company_id)
+            if existing_user:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Email already exists in this company.",
+                )
+
+            if phone_number:
+                existing_phone = self.repo.get_by_phone_number(phone_number, company_id)
+                if existing_phone:
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail="Phone number already exists in this company.",
+                    )
+
+            if not user_data.department_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Department is required when creating a user.",
+                )
+
+            raw_setup_token = generate_secure_token()
+            token_hash_value = hash_token(raw_setup_token)
+
+            user = User(
+                id=uuid.uuid4(),
+                company_id=company_id,
+                department_id=user_data.department_id,
+                role_id=user_data.role_id,
+                name=name,
+                email=email,
+                phone_number=phone_number,
+                hashed_password=hash_password(generate_secure_token()),
+                is_active=False,
+                is_company_owner=False,
+                has_completed_onboarding=False,
+                onboarded_at=None,
             )
 
-        raw_setup_token = generate_secure_token()
-        token_hash_value = hash_token(raw_setup_token)
+            created_user = self.repo.create(user)
 
-        user = User(
-            id=uuid.uuid4(),
-            company_id=company_id,
-            department_id=user_data.department_id,
-            role_id=user_data.role_id,
-            name=name,
-            email=email,
-            phone_number=phone_number,
-            hashed_password=hash_password(generate_secure_token()),
-            is_active=False,
-            is_company_owner=False,
-            has_completed_onboarding=False,
-            onboarded_at=None,
-        )
+            onboarding_token = UserOnboardingToken(
+                id=uuid.uuid4(),
+                company_id=company_id,
+                user_id=created_user.id,
+                token_hash=token_hash_value,
+                expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
+                is_used=False,
+            )
 
-        created_user = self.repo.create(user)
+            self.onboarding_token_repo.create(onboarding_token)
 
-        onboarding_token = UserOnboardingToken(
-            id=uuid.uuid4(),
-            company_id=company_id,
-            user_id=created_user.id,
-            token_hash=token_hash_value,
-            expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
-            is_used=False,
-        )
+            setup_link = f"{settings.FRONTEND_BASE_URL}/setup-password?token={raw_setup_token}"
 
-        self.onboarding_token_repo.create(onboarding_token)
+            try:
+                self.email_service.send_user_onboarding_email(
+                    to_email=created_user.email,
+                    user_name=created_user.name,
+                    setup_link=setup_link,
+                )
+            except Exception as e:
+                print("USER ONBOARDING EMAIL ERROR:", repr(e))
+                raise
 
-        setup_link = f"{settings.FRONTEND_BASE_URL}/setup-password?token={raw_setup_token}"
+            self.audit_log_service.log_action(
+                company_id=company_id,
+                entity_type="USER",
+                entity_id=created_user.id,
+                action="USER_CREATED",
+                actor_user_id=actor_user_id,
+                description=f"User profile created for {created_user.email}",
+                details_json={
+                    "email": created_user.email,
+                    "name": created_user.name,
+                    "department_id": str(created_user.department_id) if created_user.department_id else None,
+                    "role_id": str(created_user.role_id),
+                    "onboarding_email_sent": True,
+                },
+            )
 
-        self.email_service.send_user_onboarding_email(
-            to_email=created_user.email,
-            user_name=created_user.name,
-            setup_link=setup_link,
-        )
+            self.repo.db.commit()
+            self.repo.db.refresh(created_user)
 
-        self.audit_log_service.log_action(
-            company_id=company_id,
-            entity_type="USER",
-            entity_id=created_user.id,
-            action="USER_CREATED",
-            actor_user_id=actor_user_id,
-            description=f"User profile created for {created_user.email}",
-            details_json={
-                "email": created_user.email,
-                "name": created_user.name,
-                "department_id": str(created_user.department_id) if created_user.department_id else None,
-                "role_id": str(created_user.role_id),
-                "onboarding_email_sent": True,
-            },
-        )
+            return created_user
 
-        self.repo.db.commit()
-        self.repo.db.refresh(created_user)
-
-        return created_user
+        except HTTPException:
+            self.repo.db.rollback()
+            raise
+        except Exception as e:
+            self.repo.db.rollback()
+            print("CREATE USER ERROR:", repr(e))
+            traceback.print_exc()
+            raise
     
     def resend_setup_link(
         self,
