@@ -1,4 +1,5 @@
 import uuid
+import traceback
 
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
@@ -189,8 +190,10 @@ class CompanySignupService:
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Signup failed because a unique field already exists. Check backend terminal logs.",
             )
-        except Exception:
+        except Exception as e:
             self.db.rollback()
+            print("SIGNUP UNEXPECTED ERROR:", repr(e))
+            traceback.print_exc()
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Company signup failed.",
