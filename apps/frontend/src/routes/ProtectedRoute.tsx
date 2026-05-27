@@ -4,12 +4,12 @@ import { Navigate, Outlet } from "react-router-dom";
 
 import axiosInstance from "../api/axiosInstance";
 import LoadingState from "../components/ui/LoadingState";
-
-function clearInternalSession() {
-  localStorage.removeItem("access_token");
-  localStorage.removeItem("refresh_token");
-  localStorage.removeItem("user");
-}
+import {
+  clearInternalSession,
+  hasSessionExpiredByInactivity,
+  saveCurrentPathForLogin,
+  updateLastActivity,
+} from "../features/auth/utils/authSession";
 
 async function refreshAccessToken() {
   const refreshToken = localStorage.getItem("refresh_token");
@@ -41,6 +41,13 @@ function ProtectedRoute() {
         const accessToken = localStorage.getItem("access_token");
         const refreshToken = localStorage.getItem("refresh_token");
 
+        if (hasSessionExpiredByInactivity()) {
+          saveCurrentPathForLogin();
+          clearInternalSession();
+          setIsAuthenticated(false);
+          return;
+        }
+
         if (!accessToken && !refreshToken) {
           clearInternalSession();
           setIsAuthenticated(false);
@@ -53,6 +60,7 @@ function ProtectedRoute() {
 
         const userResponse = await axiosInstance.get("/auth/me");
         localStorage.setItem("user", JSON.stringify(userResponse.data));
+        updateLastActivity();
 
         setIsAuthenticated(true);
       } catch (error) {

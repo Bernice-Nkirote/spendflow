@@ -7,6 +7,7 @@ import Button from "../../../components/ui/Button";
 import Card from "../../../components/ui/Card";
 import Input from "../../../components/ui/Input";
 import PasswordInput from "../../../components/ui/PasswordInput";
+import { updateLastActivity } from "../utils/authSession";
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -85,6 +86,7 @@ function LoginPage() {
 
       localStorage.setItem("access_token", accessToken);
       localStorage.setItem("refresh_token", refreshToken);
+      updateLastActivity();
 
       const userResponse = await axiosInstance.get("/auth/me");
       localStorage.setItem("user", JSON.stringify(userResponse.data));

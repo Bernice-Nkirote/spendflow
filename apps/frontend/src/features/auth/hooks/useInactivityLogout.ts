@@ -1,22 +1,12 @@
 import { useEffect, useRef, useState } from "react";
+import {
+  clearInternalSession,
+  saveCurrentPathForLogin,
+  updateLastActivity,
+} from "../utils/authSession";
 
 const INACTIVITY_LIMIT_MS = 30 * 60 * 1000;
 const WARNING_BEFORE_LOGOUT_MS = 2 * 60 * 1000;
-
-function clearInternalSession() {
-  localStorage.removeItem("access_token");
-  localStorage.removeItem("refresh_token");
-  localStorage.removeItem("user");
-}
-
-function saveCurrentPath() {
-  const currentPath =
-    window.location.pathname + window.location.search + window.location.hash;
-
-  if (currentPath !== "/login") {
-    sessionStorage.setItem("returnToAfterLogin", currentPath);
-  }
-}
 
 export function useInactivityLogout() {
   const [isSessionWarningOpen, setIsSessionWarningOpen] = useState(false);
@@ -35,12 +25,13 @@ export function useInactivityLogout() {
   };
 
   const logoutNow = () => {
-    saveCurrentPath();
+    saveCurrentPathForLogin();
     clearInternalSession();
     window.location.href = "/login";
   };
 
   const resetTimer = () => {
+    updateLastActivity();
     clearTimers();
     setIsSessionWarningOpen(false);
 
