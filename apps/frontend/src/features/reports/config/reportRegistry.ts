@@ -62,11 +62,11 @@ export const reportRegistry = {
       },
     ],
     fetchReport: (filters) =>
-      getReport<PRReportItem>("/reports/purchase-requisitions/", filters),
+      getReport<PRReportItem>("/reports/purchase-requisitions", filters),
     exportCSV: (filters) =>
-      exportReport("/reports/purchase-requisitions/export/csv/", filters),
+      exportReport("/reports/purchase-requisitions/export/csv", filters),
     exportExcel: (filters) =>
-      exportReport("/reports/purchase-requisitions/export/excel/", filters),
+      exportReport("/reports/purchase-requisitions/export/excel", filters),
     csvFilename: "pr-report.csv",
     excelFilename: "pr-report.xlsx",
     emptyMessage:
@@ -91,11 +91,11 @@ export const reportRegistry = {
       },
     ],
     fetchReport: (filters) =>
-      getReport<POReportItem>("/reports/purchase-orders/", filters),
+      getReport<POReportItem>("/reports/purchase-orders", filters),
     exportCSV: (filters) =>
-      exportReport("/reports/purchase-orders/export/csv/", filters),
+      exportReport("/reports/purchase-orders/export/csv", filters),
     exportExcel: (filters) =>
-      exportReport("/reports/purchase-orders/export/excel/", filters),
+      exportReport("/reports/purchase-orders/export/excel", filters),
     csvFilename: "po-report.csv",
     excelFilename: "po-report.xlsx",
     emptyMessage:
@@ -120,11 +120,11 @@ export const reportRegistry = {
       },
     ],
     fetchReport: (filters) =>
-      getReport<InvoiceReportItem>("/reports/invoices/", filters),
+      getReport<InvoiceReportItem>("/reports/invoices", filters),
     exportCSV: (filters) =>
-      exportReport("/reports/invoices/export/csv/", filters),
+      exportReport("/reports/invoices/export/csv", filters),
     exportExcel: (filters) =>
-      exportReport("/reports/invoices/export/excel/", filters),
+      exportReport("/reports/invoices/export/excel", filters),
     csvFilename: "invoice-report.csv",
     excelFilename: "invoice-report.xlsx",
     emptyMessage:
@@ -150,13 +150,13 @@ export const reportRegistry = {
     ],
     fetchReport: (filters) =>
       getReport<OutstandingInvoiceReportItem>(
-        "/reports/outstanding-invoices/",
+        "/reports/outstanding-invoices",
         filters,
       ),
     exportCSV: (filters) =>
-      exportReport("/reports/outstanding-invoices/export/csv/", filters),
+      exportReport("/reports/outstanding-invoices/export/csv", filters),
     exportExcel: (filters) =>
-      exportReport("/reports/outstanding-invoices/export/excel/", filters),
+      exportReport("/reports/outstanding-invoices/export/excel", filters),
     csvFilename: "outstanding-invoices-report.csv",
     excelFilename: "outstanding-invoices-report.xlsx",
     emptyMessage:
@@ -177,11 +177,11 @@ export const reportRegistry = {
       { label: "Total Paid", field: "amount", type: "sum", format: "currency" },
     ],
     fetchReport: (filters) =>
-      getReport<PaymentReportItem>("/reports/payments/", filters),
+      getReport<PaymentReportItem>("/reports/payments", filters),
     exportCSV: (filters) =>
-      exportReport("/reports/payments/export/csv/", filters),
+      exportReport("/reports/payments/export/csv", filters),
     exportExcel: (filters) =>
-      exportReport("/reports/payments/export/excel/", filters),
+      exportReport("/reports/payments/export/excel", filters),
     csvFilename: "payment-report.csv",
     excelFilename: "payment-report.xlsx",
     emptyMessage:
@@ -214,11 +214,11 @@ export const reportRegistry = {
       },
     ],
     fetchReport: (filters) =>
-      getReport<SupplierSpendReportItem>("/reports/supplier-spend/", filters),
+      getReport<SupplierSpendReportItem>("/reports/supplier-spend", filters),
     exportCSV: (filters) =>
-      exportReport("/reports/supplier-spend/export/csv/", filters),
+      exportReport("/reports/supplier-spend/export/csv", filters),
     exportExcel: (filters) =>
-      exportReport("/reports/supplier-spend/export/excel/", filters),
+      exportReport("/reports/supplier-spend/export/excel", filters),
     csvFilename: "supplier-spend-report.csv",
     excelFilename: "supplier-spend-report.xlsx",
     emptyMessage:
@@ -240,13 +240,13 @@ export const reportRegistry = {
     ],
     fetchReport: (filters) =>
       getReport<SupplierLeadTimeReportItem>(
-        "/reports/supplier-lead-time/",
+        "/reports/supplier-lead-time",
         filters,
       ),
     exportCSV: (filters) =>
-      exportReport("/reports/supplier-lead-time/export/csv/", filters),
+      exportReport("/reports/supplier-lead-time/export/csv", filters),
     exportExcel: (filters) =>
-      exportReport("/reports/supplier-lead-time/export/excel/", filters),
+      exportReport("/reports/supplier-lead-time/export/excel", filters),
     csvFilename: "supplier-lead-time-report.csv",
     excelFilename: "supplier-lead-time-report.xlsx",
     emptyMessage:
