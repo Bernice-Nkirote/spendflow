@@ -64,6 +64,7 @@ class PurchaseOrderRead(BaseModel):
 
 class PurchaseOrderDetailRead(PurchaseOrderRead):
     supplier_name: Optional[str] = None
+    supplier_email: Optional[str] = None
     department_name: Optional[str] = None
     created_by_name: Optional[str] = None
     submitted_by_name: Optional[str] = None

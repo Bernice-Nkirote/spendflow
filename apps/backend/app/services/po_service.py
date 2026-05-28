@@ -137,6 +137,7 @@ class PurchaseOrderService:
     
     def _enrich_po_readable_fields(self, po: PurchaseOrder) -> PurchaseOrder:
         po.supplier_name = po.supplier.name if po.supplier else None
+        po.supplier_email = po.supplier.email if po.supplier else None
         po.department_name = po.department.name if po.department else None
         po.created_by_name = po.creator.name if po.creator else None
         po.submitted_by_name = po.submitter.name if po.submitter else None

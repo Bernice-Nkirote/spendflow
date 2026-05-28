@@ -226,13 +226,55 @@ export default function PurchaseOrderActions({
       <ConfirmDialog
         isOpen={isSendDialogOpen}
         title="Send purchase order to supplier?"
-        message={`Please confirm the supplier email before dispatching this signed purchase order.
+        message={
+          <div className="space-y-4">
+            <p>
+              Please confirm the supplier details below before dispatching this
+              signed purchase order. This action will send the signed PO
+              document to the supplier.
+            </p>
 
-Supplier: ${purchaseOrder.supplier_name ?? "Not available"}
-Email: ${purchaseOrder.supplier_email ?? "Not available"}
-PO Number: ${purchaseOrder.po_number}
+            <div className="rounded-xl border border-blue-100 bg-blue-50/60 p-4">
+              <div className="space-y-3 text-sm">
+                <div className="grid gap-1 sm:grid-cols-[140px_1fr]">
+                  <span className="font-medium text-primary-gray">
+                    Supplier Name
+                  </span>
+                  <span className="break-words font-semibold text-primary-blue">
+                    {purchaseOrder.supplier_name ?? "Not available"}
+                  </span>
+                </div>
 
-This action will send the signed PO document to the supplier.`}
+                <div className="border-t border-blue-100 pt-3">
+                  <div className="grid gap-1 sm:grid-cols-[140px_1fr]">
+                    <span className="font-medium text-primary-gray">
+                      Supplier Email
+                    </span>
+                    <span className="break-words font-semibold text-primary-blue">
+                      {purchaseOrder.supplier_email ?? "Not available"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="border-t border-blue-100 pt-3">
+                  <div className="grid gap-1 sm:grid-cols-[140px_1fr]">
+                    <span className="font-medium text-primary-gray">
+                      PO Number
+                    </span>
+                    <span className="break-words font-semibold text-primary-blue">
+                      {purchaseOrder.po_number}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-sm text-primary-gray">
+              Kindly verify that the details above are correct before
+              proceeding.
+            </p>
+          </div>
+        }
         confirmLabel="Send PO"
         cancelLabel="Cancel"
         variant="info"

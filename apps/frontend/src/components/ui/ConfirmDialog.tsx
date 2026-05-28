@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Button from "./Button";
 
 type ConfirmDialogVariant = "danger" | "warning" | "info";
@@ -5,7 +6,7 @@ type ConfirmDialogVariant = "danger" | "warning" | "info";
 type ConfirmDialogProps = {
   isOpen: boolean;
   title: string;
-  message: string;
+  message: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: ConfirmDialogVariant;
@@ -48,7 +49,7 @@ function ConfirmDialog({
 
         <h2 className="text-lg font-semibold text-primary-black">{title}</h2>
 
-        <p className="mt-2 text-sm leading-6 text-gray-600">{message}</p>
+        <div className="mt-2 text-sm leading-6 text-gray-600">{message}</div>
 
         {errorMessage && (
           <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
