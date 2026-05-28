@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 from datetime import datetime, timedelta, timezone
 import secrets
 
+from app.core.config import settings
 from app.models.supplier_user import SupplierUser
 from app.repositories.supplier_user_repository import SupplierUserRepository
 from app.schemas.supplier_user_schema import (
@@ -64,7 +65,7 @@ class SupplierUserService:
         created_user = self.supplier_user_repo.create(supplier_user)
         self.supplier_user_repo.db.commit()
         self.supplier_user_repo.db.refresh(created_user)
-        setup_link = f"http://localhost:5173/supplier-setup-password?token={setup_token}"
+        setup_link = f"{settings.FRONTEND_BASE_URL}/supplier-setup-password?token={setup_token}"
 
         created_user.setup_link = setup_link
 
@@ -131,7 +132,7 @@ class SupplierUserService:
         self.supplier_user_repo.db.commit()
         self.supplier_user_repo.db.refresh(updated_user)
 
-        setup_link = f"http://localhost:5173/supplier-setup-password?token={setup_token}"
+        setup_link = f"{settings.FRONTEND_BASE_URL}/supplier-setup-password?token={setup_token}"
 
         if self.email_service:
             self.email_service.send_supplier_onboarding_email(
