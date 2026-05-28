@@ -223,8 +223,13 @@ export default function ReportsPage() {
 
         setData(response.rows);
         setTotalCount(response.total_count);
-      } catch {
-        setRecordsError(`Failed to load ${currentReport.title.toLowerCase()}.`);
+      } catch (error) {
+        setRecordsError(
+          await getApiErrorMessage(
+            error,
+            `Failed to load ${currentReport.title.toLowerCase()}.`,
+          ),
+        );
       } finally {
         setInitialLoading(false);
         setRecordsLoading(false);
