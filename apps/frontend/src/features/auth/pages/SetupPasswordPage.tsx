@@ -123,25 +123,27 @@ function SetupPasswordPage() {
             <label className="mb-1 block text-sm font-medium text-slate-700">
               Confirm password
             </label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
-              placeholder="Confirm new password"
-              disabled={isSubmitting || !token}
-            />
 
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword((current) => !current)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-primary-blue"
-              disabled={isSubmitting || !token}
-            >
-              {showConfirmPassword ? "Hide" : "Show"}
-            </button>
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 pr-16 text-sm outline-none focus:border-primary-blue"
+                placeholder="Confirm new password"
+                disabled={isSubmitting || !token}
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword((current) => !current)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-primary-blue"
+                disabled={isSubmitting || !token}
+              >
+                {showConfirmPassword ? "Hide" : "Show"}
+              </button>
+            </div>
           </div>
-
           <button
             type="submit"
             disabled={isSubmitting || !token}
