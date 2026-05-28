@@ -16,7 +16,7 @@ export function hasSessionExpiredByInactivity() {
   const lastActivityAt = localStorage.getItem(LAST_ACTIVITY_KEY);
 
   if (!lastActivityAt) {
-    return false;
+    return true;
   }
 
   const parsedLastActivityAt = Number(lastActivityAt);
