@@ -113,10 +113,11 @@ class UserService:
             setup_link = f"{settings.FRONTEND_BASE_URL}/setup-password?token={raw_setup_token}"
 
             try:
-                self.email_service.send_user_onboarding_email(
+                    self.email_service.send_user_onboarding_email(
                     to_email=created_user.email,
                     user_name=created_user.name,
                     setup_link=setup_link,
+                    setup_link_expires_at=onboarding_token.expires_at,
                 )
             except Exception as e:
                 print("USER ONBOARDING EMAIL ERROR:", repr(e))
@@ -192,6 +193,7 @@ class UserService:
             to_email=user.email,
             user_name=user.name,
             setup_link=setup_link,
+            setup_link_expires_at=onboarding_token.expires_at,
         )
 
         self.audit_log_service.log_action(
