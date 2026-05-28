@@ -54,6 +54,7 @@ export type PurchaseOrderDetails = {
   items: PurchaseOrderItem[];
 
   supplier_name: string | null;
+  supplier_email?: string | null;
   department_name: string | null;
   created_by_name: string | null;
   submitted_by_name: string | null;

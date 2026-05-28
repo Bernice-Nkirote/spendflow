@@ -226,7 +226,13 @@ export default function PurchaseOrderActions({
       <ConfirmDialog
         isOpen={isSendDialogOpen}
         title="Send purchase order to supplier?"
-        message="Please confirm the supplier email is correct before dispatching this signed purchase order. This action will send the signed PO document to the supplier."
+        message={`Please confirm the supplier email before dispatching this signed purchase order.
+
+Supplier: ${purchaseOrder.supplier_name ?? "Not available"}
+Email: ${purchaseOrder.supplier_email ?? "Not available"}
+PO Number: ${purchaseOrder.po_number}
+
+This action will send the signed PO document to the supplier.`}
         confirmLabel="Send PO"
         cancelLabel="Cancel"
         variant="info"
