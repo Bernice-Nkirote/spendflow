@@ -55,6 +55,7 @@ class PRReportRow(BaseModel):
     quantity: Decimal
     unit_price: Decimal
     line_total: Decimal
+    base_line_total: Decimal | None = None
 
     pr_total_amount: Decimal = Field(..., max_digits=14, decimal_places=2)
     currency: str

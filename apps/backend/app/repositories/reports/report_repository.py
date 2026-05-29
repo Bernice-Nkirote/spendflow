@@ -176,6 +176,10 @@ class ReportRepository:
                 InvoiceLineItem.invoiced_quantity.label("quantity"),
                 InvoiceLineItem.unit_price.label("unit_price"),
                 InvoiceLineItem.total_price.label("line_total"),
+                (
+                    InvoiceLineItem.total_price
+                    * Invoice.exchange_rate
+                ).label("base_line_total"),
 
                 Invoice.total_amount.label("invoice_total_amount"),
                 Invoice.currency.label("currency"),
@@ -953,6 +957,10 @@ class ReportRepository:
                 PurchaseRequisitionItem.quantity.label("quantity"),
                 PurchaseRequisitionItem.unit_price.label("unit_price"),
                 PurchaseRequisitionItem.line_total.label("line_total"),
+                (
+                    PurchaseRequisitionItem.line_total
+                    * PurchaseRequisition.exchange_rate
+                ).label("base_line_total"),
             )
             .outerjoin(
                 Department,
@@ -1078,6 +1086,11 @@ class ReportRepository:
                 (
                     PurchaseOrderItem.quantity * PurchaseOrderItem.unit_price
                 ).label("line_total"),
+                (
+                    PurchaseOrderItem.quantity
+                    * PurchaseOrderItem.unit_price
+                    * PurchaseOrder.exchange_rate
+                ).label("base_line_total"),
                 PurchaseOrder.total_amount.label("po_total_amount"),
                 PurchaseOrder.currency.label("currency"),
 

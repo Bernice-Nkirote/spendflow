@@ -59,6 +59,7 @@ class POReportRow(BaseModel):
     quantity: Decimal
     unit_price: Decimal
     line_total: Decimal
+    base_line_total: Decimal | None = None
 
     po_total_amount: Decimal
     currency: str

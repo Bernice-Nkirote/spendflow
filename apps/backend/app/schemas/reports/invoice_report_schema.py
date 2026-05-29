@@ -51,6 +51,7 @@ class InvoiceReportRow(BaseModel):
     quantity: Decimal
     unit_price: Decimal
     line_total: Decimal
+    base_line_total: Decimal | None = None
 
     invoice_total_amount: Decimal
     currency: str | None = None
