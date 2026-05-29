@@ -167,7 +167,7 @@ export default function PurchaseOrderDetailsPage() {
       <section className="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
         <Card>
           <p className="text-sm text-primary-gray">Original Amount</p>
-          <p className="mt-2 text-2xl font-semibold text-primary-black">
+          <p className="mt-2 break-words text-2xl font-semibold leading-tight text-primary-black sm:text-xl xl:text-2xl">
             {formatCurrency(
               Number(purchaseOrder.total_amount ?? 0),
               purchaseOrder.currency,
@@ -180,7 +180,7 @@ export default function PurchaseOrderDetailsPage() {
 
         <Card>
           <p className="text-sm text-primary-gray">Base Amount</p>
-          <p className="mt-2 text-2xl font-semibold text-primary-black">
+          <p className="mt-2 break-words text-2xl font-semibold leading-tight text-primary-black sm:text-xl xl:text-2xl">
             {purchaseOrder.base_amount && purchaseOrder.base_currency
               ? formatCurrency(
                   Number(purchaseOrder.base_amount),
@@ -195,7 +195,7 @@ export default function PurchaseOrderDetailsPage() {
 
         <Card>
           <p className="text-sm text-primary-gray">Exchange Rate</p>
-          <p className="mt-2 text-2xl font-semibold text-primary-black">
+          <p className="mt-2 break-words text-2xl font-semibold leading-tight text-primary-black sm:text-xl xl:text-2xl">
             {formatRate(purchaseOrder.exchange_rate)}
           </p>
           <p className="mt-1 text-xs text-primary-gray">
