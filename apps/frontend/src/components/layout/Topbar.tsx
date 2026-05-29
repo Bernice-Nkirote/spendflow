@@ -109,11 +109,26 @@ function Topbar({ onMenuClick }: TopbarProps) {
   useEffect(() => {
     loadNotifications();
 
+    function handleApprovalNotificationsRefresh() {
+      loadNotifications();
+    }
+
+    window.addEventListener(
+      "approval-notifications:refresh",
+      handleApprovalNotificationsRefresh,
+    );
+
     const intervalId = window.setInterval(() => {
       loadNotifications();
     }, 60_000);
 
-    return () => window.clearInterval(intervalId);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener(
+        "approval-notifications:refresh",
+        handleApprovalNotificationsRefresh,
+      );
+    };
   }, []);
 
   useEffect(() => {

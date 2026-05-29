@@ -139,6 +139,8 @@ function ApprovalDetailPage() {
       setComment("");
       setSelectedAction(null);
 
+      window.dispatchEvent(new Event("approval-notifications:refresh"));
+
       if (selectedAction === "REJECTED") {
         setSuccessMessage(
           "Rejection recorded. This request has been rejected.",
