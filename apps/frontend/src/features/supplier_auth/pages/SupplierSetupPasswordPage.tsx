@@ -74,7 +74,7 @@ function SupplierSetupPasswordPage() {
     try {
       await setSupplierPassword({
         token,
-        password,
+        password: password.trim(),
       });
 
       showAlert(
