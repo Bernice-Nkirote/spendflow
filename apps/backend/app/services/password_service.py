@@ -1,7 +1,6 @@
 from fastapi import HTTPException, status
-from passlib.context import CryptContext
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+from app.core.security import hash_password, verify_password
 
 
 class PasswordService:
@@ -14,22 +13,16 @@ class PasswordService:
                 detail="Password must be at least 8 characters long.",
             )
 
-        if len(normalized_password.encode("utf-8")) > 72:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Password cannot be longer than 72 bytes.",
-            )
-
         return normalized_password
 
     def hash_password(self, password: str) -> str:
         normalized_password = self._validate_password(password)
-        return pwd_context.hash(normalized_password)
+        return hash_password(normalized_password)
 
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         normalized_password = plain_password.strip()
 
-        if len(normalized_password.encode("utf-8")) > 72:
+        if not normalized_password:
             return False
 
-        return pwd_context.verify(normalized_password, hashed_password)
+        return verify_password(normalized_password, hashed_password)
