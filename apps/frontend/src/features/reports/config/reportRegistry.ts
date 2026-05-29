@@ -55,8 +55,8 @@ export const reportRegistry = {
     summaryCards: [
       { label: "Total Records", type: "count", format: "number" },
       {
-        label: "Total PR Value",
-        field: "line_total",
+        label: "Total PR Value (Base Currency)",
+        field: "base_amount",
         type: "sum",
         format: "currency",
       },
@@ -84,8 +84,8 @@ export const reportRegistry = {
     summaryCards: [
       { label: "Total Records", type: "count", format: "number" },
       {
-        label: "Total PO Value",
-        field: "line_total",
+        label: "Total PO Value (Base Currency)",
+        field: "base_amount",
         type: "sum",
         format: "currency",
       },
@@ -113,8 +113,8 @@ export const reportRegistry = {
     summaryCards: [
       { label: "Total Records", type: "count", format: "number" },
       {
-        label: "Total Invoice Value",
-        field: "line_total",
+        label: "Total Invoice Value (Base Currency)",
+        field: "base_amount",
         type: "sum",
         format: "currency",
       },
@@ -142,8 +142,8 @@ export const reportRegistry = {
     summaryCards: [
       { label: "Total Records", type: "count", format: "number" },
       {
-        label: "Outstanding Balance",
-        field: "outstanding_amount",
+        label: "Outstanding Balance (Base Currency)",
+        field: "base_outstanding_amount",
         type: "sum",
         format: "currency",
       },
@@ -174,7 +174,12 @@ export const reportRegistry = {
     ],
     summaryCards: [
       { label: "Total Records", type: "count", format: "number" },
-      { label: "Total Paid", field: "amount", type: "sum", format: "currency" },
+      {
+        label: "Total Paid (Base Currency)",
+        field: "base_amount",
+        type: "sum",
+        format: "currency",
+      },
     ],
     fetchReport: (filters) =>
       getReport<PaymentReportItem>("/reports/payments", filters),
@@ -195,20 +200,20 @@ export const reportRegistry = {
     summaryCards: [
       { label: "Suppliers", type: "count", format: "number" },
       {
-        label: "Invoice Value",
-        field: "total_invoice_amount",
+        label: "Invoice Value (Base Currency)",
+        field: "base_total_invoice_amount",
         type: "sum",
         format: "currency",
       },
       {
-        label: "Paid Amount",
-        field: "total_paid_amount",
+        label: "Paid Amount (Base Currency)",
+        field: "base_total_paid_amount",
         type: "sum",
         format: "currency",
       },
       {
-        label: "Outstanding",
-        field: "outstanding_amount",
+        label: "Paid Amount (Base Currency)",
+        field: "base_outstanding_amount",
         type: "sum",
         format: "currency",
       },
