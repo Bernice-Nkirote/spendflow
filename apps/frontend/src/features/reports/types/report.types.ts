@@ -55,6 +55,7 @@ export type PRReportItem = {
   quantity: string;
   unit_price: string;
   line_total: string;
+  base_line_total: string | null;
   pr_total_amount: string;
   currency: string;
   exchange_rate: string | null;
@@ -76,6 +77,7 @@ export type POReportItem = {
   quantity: string;
   unit_price: string | null;
   line_total: string | null;
+  base_line_total: string | null;
   po_total_amount: string | null;
   currency: string;
   exchange_rate: string | null;
@@ -102,6 +104,7 @@ export type InvoiceReportItem = {
   quantity: string;
   unit_price: string;
   line_total: string;
+  base_line_total: string | null;
 
   invoice_total_amount: string;
   currency: string | null;

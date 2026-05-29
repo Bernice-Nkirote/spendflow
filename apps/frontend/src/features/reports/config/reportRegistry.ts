@@ -56,7 +56,7 @@ export const reportRegistry = {
       { label: "Total Records", type: "count", format: "number" },
       {
         label: "Total PR Value (Base Currency)",
-        field: "base_amount",
+        field: "base_line_total",
         type: "sum",
         format: "currency",
       },
@@ -85,7 +85,7 @@ export const reportRegistry = {
       { label: "Total Records", type: "count", format: "number" },
       {
         label: "Total PO Value (Base Currency)",
-        field: "base_amount",
+        field: "base_line_total",
         type: "sum",
         format: "currency",
       },
@@ -114,7 +114,7 @@ export const reportRegistry = {
       { label: "Total Records", type: "count", format: "number" },
       {
         label: "Total Invoice Value (Base Currency)",
-        field: "base_amount",
+        field: "base_line_total",
         type: "sum",
         format: "currency",
       },
