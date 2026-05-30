@@ -37,6 +37,7 @@ export type ReportFilters = {
 export type ReportSummaryCardConfig<T> = {
   label: string;
   field?: keyof T;
+  fallbackField?: keyof T;
   type: "count" | "sum" | "average";
   format?: "number" | "currency" | "days";
 };
@@ -130,6 +131,11 @@ export type OutstandingInvoiceReportItem = {
   total_amount: string;
   amount_paid: string;
   outstanding_amount: string;
+  currency: string | null;
+  base_currency: string | null;
+  base_total_amount: string | null;
+  base_amount_paid: string | null;
+  base_outstanding_amount: string | null;
 
   status: string;
   created_at: string;

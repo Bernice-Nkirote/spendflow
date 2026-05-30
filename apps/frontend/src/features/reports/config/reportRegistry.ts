@@ -57,6 +57,7 @@ export const reportRegistry = {
       {
         label: "Total PR Value (Base Currency)",
         field: "base_line_total",
+        fallbackField: "line_total",
         type: "sum",
         format: "currency",
       },
@@ -86,6 +87,7 @@ export const reportRegistry = {
       {
         label: "Total PO Value (Base Currency)",
         field: "base_line_total",
+        fallbackField: "line_total",
         type: "sum",
         format: "currency",
       },
@@ -115,6 +117,7 @@ export const reportRegistry = {
       {
         label: "Total Invoice Value (Base Currency)",
         field: "base_line_total",
+        fallbackField: "line_total",
         type: "sum",
         format: "currency",
       },
@@ -144,6 +147,7 @@ export const reportRegistry = {
       {
         label: "Outstanding Balance (Base Currency)",
         field: "base_outstanding_amount",
+        fallbackField: "outstanding_amount",
         type: "sum",
         format: "currency",
       },
@@ -177,6 +181,7 @@ export const reportRegistry = {
       {
         label: "Total Paid (Base Currency)",
         field: "base_amount",
+        fallbackField: "amount",
         type: "sum",
         format: "currency",
       },
@@ -202,18 +207,21 @@ export const reportRegistry = {
       {
         label: "Invoice Value (Base Currency)",
         field: "base_total_invoice_amount",
+        fallbackField: "total_invoice_amount",
         type: "sum",
         format: "currency",
       },
       {
         label: "Paid Amount (Base Currency)",
         field: "base_total_paid_amount",
+        fallbackField: "total_paid_amount",
         type: "sum",
         format: "currency",
       },
       {
-        label: "Paid Amount (Base Currency)",
+        label: "Outstanding Balance (Base Currency)",
         field: "base_outstanding_amount",
+        fallbackField: "outstanding_amount",
         type: "sum",
         format: "currency",
       },

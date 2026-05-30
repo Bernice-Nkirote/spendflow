@@ -47,9 +47,21 @@ export default function ReportSummaryCards<T>({
     if (!card.field) {
       return 0;
     }
-
     const values = data
-      .map((row) => toNumber(row[card.field as keyof T]))
+      .map((row) => {
+        const primaryValue = row[card.field as keyof T];
+        const primaryNumber = toNumber(primaryValue);
+
+        if (primaryNumber > 0) {
+          return primaryNumber;
+        }
+
+        if (card.fallbackField) {
+          return toNumber(row[card.fallbackField as keyof T]);
+        }
+
+        return primaryNumber;
+      })
       .filter((value) => value > 0);
 
     if (card.type === "average") {
