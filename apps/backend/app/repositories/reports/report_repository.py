@@ -178,7 +178,7 @@ class ReportRepository:
                 InvoiceLineItem.total_price.label("line_total"),
                 (
                     InvoiceLineItem.total_price
-                    * Invoice.exchange_rate
+                    * func.coalesce(Invoice.exchange_rate, 1)
                 ).label("base_line_total"),
 
                 Invoice.total_amount.label("invoice_total_amount"),
@@ -293,6 +293,10 @@ class ReportRepository:
         amount_paid = func.coalesce(func.sum(Payment.amount), 0)
         outstanding_amount = Invoice.total_amount - amount_paid
 
+        base_total_amount = func.coalesce(Invoice.base_amount, Invoice.total_amount)
+        base_amount_paid = func.coalesce(func.sum(Payment.base_amount), 0)
+        base_outstanding_amount = base_total_amount - base_amount_paid
+
         query = (
             self.db.query(
                 Invoice.id.label("invoice_id"),
@@ -306,16 +310,9 @@ class ReportRepository:
                 outstanding_amount.label("outstanding_amount"),
                 Invoice.currency.label("currency"),
                 Invoice.base_currency.label("base_currency"),
-                Invoice.base_amount.label("base_total_amount"),
-
-                func.coalesce(func.sum(Payment.base_amount), 0).label(
-                    "base_amount_paid"
-                ),
-
-                (
-                    Invoice.base_amount
-                    - func.coalesce(func.sum(Payment.base_amount), 0)
-                ).label("base_outstanding_amount"),
+                base_total_amount.label("base_total_amount"),
+                base_amount_paid.label("base_amount_paid"),
+                base_outstanding_amount.label("base_outstanding_amount"),
 
                 Invoice.status.label("status"),
                 Invoice.created_at.label("created_at"),
@@ -445,6 +442,10 @@ class ReportRepository:
         amount_paid = func.coalesce(func.sum(Payment.amount), 0)
         outstanding_amount = Invoice.total_amount - amount_paid
 
+        base_total_amount = func.coalesce(Invoice.base_amount, Invoice.total_amount)
+        base_amount_paid = func.coalesce(func.sum(Payment.base_amount), 0)
+        base_outstanding_amount = base_total_amount - base_amount_paid
+
         return (
             self.db.query(
                 Invoice.id.label("invoice_id"),
@@ -459,16 +460,9 @@ class ReportRepository:
                 Invoice.currency.label("currency"),
 
                 Invoice.base_currency.label("base_currency"),
-                Invoice.base_amount.label("base_total_amount"),
-
-                func.coalesce(func.sum(Payment.base_amount), 0).label(
-                    "base_amount_paid"
-                ),
-
-                (
-                    Invoice.base_amount
-                    - func.coalesce(func.sum(Payment.base_amount), 0)
-                ).label("base_outstanding_amount"),
+                base_total_amount.label("base_total_amount"),
+                base_amount_paid.label("base_amount_paid"),
+                base_outstanding_amount.label("base_outstanding_amount"),
 
                 Invoice.status.label("status"),
                 Invoice.created_at.label("created_at"),
@@ -524,7 +518,10 @@ class ReportRepository:
             self.db.query(
                 Invoice.supplier_id.label("supplier_id"),
                 func.coalesce(func.sum(Invoice.total_amount), 0).label("total_invoice_amount"),
-                func.coalesce(func.sum(Invoice.base_amount), 0).label("base_total_invoice_amount"),
+                func.coalesce(
+                    func.sum(func.coalesce(Invoice.base_amount, Invoice.total_amount)),
+                    0,
+                ).label("base_total_invoice_amount"),
                 func.max(Invoice.base_currency).label("base_currency"),
                 func.count(Invoice.id).label("invoice_count"),
             )
@@ -540,7 +537,10 @@ class ReportRepository:
             self.db.query(
                 Invoice.supplier_id.label("supplier_id"),
                 func.coalesce(func.sum(Payment.amount), 0).label("total_paid_amount"),
-                func.coalesce(func.sum(Payment.base_amount), 0).label("base_total_paid_amount"),
+                func.coalesce(
+                    func.sum(func.coalesce(Payment.base_amount, Payment.amount)),
+                    0,
+                ).label("base_total_paid_amount"),
                 func.count(Payment.id).label("payment_count"),
             )
             .join(
@@ -623,9 +623,10 @@ class ReportRepository:
         invoice_totals_subquery = (
             self.db.query(
                 Invoice.supplier_id.label("supplier_id"),
-                func.coalesce(func.sum(Invoice.base_amount), 0).label(
-                    "base_total_invoice_amount"
-                ),
+                func.coalesce(
+                    func.sum(func.coalesce(Invoice.base_amount, Invoice.total_amount)),
+                    0,
+                ).label("base_total_invoice_amount"),
             )
             .filter(
                 Invoice.company_id == company_id,
@@ -638,9 +639,10 @@ class ReportRepository:
         payment_totals_subquery = (
             self.db.query(
                 Invoice.supplier_id.label("supplier_id"),
-                func.coalesce(func.sum(Payment.base_amount), 0).label(
-                    "base_total_paid_amount"
-                ),
+                func.coalesce(
+                    func.sum(func.coalesce(Payment.base_amount, Payment.amount)),
+                    0,
+                ).label("base_total_paid_amount"),
             )
             .join(
                 Invoice,
@@ -726,9 +728,10 @@ class ReportRepository:
                 func.coalesce(func.sum(Invoice.total_amount), 0).label(
                     "total_invoice_amount"
                 ),
-                func.coalesce(func.sum(Invoice.base_amount), 0).label(
-                    "base_total_invoice_amount"
-                ),
+                func.coalesce(
+                    func.sum(func.coalesce(Invoice.base_amount, Invoice.total_amount)),
+                    0,
+                ).label("base_total_invoice_amount"),
                 func.max(Invoice.base_currency).label("base_currency"),
                 func.count(Invoice.id).label("invoice_count"),
             )
@@ -745,9 +748,10 @@ class ReportRepository:
             self.db.query(
                 Invoice.supplier_id.label("supplier_id"),
                 func.coalesce(func.sum(Payment.amount), 0).label("total_paid_amount"),
-                func.coalesce(func.sum(Payment.base_amount), 0).label(
-                    "base_total_paid_amount"
-                ),
+                func.coalesce(
+                    func.sum(func.coalesce(Payment.base_amount, Payment.amount)),
+                    0,
+                ).label("base_total_paid_amount"),
                 func.count(Payment.id).label("payment_count"),
             )
             .join(
@@ -829,8 +833,12 @@ class ReportRepository:
         amount_paid = func.coalesce(func.sum(Payment.amount), 0)
         outstanding_amount = Invoice.total_amount - amount_paid
 
-        base_amount_paid = func.coalesce(func.sum(Payment.base_amount), 0)
-        base_outstanding_amount = Invoice.base_amount - base_amount_paid
+        base_total_amount = func.coalesce(Invoice.base_amount, Invoice.total_amount)
+        base_amount_paid = func.coalesce(
+            func.sum(func.coalesce(Payment.base_amount, Payment.amount)),
+            0,
+        )
+        base_outstanding_amount = base_total_amount - base_amount_paid
 
         return (
             self.db.query(
@@ -845,7 +853,7 @@ class ReportRepository:
                 Invoice.currency.label("currency"),
 
                 Invoice.base_currency.label("base_currency"),
-                Invoice.base_amount.label("base_total_amount"),
+                base_total_amount.label("base_total_amount"),
                 base_amount_paid.label("base_amount_paid"),
                 base_outstanding_amount.label("base_outstanding_amount"),
 
@@ -959,7 +967,7 @@ class ReportRepository:
                 PurchaseRequisitionItem.line_total.label("line_total"),
                 (
                     PurchaseRequisitionItem.line_total
-                    * PurchaseRequisition.exchange_rate
+                    * func.coalesce(PurchaseRequisition.exchange_rate, 1)
                 ).label("base_line_total"),
             )
             .outerjoin(
@@ -1089,7 +1097,7 @@ class ReportRepository:
                 (
                     PurchaseOrderItem.quantity
                     * PurchaseOrderItem.unit_price
-                    * PurchaseOrder.exchange_rate
+                    * func.coalesce(PurchaseOrder.exchange_rate, 1)
                 ).label("base_line_total"),
                 PurchaseOrder.total_amount.label("po_total_amount"),
                 PurchaseOrder.currency.label("currency"),

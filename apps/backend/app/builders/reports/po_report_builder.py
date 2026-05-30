@@ -27,6 +27,7 @@ class POReportBuilder:
                 "quantity": row.quantity,
                 "unit_price": row.unit_price,
                 "line_total": row.line_total,
+                "base_line_total": row.base_line_total,
 
                 "po_total_amount": row.po_total_amount,
                 "currency": row.currency,
@@ -58,6 +59,7 @@ class POReportBuilder:
             "Quantity",
             "Unit Price",
             "Line Total",
+            "Base Line Total",
             "PO Total Amount",
             "Currency",
             "Exchange Rate",
@@ -85,6 +87,7 @@ class POReportBuilder:
                 row.get("quantity"),
                 row.get("unit_price"),
                 row.get("line_total"),
+                row.get("base_line_total"),
                 row.get("po_total_amount"),
                 row.get("currency"),
                 row.get("exchange_rate"),
