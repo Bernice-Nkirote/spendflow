@@ -146,18 +146,10 @@ export const prColumns: ReportTableColumn<PRReportItem>[] = [
       <NowrapText value={formatMoney(value as string, row.currency)} />
     ),
   },
+
   {
-    header: "PR Total",
-    accessor: "pr_total_amount",
-    sortable: true,
-    align: "right",
-    render: (value, row) => (
-      <NowrapText value={formatMoney(value as string, row.currency)} />
-    ),
-  },
-  {
-    header: "Base Amount",
-    accessor: "base_amount",
+    header: "Base Line Total",
+    accessor: "base_line_total",
     sortable: true,
     align: "right",
     render: (value, row) =>
@@ -230,18 +222,10 @@ export const poColumns: ReportTableColumn<POReportItem>[] = [
       <NowrapText value={formatMoney(value as string, row.currency)} />
     ),
   },
+
   {
-    header: "PO Total",
-    accessor: "po_total_amount",
-    sortable: true,
-    align: "right",
-    render: (value, row) => (
-      <NowrapText value={formatMoney(value as string, row.currency)} />
-    ),
-  },
-  {
-    header: "Base Amount",
-    accessor: "base_amount",
+    header: "Base Line Total",
+    accessor: "base_line_total",
     sortable: true,
     align: "right",
     render: (value, row) =>
@@ -324,20 +308,10 @@ export const invoiceColumns: ReportTableColumn<InvoiceReportItem>[] = [
       />
     ),
   },
+
   {
-    header: "Invoice Total",
-    accessor: "invoice_total_amount",
-    align: "right",
-    sortable: true,
-    render: (value, row) => (
-      <NowrapText
-        value={formatMoney(value as string, row.currency ?? undefined)}
-      />
-    ),
-  },
-  {
-    header: "Base Amount",
-    accessor: "base_amount",
+    header: "Base Line Total",
+    accessor: "base_line_total",
     sortable: true,
     align: "right",
     render: (value, row) =>
@@ -526,8 +500,8 @@ export const supplierSpendColumns: ReportTableColumn<SupplierSpendReportItem>[] 
       ),
     },
     {
-      header: "Invoice Total",
-      accessor: "total_invoice_amount",
+      header: "Invoice Total(KES)",
+      accessor: "base_total_invoice_amount",
       align: "right",
       sortable: true,
       render: (value, row) => (
@@ -537,8 +511,8 @@ export const supplierSpendColumns: ReportTableColumn<SupplierSpendReportItem>[] 
       ),
     },
     {
-      header: "Paid Total",
-      accessor: "total_paid_amount",
+      header: "Paid Total (KES)",
+      accessor: "base_total_paid_amount",
       align: "right",
       sortable: true,
       render: (value, row) => (
