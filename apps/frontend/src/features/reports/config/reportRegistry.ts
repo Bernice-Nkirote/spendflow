@@ -145,9 +145,8 @@ export const reportRegistry = {
     summaryCards: [
       { label: "Total Records", type: "count", format: "number" },
       {
-        label: "Outstanding Balance (Base Currency)",
-        field: "base_outstanding_amount",
-        fallbackField: "outstanding_amount",
+        label: "Outstanding Balance",
+        field: "outstanding_amount",
         type: "sum",
         format: "currency",
       },
@@ -205,23 +204,20 @@ export const reportRegistry = {
     summaryCards: [
       { label: "Suppliers", type: "count", format: "number" },
       {
-        label: "Invoice Value (Base Currency)",
-        field: "base_total_invoice_amount",
-        fallbackField: "total_invoice_amount",
+        label: "Invoice Value",
+        field: "total_invoice_amount",
         type: "sum",
         format: "currency",
       },
       {
-        label: "Paid Amount (Base Currency)",
-        field: "base_total_paid_amount",
-        fallbackField: "total_paid_amount",
+        label: "Paid Amount",
+        field: "total_paid_amount",
         type: "sum",
         format: "currency",
       },
       {
-        label: "Outstanding Balance (Base Currency)",
-        field: "base_outstanding_amount",
-        fallbackField: "outstanding_amount",
+        label: "Outstanding Balance",
+        field: "outstanding_amount",
         type: "sum",
         format: "currency",
       },
