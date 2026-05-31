@@ -103,7 +103,17 @@ class DashboardRepository:
     # SPEND
     def get_total_approved_spend(self, company_id: UUID):
         return (
-            self.db.query(func.coalesce(func.sum(PurchaseOrder.total_amount), 0))
+            self.db.query(
+    func.coalesce(
+        func.sum(
+            func.coalesce(
+                PurchaseOrder.base_amount,
+                PurchaseOrder.total_amount,
+            )
+        ),
+        0,
+    )
+)
             .filter(
                 PurchaseOrder.company_id == company_id,
                 PurchaseOrder.status == POStatusEnum.APPROVED,
