@@ -46,12 +46,16 @@ class SupplierUserService:
         setup_token = secrets.token_urlsafe(32)
         setup_expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
 
-        existing_user = self.supplier_user_repo.get_by_email_global(email=email)
+        existing_user = self.supplier_user_repo.get_by_email(
+            email=email,
+            supplier_id=user_data.supplier_id,
+        )
+
         if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="A supplier portal user with this email already exists",            )
-
+                detail="A supplier portal user with this email already exists for this supplier",
+            )
         supplier_user = SupplierUser(
             supplier_id=user_data.supplier_id,
             email=email,
