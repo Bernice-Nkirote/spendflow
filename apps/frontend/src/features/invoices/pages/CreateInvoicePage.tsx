@@ -39,6 +39,8 @@ export default function CreateInvoicePage() {
 
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [lineItems, setLineItems] = useState<InvoiceLineItemCreate[]>([]);
+  const [confirmExternalPoReceived, setConfirmExternalPoReceived] =
+    useState(false);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -129,6 +131,14 @@ export default function CreateInvoicePage() {
 
     if (!purchaseOrder) {
       showAlert("error", "Purchase order details are missing.");
+      return;
+    }
+
+    if (purchaseOrder.status === "APPROVED" && !confirmExternalPoReceived) {
+      showAlert(
+        "error",
+        "Please confirm that the supplier received this purchase order outside Tendaflow.",
+      );
       return;
     }
 
@@ -244,6 +254,39 @@ export default function CreateInvoicePage() {
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+        {purchaseOrder.status === "APPROVED" && (
+          <Card>
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+              <p className="font-medium text-amber-800">
+                Purchase Order Not Marked as Sent
+              </p>
+
+              <p className="mt-2 text-sm text-amber-700">
+                This purchase order has been approved but has not been marked as
+                sent through Tendaflow. Continue only if the supplier received
+                the purchase order through another approved method such as
+                email, WhatsApp, printed copy, or verbal instruction.
+              </p>
+
+              <label className="mt-4 flex items-start gap-3 text-sm text-amber-800">
+                <input
+                  type="checkbox"
+                  checked={confirmExternalPoReceived}
+                  onChange={(event) =>
+                    setConfirmExternalPoReceived(event.target.checked)
+                  }
+                  className="mt-1 h-4 w-4 rounded border-amber-300"
+                />
+
+                <span>
+                  I confirm the supplier received this purchase order outside
+                  Tendaflow.
+                </span>
+              </label>
+            </div>
+          </Card>
+        )}
+
         <Card>
           <h2 className="text-lg font-semibold text-primary-black">
             Invoice Information
