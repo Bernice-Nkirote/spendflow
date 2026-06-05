@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.auth_dependancy import get_current_admin_user
 from app.core.database import get_db
 from app.repositories.role_repository import RoleRepository
+from app.repositories.audit_log_repository import AuditLogRepository
 from app.schemas.role_schemas import (
     PaginatedRoleResponse,
     RoleCreate,
@@ -13,6 +14,7 @@ from app.schemas.role_schemas import (
     RoleUpdate,
 )
 from app.services.roles_service import RoleService
+from app.services.audit_log_service import AuditLogService
 
 
 router = APIRouter(
@@ -24,7 +26,13 @@ router = APIRouter(
 
 def get_role_service(db: Session = Depends(get_db)) -> RoleService:
     repo = RoleRepository(db)
-    return RoleService(repo)
+    audit_log_service = AuditLogService(
+        repo=AuditLogRepository(db),
+    )
+    return RoleService(
+        repo=repo,
+        audit_log_service=audit_log_service,
+    )
 
 
 @router.post("/", response_model=RoleRead, status_code=status.HTTP_201_CREATED)
@@ -33,7 +41,11 @@ def create_role(
     service: RoleService = Depends(get_role_service),
     current_user=Depends(get_current_admin_user),
 ):
-    return service.create_role(role_data, current_user.company_id)
+    return service.create_role(
+        role_data=role_data,
+        company_id=current_user.company_id,
+        actor_user_id=current_user.id,
+    )
 
 
 @router.get("/", response_model=list[RoleRead])
@@ -72,7 +84,12 @@ def update_role(
     service: RoleService = Depends(get_role_service),
     current_user=Depends(get_current_admin_user),
 ):
-    return service.update_role(role_id, role_data, current_user.company_id)
+    return service.update_role(
+        role_id=role_id,
+        role_data=role_data,
+        company_id=current_user.company_id,
+        actor_user_id=current_user.id,
+    )
 
 
 @router.patch("/{role_id}/activate", response_model=RoleRead)
@@ -81,7 +98,11 @@ def activate_role(
     service: RoleService = Depends(get_role_service),
     current_user=Depends(get_current_admin_user),
 ):
-    return service.activate_role(role_id, current_user.company_id)
+    return service.activate_role(
+        role_id=role_id,
+        company_id=current_user.company_id,
+        actor_user_id=current_user.id,
+    )
 
 
 @router.patch("/{role_id}/deactivate", response_model=RoleRead)
@@ -91,10 +112,11 @@ def deactivate_role(
     current_user=Depends(get_current_admin_user),
 ):
     return service.deactivate_role(
-    role_id=role_id,
-    company_id=current_user.company_id,
-    current_user_role_id=current_user.role_id,
-)
+        role_id=role_id,
+        company_id=current_user.company_id,
+        current_user_role_id=current_user.role_id,
+        actor_user_id=current_user.id,
+    )
 
 @router.delete("/{role_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_role(
@@ -102,5 +124,9 @@ def delete_role(
     service: RoleService = Depends(get_role_service),
     current_user=Depends(get_current_admin_user),
 ):
-    service.delete_role(role_id, current_user.company_id)
+    service.delete_role(
+        role_id=role_id,
+        company_id=current_user.company_id,
+        actor_user_id=current_user.id,
+    )
     return None
