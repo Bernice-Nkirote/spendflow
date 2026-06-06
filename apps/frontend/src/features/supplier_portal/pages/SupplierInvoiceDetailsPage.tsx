@@ -10,6 +10,7 @@ import FloatingAlert from "../../../components/ui/FloatingAlert";
 import Input from "../../../components/ui/Input";
 import LoadingState from "../../../components/ui/LoadingState";
 import TableWrapper from "../../../components/ui/TableWrapper";
+import MobileRecordCard from "../../../components/ui/MobileRecordCard";
 import {
   stickyLeftCell,
   stickyLeftHeader,
@@ -367,60 +368,22 @@ function SupplierInvoiceDetailsPage() {
             message="This invoice does not have any line items."
           />
         ) : (
-          <TableWrapper minWidth="980px">
-            <table className="w-full table-fixed text-left text-sm">
-              <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
-                <tr>
-                  <th
-                    className={`${stickyLeftHeader} w-72 whitespace-nowrap px-4 py-3`}
-                  >
-                    Description
-                  </th>
-                  <th className="w-40 whitespace-nowrap px-4 py-3 text-right">
-                    Quantity
-                  </th>
-                  <th className="w-44 whitespace-nowrap px-4 py-3 text-right">
-                    Unit Price
-                  </th>
-                  <th className="w-40 whitespace-nowrap px-4 py-3 text-right">
-                    Total
-                  </th>
-                </tr>
-              </thead>
+          <>
+            <div className="space-y-3 lg:hidden">
+              {(isEditing ? editableItems : invoice.line_items).map(
+                (item, index) => {
+                  const lineTotal =
+                    Number(item.invoiced_quantity || 0) *
+                    Number(item.unit_price || 0);
 
-              <tbody className="divide-y">
-                {(isEditing ? editableItems : invoice.line_items).map(
-                  (item, index) => {
-                    const lineTotal =
-                      Number(item.invoiced_quantity || 0) *
-                      Number(item.unit_price || 0);
-
-                    return (
-                      <tr key={item.id} className="hover:bg-gray-50">
-                        <td
-                          className={`${stickyLeftCell} px-4 py-3 font-medium text-primary-black`}
-                        >
-                          {isEditing ? (
-                            <Input
-                              label=""
-                              value={item.description}
-                              onChange={(event) =>
-                                handleEditLineItem(
-                                  index,
-                                  "description",
-                                  event.target.value,
-                                )
-                              }
-                            />
-                          ) : (
-                            <span title={item.description} className="truncate">
-                              {item.description}
-                            </span>
-                          )}
-                        </td>
-
-                        <td className="px-4 py-3 text-right">
-                          {isEditing ? (
+                  return (
+                    <MobileRecordCard
+                      key={item.id}
+                      title={item.description || "Invoice item"}
+                      rows={[
+                        {
+                          label: "Invoice Quantity",
+                          value: isEditing ? (
                             <Input
                               label=""
                               type="number"
@@ -436,14 +399,12 @@ function SupplierInvoiceDetailsPage() {
                               }
                             />
                           ) : (
-                            <span className="whitespace-nowrap">
-                              {item.invoiced_quantity}
-                            </span>
-                          )}
-                        </td>
-
-                        <td className="px-4 py-3 text-right">
-                          {isEditing ? (
+                            item.invoiced_quantity
+                          ),
+                        },
+                        {
+                          label: "Unit Price",
+                          value: isEditing ? (
                             <Input
                               label=""
                               type="number"
@@ -459,25 +420,155 @@ function SupplierInvoiceDetailsPage() {
                               }
                             />
                           ) : (
-                            <span className="whitespace-nowrap">
-                              {formatCurrency(
-                                Number(item.unit_price),
-                                invoice.currency,
-                              )}
-                            </span>
-                          )}
-                        </td>
+                            formatCurrency(
+                              Number(item.unit_price),
+                              invoice.currency,
+                            )
+                          ),
+                        },
+                        {
+                          label: "Line Total",
+                          value: formatCurrency(lineTotal, invoice.currency),
+                        },
+                      ]}
+                      actions={
+                        isEditing ? (
+                          <Input
+                            label="Description"
+                            value={item.description}
+                            onChange={(event) =>
+                              handleEditLineItem(
+                                index,
+                                "description",
+                                event.target.value,
+                              )
+                            }
+                          />
+                        ) : undefined
+                      }
+                    />
+                  );
+                },
+              )}
+            </div>
 
-                        <td className="whitespace-nowrap px-4 py-3 text-right font-medium">
-                          {formatCurrency(lineTotal, invoice.currency)}
-                        </td>
-                      </tr>
-                    );
-                  },
-                )}
-              </tbody>
-            </table>
-          </TableWrapper>
+            <div className="hidden lg:block">
+              <TableWrapper minWidth="980px">
+                <table className="w-full table-fixed text-left text-sm">
+                  <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
+                    <tr>
+                      <th
+                        className={`${stickyLeftHeader} w-72 whitespace-nowrap px-4 py-3`}
+                      >
+                        Description
+                      </th>
+                      <th className="w-40 whitespace-nowrap px-4 py-3 text-right">
+                        Quantity
+                      </th>
+                      <th className="w-44 whitespace-nowrap px-4 py-3 text-right">
+                        Unit Price
+                      </th>
+                      <th className="w-40 whitespace-nowrap px-4 py-3 text-right">
+                        Total
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody className="divide-y">
+                    {(isEditing ? editableItems : invoice.line_items).map(
+                      (item, index) => {
+                        const lineTotal =
+                          Number(item.invoiced_quantity || 0) *
+                          Number(item.unit_price || 0);
+
+                        return (
+                          <tr key={item.id} className="hover:bg-gray-50">
+                            <td
+                              className={`${stickyLeftCell} px-4 py-3 font-medium text-primary-black`}
+                            >
+                              {isEditing ? (
+                                <Input
+                                  label=""
+                                  value={item.description}
+                                  onChange={(event) =>
+                                    handleEditLineItem(
+                                      index,
+                                      "description",
+                                      event.target.value,
+                                    )
+                                  }
+                                />
+                              ) : (
+                                <span
+                                  title={item.description}
+                                  className="truncate"
+                                >
+                                  {item.description}
+                                </span>
+                              )}
+                            </td>
+
+                            <td className="px-4 py-3 text-right">
+                              {isEditing ? (
+                                <Input
+                                  label=""
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  value={item.invoiced_quantity}
+                                  onChange={(event) =>
+                                    handleEditLineItem(
+                                      index,
+                                      "invoiced_quantity",
+                                      event.target.value,
+                                    )
+                                  }
+                                />
+                              ) : (
+                                <span className="whitespace-nowrap">
+                                  {item.invoiced_quantity}
+                                </span>
+                              )}
+                            </td>
+
+                            <td className="px-4 py-3 text-right">
+                              {isEditing ? (
+                                <Input
+                                  label=""
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  value={item.unit_price}
+                                  onChange={(event) =>
+                                    handleEditLineItem(
+                                      index,
+                                      "unit_price",
+                                      event.target.value,
+                                    )
+                                  }
+                                />
+                              ) : (
+                                <span className="whitespace-nowrap">
+                                  {formatCurrency(
+                                    Number(item.unit_price),
+                                    invoice.currency,
+                                  )}
+                                </span>
+                              )}
+                            </td>
+
+                            <td className="whitespace-nowrap px-4 py-3 text-right font-medium">
+                              {formatCurrency(lineTotal, invoice.currency)}
+                            </td>
+                          </tr>
+                        );
+                      },
+                    )}
+                  </tbody>
+                </table>
+              </TableWrapper>
+            </div>
+          </>
         )}
       </Card>
     </div>
