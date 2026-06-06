@@ -10,6 +10,10 @@ import FloatingAlert from "../../../components/ui/FloatingAlert";
 import Input from "../../../components/ui/Input";
 import LoadingState from "../../../components/ui/LoadingState";
 import TableWrapper from "../../../components/ui/TableWrapper";
+import {
+  stickyLeftCell,
+  stickyLeftHeader,
+} from "../../../components/ui/tableStickyStyles";
 import { useFloatingAlert } from "../../../components/ui/useFloatingAlert";
 import { formatCurrency } from "../../../utils/formatCurrency";
 import {
@@ -367,7 +371,9 @@ function SupplierInvoiceDetailsPage() {
             <table className="w-full table-fixed text-left text-sm">
               <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
                 <tr>
-                  <th className="w-72 whitespace-nowrap px-4 py-3">
+                  <th
+                    className={`${stickyLeftHeader} w-72 whitespace-nowrap px-4 py-3`}
+                  >
                     Description
                   </th>
                   <th className="w-40 whitespace-nowrap px-4 py-3 text-right">
@@ -391,7 +397,9 @@ function SupplierInvoiceDetailsPage() {
 
                     return (
                       <tr key={item.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium text-primary-black">
+                        <td
+                          className={`${stickyLeftCell} px-4 py-3 font-medium text-primary-black`}
+                        >
                           {isEditing ? (
                             <Input
                               label=""

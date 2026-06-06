@@ -8,6 +8,10 @@ import EmptyState from "../../../components/ui/EmptyState";
 import ErrorState from "../../../components/ui/ErrorState";
 import LoadingState from "../../../components/ui/LoadingState";
 import TableWrapper from "../../../components/ui/TableWrapper";
+import {
+  stickyLeftCell,
+  stickyLeftHeader,
+} from "../../../components/ui/tableStickyStyles";
 import { formatCurrency } from "../../../utils/formatCurrency";
 import { getSupplierPurchaseOrder } from "../api/supplierPortalApi";
 import SupplierPurchaseOrderStatusBadge from "../components/SupplierPurchaseOrderStatusBadge";
@@ -220,7 +224,11 @@ function SupplierPurchaseOrderDetailsPage() {
             <table className="w-full table-fixed text-left text-sm">
               <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
                 <tr>
-                  <th className="w-52 whitespace-nowrap px-4 py-3">Item</th>
+                  <th
+                    className={`${stickyLeftHeader} w-52 whitespace-nowrap px-4 py-3`}
+                  >
+                    Item
+                  </th>
                   <th className="w-72 whitespace-nowrap px-4 py-3">
                     Description
                   </th>
@@ -240,10 +248,12 @@ function SupplierPurchaseOrderDetailsPage() {
                 {purchaseOrder.items.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50">
                     <td
-                      className="truncate px-4 py-3 font-medium text-primary-black"
+                      className={`${stickyLeftCell} px-4 py-3 font-medium text-primary-black`}
                       title={item.item_name}
                     >
-                      {item.item_name}
+                      <span className="block max-w-[200px] truncate">
+                        {item.item_name}
+                      </span>
                     </td>
 
                     <td
