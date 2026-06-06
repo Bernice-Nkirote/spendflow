@@ -53,6 +53,30 @@ class InvoiceService:
         suffix = uuid.uuid4().hex[:6].upper()
         return f"INV-{timestamp}-{suffix}"
 
+    def _validate_invoice_line_item_values(
+        self,
+        description: str,
+        invoiced_quantity: Decimal,
+        unit_price: Decimal,
+    ) -> None:
+        if not description.strip():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Line item description is required",
+            )
+
+        if invoiced_quantity <= Decimal("0"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invoice line item quantity must be greater than zero",
+            )
+
+        if unit_price <= Decimal("0"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invoice line item unit price must be greater than zero",
+            )
+
     def create_invoice(
         self,
         invoice_data: InvoiceCreate,
@@ -162,11 +186,12 @@ class InvoiceService:
 
         for item in invoice_data.line_items:
             description = item.description.strip()
-            if not description:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Line item description is required",
-                )
+
+            self._validate_invoice_line_item_values(
+                description=description,
+                invoiced_quantity=item.invoiced_quantity,
+                unit_price=item.unit_price,
+            )
 
             po_item = next(
                 (
@@ -223,6 +248,12 @@ class InvoiceService:
 
             self.line_item_repo.create(line_item)
             total_amount += total_price
+
+        if total_amount <= Decimal("0"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invoice total amount must be greater than zero",
+            )
 
         created_invoice.total_amount = total_amount
 
@@ -733,11 +764,12 @@ class InvoiceService:
             )
 
         description = item_data.description.strip()
-        if not description:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Description is required",
-            )
+
+        self._validate_invoice_line_item_values(
+            description=description,
+            invoiced_quantity=item_data.invoiced_quantity,
+            unit_price=item_data.unit_price,
+        )
 
         po_item = next(
             (item for item in po.items if item.id == item_data.purchase_order_item_id),
@@ -864,6 +896,14 @@ class InvoiceService:
 
         quantity = update_data.get("invoiced_quantity", item.invoiced_quantity)
         price = update_data.get("unit_price", item.unit_price)
+
+        description = update_data.get("description", item.description)
+
+        self._validate_invoice_line_item_values(
+            description=description,
+            invoiced_quantity=quantity,
+            unit_price=price,
+        )
 
         existing_invoices = self.invoice_repo.get_by_purchase_order_id(
             purchase_order_id=po.id,

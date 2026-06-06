@@ -122,6 +122,46 @@ class PurchaseOrderService:
 
         return total
 
+    def _validate_po_financial_values(
+        self,
+        po: PurchaseOrder,
+        company_id: UUID,
+    ) -> None:
+        items = self.po_item_repo.get_all_by_po(po.id, company_id)
+
+        if not items:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Purchase order must have at least one item",
+            )
+
+        total_amount = self._calculate_po_total(items)
+
+        if total_amount <= Decimal("0"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Purchase order total amount must be greater than zero before submission or approval",
+            )
+
+        for item in items:
+            if item.quantity <= Decimal("0"):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Each purchase order item quantity must be greater than zero",
+                )
+
+            if item.unit_price <= Decimal("0"):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Each purchase order item unit price must be greater than zero",
+                )
+
+            if item.total_price <= Decimal("0"):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Each purchase order item total must be greater than zero",
+                )
+
     def _recalculate_po_total(
         self,
         po: PurchaseOrder,
@@ -967,6 +1007,9 @@ class PurchaseOrderService:
                 detail="Purchase order must have at least one item",
             )
 
+        po = self._recalculate_po_total(po, company_id)
+        self._validate_po_financial_values(po, company_id)
+
         workflow = self.workflow_repo.get_active_by_entity_type(
             entity_type=EntityTypeEnum.PO,
             company_id=company_id,
@@ -1065,6 +1108,9 @@ class PurchaseOrderService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Only pending approval purchase orders can be approved",
             )
+
+        po = self._recalculate_po_total(po, company_id)
+        self._validate_po_financial_values(po, company_id)
 
         po.status = POStatusEnum.APPROVED
 
