@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.core.auth_dependancy import get_current_supplier
 from app.core.database import get_db
 from app.repositories.supplier_repository import SupplierRepository
+from app.models.enums import POStatusEnum
 from app.routers.po_router import get_purchase_order_service
 from app.schemas.po_items_schema import PurchaseOrderItemRead
 from app.schemas.po_schema import PurchaseOrderDetailRead, PurchaseOrderPaginatedRead
@@ -63,6 +64,18 @@ def _ensure_supplier_owns_po(
             detail="You cannot access another supplier's purchase order",
         )
 
+    supplier_visible_statuses = {
+        POStatusEnum.SENT,
+        POStatusEnum.PARTIALLY_RECEIVED,
+        POStatusEnum.RECEIVED,
+    }
+
+    if po.status not in supplier_visible_statuses:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This purchase order has not been issued to your supplier account",
+        )
+
     return po
 
 
@@ -79,7 +92,7 @@ def get_all_supplier_purchase_orders(
         supplier_repo=supplier_repo,
     )
 
-    return service.get_all_pos_by_supplier(
+    return service.get_visible_pos_by_supplier(
         supplier_id=current_supplier.supplier_id,
         company_id=company_id,
         skip=skip,
@@ -99,7 +112,7 @@ def get_paginated_supplier_purchase_orders(
         supplier_repo=supplier_repo,
     )
 
-    return service.get_all_pos_by_supplier_paginated(
+    return service.get_visible_pos_by_supplier_paginated(
         supplier_id=current_supplier.supplier_id,
         company_id=company_id,
         skip=skip,

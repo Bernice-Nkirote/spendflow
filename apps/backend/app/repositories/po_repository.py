@@ -174,6 +174,50 @@ class PurchaseOrderRepository:
             .all()
         )
 
+    def get_visible_to_supplier(
+        self,
+        supplier_id: UUID,
+        company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> list[PurchaseOrder]:
+        return (
+            self.db.query(PurchaseOrder)
+            .filter(
+                PurchaseOrder.supplier_id == supplier_id,
+                PurchaseOrder.company_id == company_id,
+                PurchaseOrder.status.in_([
+                    POStatusEnum.SENT,
+                    POStatusEnum.PARTIALLY_RECEIVED,
+                    POStatusEnum.RECEIVED,
+                ]),
+            )
+            .order_by(PurchaseOrder.created_at.desc())
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
+
+
+    def count_visible_to_supplier(
+        self,
+        supplier_id: UUID,
+        company_id: UUID,
+    ) -> int:
+        return (
+            self.db.query(PurchaseOrder)
+            .filter(
+                PurchaseOrder.supplier_id == supplier_id,
+                PurchaseOrder.company_id == company_id,
+                PurchaseOrder.status.in_([
+                    POStatusEnum.SENT,
+                    POStatusEnum.PARTIALLY_RECEIVED,
+                    POStatusEnum.RECEIVED,
+                ]),
+            )
+            .count()
+        )
+
     def count_by_supplier(
         self,
         supplier_id: UUID,

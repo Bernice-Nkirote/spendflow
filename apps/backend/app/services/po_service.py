@@ -557,10 +557,10 @@ class PurchaseOrderService:
 
             self.po_item_repo.create(item)
 
-            requisition.status = PRStatusEnum.CONVERTED_TO_PO
-            self.pr_repo.update(requisition)
+        requisition.status = PRStatusEnum.CONVERTED_TO_PO
+        self.pr_repo.update(requisition)
 
-            updated_po = self._recalculate_po_total(created_po, company_id)
+        updated_po = self._recalculate_po_total(created_po, company_id)
 
         # AUDIT CHECK FOR CONVERTING PR TO PO
         self.audit_log_service.log_action(
@@ -719,6 +719,68 @@ class PurchaseOrderService:
         )
 
         total_count = self.po_repo.count_by_supplier(
+            supplier_id=supplier_id,
+            company_id=company_id,
+        )
+
+        return PurchaseOrderPaginatedRead(
+            rows=rows,
+            total_count=total_count,
+        )
+
+    def get_visible_pos_by_supplier(
+        self,
+        supplier_id: UUID,
+        company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> list[PurchaseOrder]:
+        if not supplier_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Supplier id is required",
+            )
+
+        if skip < 0:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Skip must be zero or greater",
+            )
+
+        if limit < 1:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Limit must be greater than zero",
+            )
+
+        purchase_orders = self.po_repo.get_visible_to_supplier(
+            supplier_id=supplier_id,
+            company_id=company_id,
+            skip=skip,
+            limit=limit,
+        )
+
+        return [
+            self._enrich_po_readable_fields(po)
+            for po in purchase_orders
+        ]
+
+
+    def get_visible_pos_by_supplier_paginated(
+        self,
+        supplier_id: UUID,
+        company_id: UUID,
+        skip: int = 0,
+        limit: int = 20,
+    ) -> PurchaseOrderPaginatedRead:
+        rows = self.get_visible_pos_by_supplier(
+            supplier_id=supplier_id,
+            company_id=company_id,
+            skip=skip,
+            limit=limit,
+        )
+
+        total_count = self.po_repo.count_visible_to_supplier(
             supplier_id=supplier_id,
             company_id=company_id,
         )
