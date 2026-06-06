@@ -36,7 +36,7 @@ const ENTITY_FILTERS = [
   { label: "Role", value: "ROLE" },
   { label: "Permission", value: "PERMISSION" },
   { label: "Role Permission", value: "ROLE_PERMISSION" },
-  { label: "Approval", value: "APPROVAL" },
+  { label: "Approval Action", value: "APPROVAL_ACTION" },
 ];
 
 const ACTION_FILTERS = [
