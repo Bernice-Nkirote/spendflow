@@ -172,6 +172,27 @@ class ApprovalActionService:
         )
 
         created_action = self.action_repo.create(action)
+        # AUDIT LOGS
+        self.audit_log_service.log_action(
+            company_id=company_id,
+            entity_type="APPROVAL_ACTION",
+            entity_id=created_action.id,
+            action="APPROVAL_ACTION_RECORDED",
+            actor_user_id=current_user.id,
+            description=f"Approval action {enum_value(data.action)} recorded",
+            details_json={
+                "entity_reference": str(data.instance_id),
+                "approval_instance_id": str(data.instance_id),
+                "workflow_level_id": str(data.level_id),
+                "action": enum_value(data.action),
+            },
+            new_values_json={
+                "instance_id": str(data.instance_id),
+                "level_id": str(data.level_id),
+                "action": enum_value(data.action),
+                "comment": created_action.comment,
+            },
+        )
 
         self._apply_workflow_progression(
             instance=instance,
