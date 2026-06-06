@@ -9,9 +9,13 @@ import LoadingState from "../../../components/ui/LoadingState";
 import PageContainer from "../../../components/ui/PageContainer";
 import TableWrapper from "../../../components/ui/TableWrapper";
 import PageHeader from "../../../components/ui/PageHeader";
+import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 
 import { getInvoicesByPurchaseOrder } from "../../invoices/api/invoiceApi";
-import { getPurchaseOrderById } from "../api/purchaseOrderApi";
+import {
+  getPurchaseOrderById,
+  recordExternalPurchaseOrderDistribution,
+} from "../api/purchaseOrderApi";
 import PurchaseOrderActions from "../components/PurchaseOrderActions";
 import PurchaseOrderStatusBadge from "../components/PurchaseOrderStatusBadge";
 
@@ -66,6 +70,13 @@ export default function PurchaseOrderDetailsPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [linkedInvoiceId, setLinkedInvoiceId] = useState<string | null>(null);
 
+  const [
+    isExternalDistributionDialogOpen,
+    setIsExternalDistributionDialogOpen,
+  ] = useState(false);
+  const [isRecordingExternalDistribution, setIsRecordingExternalDistribution] =
+    useState(false);
+
   useEffect(() => {
     async function fetchPurchaseOrder() {
       if (!id) {
@@ -101,6 +112,25 @@ export default function PurchaseOrderDetailsPage() {
 
   if (!purchaseOrder) {
     return <ErrorState message="Purchase order was not found." />;
+  }
+
+  async function handleRecordExternalDistribution() {
+    if (!purchaseOrder) return;
+
+    try {
+      setIsRecordingExternalDistribution(true);
+      setActionError(null);
+
+      const updatedPurchaseOrder =
+        await recordExternalPurchaseOrderDistribution(purchaseOrder.id);
+
+      setPurchaseOrder(updatedPurchaseOrder);
+      setIsExternalDistributionDialogOpen(false);
+    } catch {
+      setActionError("Failed to record external PO distribution.");
+    } finally {
+      setIsRecordingExternalDistribution(false);
+    }
   }
 
   return (
@@ -141,6 +171,16 @@ export default function PurchaseOrderDetailsPage() {
               }}
               onError={setActionError}
             />
+            {purchaseOrder.status === "APPROVED" &&
+              !purchaseOrder.issued_at && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setIsExternalDistributionDialogOpen(true)}
+                >
+                  Mark as Shared with Supplier
+                </Button>
+              )}
             {canCreateInvoice &&
               ["APPROVED", "SENT"].includes(purchaseOrder.status) &&
               !linkedInvoiceId && (
@@ -461,6 +501,17 @@ export default function PurchaseOrderDetailsPage() {
           </TableWrapper>
         </div>
       </Card>
+
+      <ConfirmDialog
+        isOpen={isExternalDistributionDialogOpen}
+        title="Mark PO as shared with supplier?"
+        message="Use this only if the purchase order was shared with the supplier outside Tendaflow, such as by email, WhatsApp, print, or physical delivery. This will record the issued date for supplier lead time tracking."
+        confirmLabel="Mark as Shared"
+        variant="info"
+        isLoading={isRecordingExternalDistribution}
+        onConfirm={handleRecordExternalDistribution}
+        onCancel={() => setIsExternalDistributionDialogOpen(false)}
+      />
     </PageContainer>
   );
 }

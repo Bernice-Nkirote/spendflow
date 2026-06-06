@@ -144,6 +144,16 @@ export async function sendPurchaseOrderToSupplier(
   return response.data;
 }
 
+export async function recordExternalPurchaseOrderDistribution(
+  id: string,
+): Promise<PurchaseOrderDetails> {
+  const response = await axiosInstance.patch<PurchaseOrderDetails>(
+    `/purchase-orders/${id}/record-external-distribution`,
+  );
+
+  return response.data;
+}
+
 export async function resendPurchaseOrderToSupplier(
   id: string,
 ): Promise<PurchaseOrderDetails> {
