@@ -10,7 +10,7 @@ import LoadingState from "../../../components/ui/LoadingState";
 import PageContainer from "../../../components/ui/PageContainer";
 import PageHeader from "../../../components/ui/PageHeader";
 
-import { getDepartments } from "../../Departments/api/departmentApi";
+import { getDepartmentOptions } from "../../Departments/api/departmentApi";
 import type { Department } from "../../Departments/types/department.types";
 import { getSuppliers } from "../../suppliers/api/supplierApi";
 import type { Supplier } from "../../suppliers/types/supplier.types";
@@ -63,7 +63,7 @@ export default function EditPurchaseOrderPage() {
           await Promise.all([
             getPurchaseOrderById(id),
             getSuppliers(),
-            getDepartments(),
+            getDepartmentOptions(),
           ]);
 
         setStatus(purchaseOrder.status);
