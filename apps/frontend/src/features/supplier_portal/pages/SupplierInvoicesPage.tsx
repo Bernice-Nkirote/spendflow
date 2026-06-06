@@ -102,16 +102,16 @@ function SupplierInvoicesPage() {
           />
         ) : (
           <>
-            <TableWrapper minWidth="1100px">
-              <table className="w-full table-fixed text-left text-sm">
+            <TableWrapper minWidth="1250px">
+              <table className="w-full text-left text-sm">
                 <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
                   <tr>
                     <th
-                      className={`${stickyLeftHeader} w-48 whitespace-nowrap px-4 py-3`}
+                      className={`${stickyLeftHeader} min-w-[260px] whitespace-nowrap px-4 py-3`}
                     >
                       Invoice Number
                     </th>
-                    <th className="w-40 whitespace-nowrap px-4 py-3">
+                    <th className="min-w-[260px] whitespace-nowrap px-4 py-3">
                       PO Number
                     </th>
                     <th className="w-40 whitespace-nowrap px-4 py-3">Status</th>
