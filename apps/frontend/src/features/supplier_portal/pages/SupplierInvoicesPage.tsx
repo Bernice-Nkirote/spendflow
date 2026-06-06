@@ -140,14 +140,14 @@ function SupplierInvoicesPage() {
                         <button
                           type="button"
                           onClick={() => toggleMobileInvoice(invoice)}
-                          className="block max-w-[190px] truncate text-left lg:pointer-events-none"
+                          className="block whitespace-nowrap text-left lg:pointer-events-none"
                         >
                           {invoice.invoice_number}
                         </button>
                       </td>
 
                       <td
-                        className="truncate px-4 py-3"
+                        className="whitespace-nowrap px-4 py-3"
                         title={invoice.po_number ?? "-"}
                       >
                         {invoice.po_number ?? "-"}

@@ -95,7 +95,7 @@ function SupplierPaymentsPage() {
                 <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
                   <tr>
                     <th
-                      className={`${stickyLeftHeader} w-48 whitespace-nowrap px-4 py-3`}
+                      className={`${stickyLeftHeader} w-64 whitespace-nowrap px-4 py-3`}
                     >
                       Invoice Number
                     </th>
@@ -121,7 +121,7 @@ function SupplierPaymentsPage() {
                         className={`${stickyLeftCell} px-4 py-3 font-medium text-primary-blue`}
                         title={payment.invoice_number ?? "-"}
                       >
-                        <span className="block max-w-[190px] truncate">
+                        <span className="block whitespace-nowrap">
                           {payment.invoice_number ?? "-"}
                         </span>
                       </td>

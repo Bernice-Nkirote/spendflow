@@ -109,7 +109,7 @@ function SupplierPurchaseOrdersPage() {
                 <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
                   <tr>
                     <th
-                      className={`${stickyLeftHeader} w-44 whitespace-nowrap px-4 py-3`}
+                      className={`${stickyLeftHeader} w-64 whitespace-nowrap px-4 py-3`}
                     >
                       PO Number
                     </th>
@@ -139,7 +139,7 @@ function SupplierPurchaseOrdersPage() {
                         <button
                           type="button"
                           onClick={() => toggleMobilePO(po)}
-                          className="block max-w-[180px] truncate text-left lg:pointer-events-none"
+                          className="block whitespace-nowrap text-left lg:pointer-events-none"
                         >
                           {po.po_number}
                         </button>
