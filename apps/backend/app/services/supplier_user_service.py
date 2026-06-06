@@ -236,6 +236,37 @@ class SupplierUserService:
             },
         )
 
+        # AUDIT LOGS
+        if self.audit_log_service:
+            company_id = (
+                updated_user.supplier.company_id
+                if updated_user.supplier
+                else None
+            )
+
+            if company_id:
+                self.audit_log_service.log_action(
+                    company_id=company_id,
+                    entity_type="SUPPLIER_USER",
+                    entity_id=updated_user.id,
+                    action="SUPPLIER_PASSWORD_SET",
+                    actor_supplier_user_id=updated_user.id,
+                    description=f"Supplier password set for {updated_user.email}",
+                    details_json={
+                        "entity_reference": updated_user.email,
+                        "user_email": updated_user.email,
+                        "supplier_name": updated_user.supplier.name
+                        if updated_user.supplier
+                        else None,
+                    },
+                    new_values_json={
+                        "has_completed_onboarding": True,
+                        "password_setup_completed": True,
+                    },
+                )
+
+
+
         self.supplier_user_repo.db.commit()
         self.supplier_user_repo.db.refresh(updated_user)
 
