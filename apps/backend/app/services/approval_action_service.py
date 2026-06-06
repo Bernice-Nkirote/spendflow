@@ -181,9 +181,11 @@ class ApprovalActionService:
             actor_user_id=current_user.id,
             description=f"Approval action {enum_value(data.action)} recorded",
             details_json={
-                "entity_reference": str(data.instance_id),
+                "entity_reference": f"{enum_value(instance.entity_type)} approval - {enum_value(data.action)}",
                 "approval_instance_id": str(data.instance_id),
                 "workflow_level_id": str(data.level_id),
+                "entity_type": enum_value(instance.entity_type),
+                "entity_id": str(instance.entity_id),
                 "action": enum_value(data.action),
             },
             new_values_json={
