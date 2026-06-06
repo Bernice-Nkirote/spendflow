@@ -1152,6 +1152,66 @@ class PurchaseOrderService:
             company_id=company_id,
         )
 
+    def record_external_distribution(
+        self,
+        po_id: UUID,
+        company_id: UUID,
+        issued_by: UUID,
+        role_id: UUID,
+    ) -> PurchaseOrder:
+        if not self.permission_service.role_has_permission(
+            role_id=role_id,
+            permission_name="po.dispatch",
+            company_id=company_id,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to record PO distribution",
+            )
+
+        po = self.get_po(po_id, company_id)
+
+        if po.status != POStatusEnum.APPROVED:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only approved purchase orders can be marked as shared with supplier",
+            )
+
+        old_status = po.status
+
+        po.issued_by = issued_by
+        po.issued_at = datetime.now(timezone.utc)
+        po.status = POStatusEnum.SENT
+
+        updated_po = self.po_repo.update(po)
+
+        self.audit_log_service.log_action(
+            company_id=company_id,
+            entity_type="PO",
+            entity_id=po.id,
+            action="PO_EXTERNAL_DISTRIBUTION_RECORDED",
+            actor_user_id=issued_by,
+            description=f"Purchase order {po.po_number} marked as shared with supplier outside Tendaflow",
+            old_values_json={
+                "status": enum_value(old_status),
+                "issued_at": None,
+            },
+            new_values_json={
+                "status": enum_value(po.status),
+                "issued_by": str(issued_by),
+                "issued_at": po.issued_at.isoformat() if po.issued_at else None,
+                "distribution_method": "EXTERNAL",
+            },
+        )
+
+        self.po_repo.db.commit()
+        self.po_repo.db.refresh(updated_po)
+
+        return self.get_po(
+            po_id=updated_po.id,
+            company_id=company_id,
+        )
+
     def mark_po_partially_received(
         self,
         po_id: UUID,

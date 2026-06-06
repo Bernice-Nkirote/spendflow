@@ -467,6 +467,19 @@ def send_purchase_order(
 
     )
 
+@router.patch("/{po_id}/record-external-distribution", response_model=PurchaseOrderDetailRead)
+def record_external_po_distribution(
+    po_id: UUID,
+    current_user=Depends(get_current_user),
+    service: PurchaseOrderService = Depends(get_purchase_order_service),
+):
+    return service.record_external_distribution(
+        po_id=po_id,
+        company_id=current_user.company_id,
+        issued_by=current_user.id,
+        role_id=current_user.role_id,
+    )
+
 @router.patch("/{po_id}/resend", response_model=PurchaseOrderDetailRead)
 def resend_purchase_order(
     po_id: UUID,
