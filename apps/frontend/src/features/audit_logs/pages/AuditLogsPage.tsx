@@ -34,7 +34,6 @@ const ENTITY_FILTERS = [
   { label: "Supplier", value: "SUPPLIER" },
   { label: "Supplier User", value: "SUPPLIER_USER" },
   { label: "Role", value: "ROLE" },
-  { label: "Permission", value: "PERMISSION" },
   { label: "Role Permission", value: "ROLE_PERMISSION" },
   { label: "Approval Action", value: "APPROVAL_ACTION" },
 ];
