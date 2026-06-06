@@ -8,6 +8,8 @@ from app.core.auth_dependancy import get_current_admin_user
 from app.core.database import get_db
 from app.repositories.supplier_repository import SupplierRepository
 from app.repositories.supplier_user_repository import SupplierUserRepository
+from app.repositories.audit_log_repository import AuditLogRepository
+
 from app.schemas.supplier_user_schema import (
     SupplierSetPassword,
     SupplierUserCreate,
@@ -17,7 +19,7 @@ from app.schemas.supplier_user_schema import (
 from app.services.password_service import PasswordService
 from app.services.supplier_user_service import SupplierUserService
 from app.services.notifications.email_service import EmailService
-
+from app.services.audit_log_service import AuditLogService
 
 router = APIRouter(
     prefix="/supplier-users",
@@ -37,12 +39,16 @@ def get_supplier_user_service(
         from_email=settings.FROM_EMAIL,
         use_tls=settings.SMTP_USE_TLS,
     )
+    audit_log_service = AuditLogService(
+        repo=AuditLogRepository(db),
+    )
 
     return SupplierUserService(
         supplier_user_repo=SupplierUserRepository(db),
         supplier_repo=SupplierRepository(db),
         password_service=PasswordService(),
         email_service=email_service,
+        audit_log_service=audit_log_service,
     )
 
 @router.post(
@@ -69,6 +75,7 @@ def create_supplier_user(
     return service.create_supplier_user(
         user_data=user_data,
         company_id=current_user.company_id,
+        actor_user_id=current_user.id,
     )
 
 
@@ -141,6 +148,7 @@ def update_supplier_user(
         supplier_id=supplier_id,
         company_id=current_user.company_id,
         user_data=user_data,
+        actor_user_id=current_user.id,
     )
 
 
@@ -158,6 +166,7 @@ def deactivate_supplier_user(
         supplier_user_id=supplier_user_id,
         supplier_id=supplier_id,
         company_id=current_user.company_id,
+        actor_user_id=current_user.id,
     )
 
 
@@ -175,6 +184,7 @@ def activate_supplier_user(
         supplier_user_id=supplier_user_id,
         supplier_id=supplier_id,
         company_id=current_user.company_id,
+        actor_user_id=current_user.id,
     )
 
 
@@ -193,6 +203,7 @@ def resend_supplier_setup_link(
         supplier_user_id=supplier_user_id,
         supplier_id=supplier_id,
         company_id=current_user.company_id,
+        actor_user_id=current_user.id,
     )
 
 @router.delete(
@@ -209,4 +220,5 @@ def delete_supplier_user(
         supplier_user_id=supplier_user_id,
         supplier_id=supplier_id,
         company_id=current_user.company_id,
+        actor_user_id=current_user.id,
     )

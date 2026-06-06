@@ -21,16 +21,19 @@ class SupplierUserService:
         supplier_repo,
         password_service,
         email_service=None,
+        audit_log_service=None,
     ):
         self.supplier_user_repo = supplier_user_repo
         self.supplier_repo = supplier_repo
         self.password_service = password_service
         self.email_service = email_service
+        self.audit_log_service = audit_log_service
 
     def create_supplier_user(
         self,
         user_data: SupplierUserCreate,
         company_id: UUID,
+        actor_user_id: UUID,
     ) -> SupplierUser:
         supplier = self.supplier_repo.get_by_id(
             supplier_id=user_data.supplier_id,
@@ -67,6 +70,27 @@ class SupplierUserService:
         )
 
         created_user = self.supplier_user_repo.create(supplier_user)
+        # AUDIT LOGS
+        if self.audit_log_service:
+            self.audit_log_service.log_action(
+                company_id=company_id,
+                entity_type="SUPPLIER_USER",
+                entity_id=created_user.id,
+                action="SUPPLIER_USER_CREATED",
+                actor_user_id=actor_user_id,
+                description=f"Supplier user {created_user.email} created",
+                details_json={
+                    "entity_reference": created_user.email,
+                    "supplier_name": supplier.name,
+                    "user_email": created_user.email,
+                },
+                new_values_json={
+                    "email": created_user.email,
+                    "is_active": created_user.is_active,
+                    "has_completed_onboarding": created_user.has_completed_onboarding,
+                },
+            )
+        
         self.supplier_user_repo.db.commit()
         self.supplier_user_repo.db.refresh(created_user)
         setup_link = f"{settings.FRONTEND_BASE_URL}/supplier-setup-password?token={setup_token}"
@@ -87,6 +111,7 @@ class SupplierUserService:
         supplier_user_id: UUID,
         supplier_id: UUID,
         company_id: UUID,
+        actor_user_id: UUID,
     ) -> SupplierUser:
         supplier = self.supplier_repo.get_by_id(
             supplier_id=supplier_id,
@@ -132,6 +157,26 @@ class SupplierUserService:
                 "password_setup_expires_at": setup_expires_at,
             },
         )
+
+        if self.audit_log_service:
+            self.audit_log_service.log_action(
+                company_id=company_id,
+                entity_type="SUPPLIER_USER",
+                entity_id=updated_user.id,
+                action="SUPPLIER_USER_SETUP_LINK_RESENT",
+                actor_user_id=actor_user_id,
+                description=f"Supplier setup link resent to {updated_user.email}",
+                details_json={
+                    "entity_reference": updated_user.email,
+                    "supplier_name": supplier.name,
+                    "user_email": updated_user.email,
+                },
+                new_values_json={
+                    "password_setup_expires_at": updated_user.password_setup_expires_at.isoformat()
+                    if updated_user.password_setup_expires_at
+                    else None,
+                },
+            )
 
         self.supplier_user_repo.db.commit()
         self.supplier_user_repo.db.refresh(updated_user)
@@ -281,12 +326,19 @@ class SupplierUserService:
         supplier_id: UUID,
         company_id: UUID,
         user_data: SupplierUserUpdate,
+        actor_user_id: UUID,
     ) -> SupplierUser:
         supplier_user = self.get_supplier_user(
             supplier_user_id=supplier_user_id,
             supplier_id=supplier_id,
             company_id=company_id,
         )
+
+        old_values = {
+            "email": supplier_user.email,
+            "is_active": supplier_user.is_active,
+            "has_completed_onboarding": supplier_user.has_completed_onboarding,
+        }
 
         update_data = user_data.model_dump(exclude_unset=True)
 
@@ -315,6 +367,27 @@ class SupplierUserService:
             update_data=update_data,
         )
 
+        if self.audit_log_service:
+            self.audit_log_service.log_action(
+                company_id=company_id,
+                entity_type="SUPPLIER_USER",
+                entity_id=updated_user.id,
+                action="SUPPLIER_USER_UPDATED",
+                actor_user_id=actor_user_id,
+                description=f"Supplier user {updated_user.email} updated",
+                details_json={
+                    "entity_reference": updated_user.email,
+                    "user_email": updated_user.email,
+                },
+                old_values_json=old_values,
+                new_values_json={
+                    "email": updated_user.email,
+                    "is_active": updated_user.is_active,
+                    "has_completed_onboarding": updated_user.has_completed_onboarding,
+                    "password_changed": "hashed_password" in update_data,
+                },
+            )
+
         self.supplier_user_repo.db.commit()
         self.supplier_user_repo.db.refresh(updated_user)
 
@@ -325,6 +398,7 @@ class SupplierUserService:
         supplier_user_id: UUID,
         supplier_id: UUID,
         company_id: UUID,
+        actor_user_id: UUID,
     ) -> SupplierUser:
         supplier_user = self.get_supplier_user(
             supplier_user_id=supplier_user_id,
@@ -343,6 +417,22 @@ class SupplierUserService:
             update_data={"is_active": False},
         )
 
+        if self.audit_log_service:
+            self.audit_log_service.log_action(
+                company_id=company_id,
+                entity_type="SUPPLIER_USER",
+                entity_id=updated_user.id,
+                action="SUPPLIER_USER_DEACTIVATED",
+                actor_user_id=actor_user_id,
+                description=f"Supplier user {updated_user.email} deactivated",
+                details_json={
+                    "entity_reference": updated_user.email,
+                    "user_email": updated_user.email,
+                },
+                old_values_json={"is_active": True},
+                new_values_json={"is_active": False},
+            )
+
         self.supplier_user_repo.db.commit()
         self.supplier_user_repo.db.refresh(updated_user)
 
@@ -353,6 +443,7 @@ class SupplierUserService:
         supplier_user_id: UUID,
         supplier_id: UUID,
         company_id: UUID,
+        actor_user_id: UUID,
     ) -> SupplierUser:
         supplier_user = self.get_supplier_user(
             supplier_user_id=supplier_user_id,
@@ -371,6 +462,22 @@ class SupplierUserService:
             update_data={"is_active": True},
         )
 
+        if self.audit_log_service:
+            self.audit_log_service.log_action(
+                company_id=company_id,
+                entity_type="SUPPLIER_USER",
+                entity_id=updated_user.id,
+                action="SUPPLIER_USER_ACTIVATED",
+                actor_user_id=actor_user_id,
+                description=f"Supplier user {updated_user.email} activated",
+                details_json={
+                    "entity_reference": updated_user.email,
+                    "user_email": updated_user.email,
+                },
+                old_values_json={"is_active": False},
+                new_values_json={"is_active": True},
+            )
+
         self.supplier_user_repo.db.commit()
         self.supplier_user_repo.db.refresh(updated_user)
 
@@ -381,12 +488,32 @@ class SupplierUserService:
         supplier_user_id: UUID,
         supplier_id: UUID,
         company_id: UUID,
+        actor_user_id: UUID,
     ) -> None:
         supplier_user = self.get_supplier_user(
             supplier_user_id=supplier_user_id,
             supplier_id=supplier_id,
             company_id=company_id,
         )
+
+        if self.audit_log_service:
+            self.audit_log_service.log_action(
+                company_id=company_id,
+                entity_type="SUPPLIER_USER",
+                entity_id=supplier_user.id,
+                action="SUPPLIER_USER_DELETED",
+                actor_user_id=actor_user_id,
+                description=f"Supplier user {supplier_user.email} deleted",
+                details_json={
+                    "entity_reference": supplier_user.email,
+                    "user_email": supplier_user.email,
+                },
+                old_values_json={
+                    "email": supplier_user.email,
+                    "is_active": supplier_user.is_active,
+                    "has_completed_onboarding": supplier_user.has_completed_onboarding,
+                },
+            )
 
         self.supplier_user_repo.delete(supplier_user)
         self.supplier_user_repo.db.commit()
