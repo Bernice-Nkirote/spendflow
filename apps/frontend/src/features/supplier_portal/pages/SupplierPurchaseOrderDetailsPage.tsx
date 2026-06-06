@@ -8,6 +8,7 @@ import EmptyState from "../../../components/ui/EmptyState";
 import ErrorState from "../../../components/ui/ErrorState";
 import LoadingState from "../../../components/ui/LoadingState";
 import TableWrapper from "../../../components/ui/TableWrapper";
+import MobileRecordCard from "../../../components/ui/MobileRecordCard";
 import {
   stickyLeftCell,
   stickyLeftHeader,
@@ -220,71 +221,109 @@ function SupplierPurchaseOrderDetailsPage() {
             message="This purchase order does not have any line items."
           />
         ) : (
-          <TableWrapper minWidth="980px">
-            <table className="w-full table-fixed text-left text-sm">
-              <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
-                <tr>
-                  <th
-                    className={`${stickyLeftHeader} w-52 whitespace-nowrap px-4 py-3`}
-                  >
-                    Item
-                  </th>
-                  <th className="w-72 whitespace-nowrap px-4 py-3">
-                    Description
-                  </th>
-                  <th className="w-32 whitespace-nowrap px-4 py-3 text-right">
-                    Quantity
-                  </th>
-                  <th className="w-40 whitespace-nowrap px-4 py-3 text-right">
-                    Unit Price
-                  </th>
-                  <th className="w-40 whitespace-nowrap px-4 py-3 text-right">
-                    Total
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody className="divide-y">
-                {purchaseOrder.items.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50">
-                    <td
-                      className={`${stickyLeftCell} px-4 py-3 font-medium text-primary-black`}
-                      title={item.item_name}
-                    >
-                      <span className="block max-w-[200px] truncate">
-                        {item.item_name}
-                      </span>
-                    </td>
-
-                    <td
-                      className="truncate px-4 py-3 text-primary-gray"
-                      title={item.description || "No description"}
-                    >
-                      {item.description || "No description"}
-                    </td>
-
-                    <td className="whitespace-nowrap px-4 py-3 text-right">
-                      {item.quantity}
-                    </td>
-
-                    <td className="whitespace-nowrap px-4 py-3 text-right">
-                      {formatCurrency(
+          <>
+            {/* Mobile Cards */}
+            <div className="space-y-3 lg:hidden">
+              {purchaseOrder.items.map((item) => (
+                <MobileRecordCard
+                  key={item.id}
+                  title={item.item_name}
+                  subtitle={item.description || "No description"}
+                  rows={[
+                    {
+                      label: "Quantity",
+                      value: item.quantity,
+                    },
+                    {
+                      label: "Unit Price",
+                      value: formatCurrency(
                         Number(item.unit_price),
                         purchaseOrder.currency,
-                      )}
-                    </td>
-
-                    <td className="whitespace-nowrap px-4 py-3 text-right font-medium">
-                      {formatCurrency(
+                      ),
+                    },
+                    {
+                      label: "Total",
+                      value: formatCurrency(
                         Number(item.total_price),
                         purchaseOrder.currency,
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </TableWrapper>
+                      ),
+                    },
+                  ]}
+                />
+              ))}
+            </div>
+
+            {/* Desktop Table */}
+            <div className="hidden lg:block">
+              <TableWrapper minWidth="980px">
+                <table className="w-full table-fixed text-left text-sm">
+                  <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
+                    <tr>
+                      <th
+                        className={`${stickyLeftHeader} w-52 whitespace-nowrap px-4 py-3`}
+                      >
+                        Item
+                      </th>
+                      <th className="w-72 whitespace-nowrap px-4 py-3">
+                        Description
+                      </th>
+                      <th className="w-32 whitespace-nowrap px-4 py-3 text-right">
+                        Quantity
+                      </th>
+                      <th className="w-40 whitespace-nowrap px-4 py-3 text-right">
+                        Unit Price
+                      </th>
+                      <th className="w-40 whitespace-nowrap px-4 py-3 text-right">
+                        Total
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody className="divide-y">
+                    {purchaseOrder.items.map((item) => (
+                      <tr key={item.id} className="hover:bg-gray-50">
+                        <td
+                          className={`${stickyLeftCell} px-4 py-3 font-medium text-primary-black`}
+                        >
+                          <span
+                            className="block max-w-[200px] truncate"
+                            title={item.item_name}
+                          >
+                            {item.item_name}
+                          </span>
+                        </td>
+
+                        <td
+                          className="truncate px-4 py-3 text-primary-gray"
+                          title={item.description || "No description"}
+                        >
+                          {item.description || "No description"}
+                        </td>
+
+                        <td className="whitespace-nowrap px-4 py-3 text-right">
+                          {item.quantity}
+                        </td>
+
+                        <td className="whitespace-nowrap px-4 py-3 text-right">
+                          {formatCurrency(
+                            Number(item.unit_price),
+                            purchaseOrder.currency,
+                          )}
+                        </td>
+
+                        <td className="whitespace-nowrap px-4 py-3 text-right font-medium">
+                          {formatCurrency(
+                            Number(item.total_price),
+                            purchaseOrder.currency,
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableWrapper>
+            </div>
+          </>
         )}
       </Card>
     </div>
