@@ -530,10 +530,20 @@ class PurchaseOrderService:
 
         created_po = self.po_repo.create(po)
 
-        for requisition_item in requisition_items:
-            item_name, description, quantity, unit_price = self._extract_pr_item_values(
-                requisition_item
-            )
+        items_source = po_data.items if po_data.items else requisition_items
+
+        for item_data in items_source:
+            if po_data.items:
+                self._validate_item_fields(item_data)
+
+                item_name = item_data.item_name.strip()
+                description = item_data.description
+                quantity = Decimal(item_data.quantity)
+                unit_price = Decimal(item_data.unit_price)
+            else:
+                item_name, description, quantity, unit_price = self._extract_pr_item_values(
+                    item_data
+                )
 
             item = PurchaseOrderItem(
                 company_id=company_id,
@@ -547,10 +557,10 @@ class PurchaseOrderService:
 
             self.po_item_repo.create(item)
 
-        requisition.status = PRStatusEnum.CONVERTED_TO_PO
-        self.pr_repo.update(requisition)
+            requisition.status = PRStatusEnum.CONVERTED_TO_PO
+            self.pr_repo.update(requisition)
 
-        updated_po = self._recalculate_po_total(created_po, company_id)
+            updated_po = self._recalculate_po_total(created_po, company_id)
 
         # AUDIT CHECK FOR CONVERTING PR TO PO
         self.audit_log_service.log_action(
