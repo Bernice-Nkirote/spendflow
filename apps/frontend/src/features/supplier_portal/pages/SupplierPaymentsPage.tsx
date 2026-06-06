@@ -6,6 +6,10 @@ import ErrorState from "../../../components/ui/ErrorState";
 import LoadingState from "../../../components/ui/LoadingState";
 import Pagination from "../../../components/ui/Pagination";
 import TableWrapper from "../../../components/ui/TableWrapper";
+import {
+  stickyLeftCell,
+  stickyLeftHeader,
+} from "../../../components/ui/tableStickyStyles";
 import { formatCurrency } from "../../../utils/formatCurrency";
 import { getPaginatedSupplierPayments } from "../api/supplierPortalApi";
 import SupplierPaymentStatusBadge from "../components/SupplierPaymentStatusBadge";
@@ -90,7 +94,9 @@ function SupplierPaymentsPage() {
               <table className="w-full table-fixed text-left text-sm">
                 <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
                   <tr>
-                    <th className="w-48 whitespace-nowrap px-4 py-3">
+                    <th
+                      className={`${stickyLeftHeader} w-48 whitespace-nowrap px-4 py-3`}
+                    >
                       Invoice Number
                     </th>
                     <th className="w-44 whitespace-nowrap px-4 py-3">
@@ -112,17 +118,21 @@ function SupplierPaymentsPage() {
                   {payments.map((payment) => (
                     <tr key={payment.id} className="hover:bg-gray-50">
                       <td
-                        className="truncate px-4 py-3 font-medium text-primary-blue"
+                        className={`${stickyLeftCell} px-4 py-3 font-medium text-primary-blue`}
                         title={payment.invoice_number ?? "-"}
                       >
-                        {payment.invoice_number ?? "-"}
+                        <span className="block max-w-[190px] truncate">
+                          {payment.invoice_number ?? "-"}
+                        </span>
                       </td>
 
                       <td
-                        className="truncate px-4 py-3"
+                        className="px-4 py-3"
                         title={payment.reference ?? "Not provided"}
                       >
-                        {payment.reference ?? "Not provided"}
+                        <span className="block max-w-[220px] truncate">
+                          {payment.reference ?? "Not provided"}
+                        </span>
                       </td>
 
                       <td className="whitespace-nowrap px-4 py-3">

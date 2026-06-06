@@ -7,6 +7,14 @@ import ErrorState from "../../../components/ui/ErrorState";
 import LoadingState from "../../../components/ui/LoadingState";
 import Pagination from "../../../components/ui/Pagination";
 import TableWrapper from "../../../components/ui/TableWrapper";
+import {
+  stickyLeftCell,
+  stickyLeftHeader,
+  stickyRightCell,
+  stickyRightHeader,
+} from "../../../components/ui/tableStickyStyles";
+import MobileFloatingTableAction from "../../../components/ui/MobileFloatingTableAction";
+import Button from "../../../components/ui/Button";
 import { formatCurrency } from "../../../utils/formatCurrency";
 import { getPaginatedSupplierPurchaseOrders } from "../api/supplierPortalApi";
 import SupplierPurchaseOrderStatusBadge from "../components/SupplierPurchaseOrderStatusBadge";
@@ -23,6 +31,8 @@ function SupplierPurchaseOrdersPage() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [recordsLoading, setRecordsLoading] = useState(false);
   const [recordsError, setRecordsError] = useState<string | null>(null);
+  const [selectedMobilePO, setSelectedMobilePO] =
+    useState<SupplierPurchaseOrder | null>(null);
 
   async function fetchPurchaseOrders() {
     try {
@@ -52,6 +62,10 @@ function SupplierPurchaseOrdersPage() {
 
   if (initialLoading) {
     return <LoadingState message="Loading purchase orders..." />;
+  }
+
+  function toggleMobilePO(po: SupplierPurchaseOrder) {
+    setSelectedMobilePO((current) => (current?.id === po.id ? null : po));
   }
 
   return (
@@ -94,7 +108,9 @@ function SupplierPurchaseOrdersPage() {
               <table className="w-full table-fixed text-left text-sm">
                 <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
                   <tr>
-                    <th className="w-44 whitespace-nowrap px-4 py-3">
+                    <th
+                      className={`${stickyLeftHeader} w-44 whitespace-nowrap px-4 py-3`}
+                    >
                       PO Number
                     </th>
                     <th className="w-40 whitespace-nowrap px-4 py-3">Status</th>
@@ -105,7 +121,9 @@ function SupplierPurchaseOrdersPage() {
                     <th className="w-40 whitespace-nowrap px-4 py-3">
                       Issued At
                     </th>
-                    <th className="w-32 whitespace-nowrap px-4 py-3 text-right">
+                    <th
+                      className={`${stickyRightHeader} hidden w-32 whitespace-nowrap px-4 py-3 text-right lg:table-cell`}
+                    >
                       Action
                     </th>
                   </tr>
@@ -115,10 +133,16 @@ function SupplierPurchaseOrdersPage() {
                   {purchaseOrders.map((po) => (
                     <tr key={po.id} className="hover:bg-gray-50">
                       <td
-                        className="truncate px-4 py-3 font-medium text-primary-blue"
+                        className={`${stickyLeftCell} px-4 py-3 font-medium text-primary-blue`}
                         title={po.po_number}
                       >
-                        {po.po_number}
+                        <button
+                          type="button"
+                          onClick={() => toggleMobilePO(po)}
+                          className="block max-w-[180px] truncate text-left lg:pointer-events-none"
+                        >
+                          {po.po_number}
+                        </button>
                       </td>
                       <td className="whitespace-nowrap px-4 py-3">
                         <SupplierPurchaseOrderStatusBadge status={po.status} />
@@ -139,7 +163,9 @@ function SupplierPurchaseOrdersPage() {
                           ? new Date(po.issued_at).toLocaleDateString()
                           : "Not issued"}
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td
+                        className={`${stickyRightCell} hidden px-4 py-3 text-right lg:table-cell`}
+                      >
                         <Link
                           to={`/supplier-portal/purchase-orders/${po.id}`}
                           className="text-sm font-medium text-primary-blue hover:underline"
@@ -153,6 +179,22 @@ function SupplierPurchaseOrdersPage() {
               </table>
             </TableWrapper>
 
+            <MobileFloatingTableAction
+              isOpen={Boolean(selectedMobilePO)}
+              reference={selectedMobilePO?.po_number ?? "Purchase Order"}
+              label="Selected purchase order"
+              onClose={() => setSelectedMobilePO(null)}
+            >
+              {selectedMobilePO && (
+                <Link
+                  to={`/supplier-portal/purchase-orders/${selectedMobilePO.id}`}
+                >
+                  <Button type="button" size="sm">
+                    View
+                  </Button>
+                </Link>
+              )}
+            </MobileFloatingTableAction>
             <Pagination
               page={page}
               pageSize={pageSize}

@@ -6,7 +6,15 @@ import EmptyState from "../../../components/ui/EmptyState";
 import ErrorState from "../../../components/ui/ErrorState";
 import LoadingState from "../../../components/ui/LoadingState";
 import Pagination from "../../../components/ui/Pagination";
+import MobileFloatingTableAction from "../../../components/ui/MobileFloatingTableAction";
+import Button from "../../../components/ui/Button";
 import TableWrapper from "../../../components/ui/TableWrapper";
+import {
+  stickyLeftCell,
+  stickyLeftHeader,
+  stickyRightCell,
+  stickyRightHeader,
+} from "../../../components/ui/tableStickyStyles";
 import { formatCurrency } from "../../../utils/formatCurrency";
 import { getPaginatedSupplierInvoices } from "../api/supplierPortalApi";
 import SupplierInvoiceStatusBadge from "../components/SupplierInvoiceStatusBadge";
@@ -21,6 +29,8 @@ function SupplierInvoicesPage() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [recordsLoading, setRecordsLoading] = useState(false);
   const [recordsError, setRecordsError] = useState<string | null>(null);
+  const [selectedMobileInvoice, setSelectedMobileInvoice] =
+    useState<SupplierInvoice | null>(null);
 
   async function fetchInvoices() {
     try {
@@ -50,6 +60,12 @@ function SupplierInvoicesPage() {
 
   if (initialLoading) {
     return <LoadingState message="Loading invoices..." />;
+  }
+
+  function toggleMobileInvoice(invoice: SupplierInvoice) {
+    setSelectedMobileInvoice((current) =>
+      current?.id === invoice.id ? null : invoice,
+    );
   }
 
   return (
@@ -90,7 +106,9 @@ function SupplierInvoicesPage() {
               <table className="w-full table-fixed text-left text-sm">
                 <thead className="border-b bg-gray-50 text-xs uppercase text-gray-500">
                   <tr>
-                    <th className="w-48 whitespace-nowrap px-4 py-3">
+                    <th
+                      className={`${stickyLeftHeader} w-48 whitespace-nowrap px-4 py-3`}
+                    >
                       Invoice Number
                     </th>
                     <th className="w-40 whitespace-nowrap px-4 py-3">
@@ -104,7 +122,9 @@ function SupplierInvoicesPage() {
                     <th className="w-40 whitespace-nowrap px-4 py-3">
                       Created
                     </th>
-                    <th className="w-32 whitespace-nowrap px-4 py-3 text-right">
+                    <th
+                      className={`${stickyRightHeader} hidden w-32 whitespace-nowrap px-4 py-3 text-right lg:table-cell`}
+                    >
                       Action
                     </th>
                   </tr>
@@ -114,10 +134,16 @@ function SupplierInvoicesPage() {
                   {invoices.map((invoice) => (
                     <tr key={invoice.id} className="hover:bg-gray-50">
                       <td
-                        className="truncate px-4 py-3 font-medium text-primary-blue"
+                        className={`${stickyLeftCell} px-4 py-3 font-medium text-primary-blue`}
                         title={invoice.invoice_number}
                       >
-                        {invoice.invoice_number}
+                        <button
+                          type="button"
+                          onClick={() => toggleMobileInvoice(invoice)}
+                          className="block max-w-[190px] truncate text-left lg:pointer-events-none"
+                        >
+                          {invoice.invoice_number}
+                        </button>
                       </td>
 
                       <td
@@ -151,7 +177,9 @@ function SupplierInvoicesPage() {
                         {new Date(invoice.created_at).toLocaleDateString()}
                       </td>
 
-                      <td className="px-4 py-3 text-right">
+                      <td
+                        className={`${stickyRightCell} hidden px-4 py-3 text-right lg:table-cell`}
+                      >
                         <Link
                           to={`/supplier-portal/invoices/${invoice.id}`}
                           className="text-sm font-medium text-primary-blue hover:underline"
@@ -164,6 +192,23 @@ function SupplierInvoicesPage() {
                 </tbody>
               </table>
             </TableWrapper>
+
+            <MobileFloatingTableAction
+              isOpen={Boolean(selectedMobileInvoice)}
+              reference={selectedMobileInvoice?.invoice_number ?? "Invoice"}
+              label="Selected invoice"
+              onClose={() => setSelectedMobileInvoice(null)}
+            >
+              {selectedMobileInvoice && (
+                <Link
+                  to={`/supplier-portal/invoices/${selectedMobileInvoice.id}`}
+                >
+                  <Button type="button" size="sm">
+                    View
+                  </Button>
+                </Link>
+              )}
+            </MobileFloatingTableAction>
 
             <Pagination
               page={page}
