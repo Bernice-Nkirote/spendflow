@@ -1,5 +1,5 @@
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
@@ -23,6 +23,14 @@ import PurchaseOrderStatusBadge from "../components/PurchaseOrderStatusBadge";
 
 import { formatCurrency } from "../../../utils/formatCurrency";
 import { userHasPermission } from "../../../utils/permissions";
+
+type POItemDraft = {
+  id: string;
+  item_name: string;
+  description: string | null;
+  quantity: string;
+  unit_price: string;
+};
 
 function formatQuantity(value: string | number | null | undefined) {
   const numericValue = Number(value ?? 0);
@@ -56,10 +64,24 @@ export default function CreatePurchaseOrderFromPRPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [supplierId, setSupplierId] = useState("");
   const [notes, setNotes] = useState("");
+  const [poItems, setPoItems] = useState<POItemDraft[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const poTotalAmount = useMemo(() => {
+    return poItems.reduce((total, item) => {
+      const quantity = Number(item.quantity);
+      const unitPrice = Number(item.unit_price);
+
+      if (Number.isNaN(quantity) || Number.isNaN(unitPrice)) {
+        return total;
+      }
+
+      return total + quantity * unitPrice;
+    }, 0);
+  }, [poItems]);
 
   useEffect(() => {
     async function loadPageData() {
@@ -92,6 +114,15 @@ export default function CreatePurchaseOrderFromPRPage() {
         }
 
         setPurchaseRequisition(prResponse);
+        setPoItems(
+          prResponse.items.map((item) => ({
+            id: item.id,
+            item_name: item.item_name,
+            description: item.description || null,
+            quantity: item.quantity,
+            unit_price: item.unit_price || "",
+          })),
+        );
         setSuppliers(supplierResponse.filter((supplier) => supplier.is_active));
       } catch (error) {
         setError(
@@ -108,6 +139,19 @@ export default function CreatePurchaseOrderFromPRPage() {
     loadPageData();
   }, [requisitionId, canCreatePO]);
 
+  function handleUnitPriceChange(itemId: string, value: string) {
+    setPoItems((currentItems) =>
+      currentItems.map((item) =>
+        item.id === itemId
+          ? {
+              ...item,
+              unit_price: value,
+            }
+          : item,
+      ),
+    );
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -118,6 +162,18 @@ export default function CreatePurchaseOrderFromPRPage() {
 
     if (!supplierId) {
       setError("Please select a supplier.");
+      return;
+    }
+
+    const hasInvalidItemPrice = poItems.some((item) => {
+      const unitPrice = Number(item.unit_price);
+      return Number.isNaN(unitPrice) || unitPrice <= 0;
+    });
+
+    if (hasInvalidItemPrice) {
+      setError(
+        "Please enter a unit price greater than zero for every PO item.",
+      );
       return;
     }
 
@@ -132,11 +188,11 @@ export default function CreatePurchaseOrderFromPRPage() {
           department_id: purchaseRequisition.department_id,
           currency: purchaseRequisition.currency,
           notes: notes.trim() || null,
-          items: purchaseRequisition.items.map((item) => ({
+          items: poItems.map((item) => ({
             item_name: item.item_name,
             description: item.description || null,
             quantity: item.quantity,
-            unit_price: item.unit_price || "0",
+            unit_price: item.unit_price,
           })),
         },
       );
@@ -245,13 +301,10 @@ export default function CreatePurchaseOrderFromPRPage() {
 
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-primary-gray">
-                Total Amount
+                PO Total Amount
               </p>
               <p className="mt-1 text-sm font-medium text-primary-black">
-                {formatCurrency(
-                  Number(purchaseRequisition.total_amount ?? 0),
-                  purchaseRequisition.currency,
-                )}
+                {formatCurrency(poTotalAmount, purchaseRequisition.currency)}
               </p>
             </div>
 
@@ -277,13 +330,12 @@ export default function CreatePurchaseOrderFromPRPage() {
                 Items copied from PR
               </h2>
               <p className="mt-1 text-sm text-primary-gray">
-                These items will be copied into the purchase order.
+                Review the copied items and enter the PO unit prices before
+                creating the purchase order.
               </p>
             </div>
 
-            <p className="text-sm text-primary-gray">
-              {purchaseRequisition.items.length} items
-            </p>
+            <p className="text-sm text-primary-gray">{poItems.length} items</p>
           </div>
 
           <div className="mt-4">
@@ -303,42 +355,68 @@ export default function CreatePurchaseOrderFromPRPage() {
                     <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
                       Unit Price
                     </th>
+                    <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                      Line Total
+                    </th>
                   </tr>
                 </thead>
 
                 <tbody className="divide-y divide-gray-100 bg-white">
-                  {purchaseRequisition.items.map((item) => (
-                    <tr key={item.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-primary-black">
-                        <span
-                          className="block max-w-[260px] whitespace-pre-wrap break-words"
-                          title={item.item_name}
-                        >
-                          {item.item_name}
-                        </span>
-                      </td>
+                  {poItems.map((item) => {
+                    const quantity = Number(item.quantity);
+                    const unitPrice = Number(item.unit_price);
+                    const lineTotal =
+                      Number.isNaN(quantity) || Number.isNaN(unitPrice)
+                        ? 0
+                        : quantity * unitPrice;
 
-                      <td className="px-4 py-3 text-primary-black">
-                        <span
-                          className="block max-w-[360px] whitespace-pre-wrap break-words leading-6"
-                          title={item.description}
-                        >
-                          {item.description || "-"}
-                        </span>
-                      </td>
+                    return (
+                      <tr key={item.id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3 font-medium text-primary-black">
+                          <span
+                            className="block max-w-[260px] whitespace-pre-wrap break-words"
+                            title={item.item_name}
+                          >
+                            {item.item_name}
+                          </span>
+                        </td>
 
-                      <td className="whitespace-nowrap px-4 py-3 text-right text-primary-black">
-                        {formatQuantity(item.quantity)}
-                      </td>
+                        <td className="px-4 py-3 text-primary-black">
+                          <span
+                            className="block max-w-[360px] whitespace-pre-wrap break-words leading-6"
+                            title={item.description || undefined}
+                          >
+                            {item.description || "-"}
+                          </span>
+                        </td>
 
-                      <td className="whitespace-nowrap px-4 py-3 text-right text-primary-black">
-                        {formatCurrency(
-                          Number(item.unit_price ?? 0),
-                          purchaseRequisition.currency,
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                        <td className="whitespace-nowrap px-4 py-3 text-right text-primary-black">
+                          {formatQuantity(item.quantity)}
+                        </td>
+
+                        <td className="whitespace-nowrap px-4 py-3 text-right text-primary-black">
+                          <input
+                            type="number"
+                            min="0.01"
+                            step="0.01"
+                            value={item.unit_price}
+                            onChange={(event) =>
+                              handleUnitPriceChange(item.id, event.target.value)
+                            }
+                            className="w-32 rounded-lg border border-gray-300 px-3 py-2 text-right text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
+                            required
+                          />
+                        </td>
+
+                        <td className="whitespace-nowrap px-4 py-3 text-right font-medium text-primary-black">
+                          {formatCurrency(
+                            lineTotal,
+                            purchaseRequisition.currency,
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </TableWrapper>
