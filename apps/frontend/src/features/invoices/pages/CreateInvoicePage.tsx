@@ -17,7 +17,10 @@ import { useFloatingAlert } from "../../../components/ui/useFloatingAlert";
 import { formatCurrency } from "../../../utils/formatCurrency";
 import { userHasPermission } from "../../../utils/permissions";
 
-import { getPurchaseOrderById } from "../../purchase_orders/api/purchaseOrderApi";
+import {
+  getPurchaseOrderById,
+  recordExternalPurchaseOrderDistribution,
+} from "../../purchase_orders/api/purchaseOrderApi";
 import type { PurchaseOrderDetails } from "../../purchase_orders/types/purchaseOrder.types";
 import { createInvoice } from "../api/invoiceApi";
 import {
@@ -151,9 +154,19 @@ export default function CreateInvoicePage() {
       setSaving(true);
       setError(null);
 
+      let invoicePurchaseOrder = purchaseOrder;
+
+      if (purchaseOrder.status === "APPROVED" && confirmExternalPoReceived) {
+        invoicePurchaseOrder = await recordExternalPurchaseOrderDistribution(
+          purchaseOrder.id,
+        );
+
+        setPurchaseOrder(invoicePurchaseOrder);
+      }
+
       const createdInvoice = await createInvoice({
-        purchase_order_id: purchaseOrder.id,
-        supplier_id: purchaseOrder.supplier_id,
+        purchase_order_id: invoicePurchaseOrder.id,
+        supplier_id: invoicePurchaseOrder.supplier_id,
         invoice_number: invoiceNumber.trim() || null,
         line_items: lineItems,
       });
