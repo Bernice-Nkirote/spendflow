@@ -1,7 +1,12 @@
 import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
 
 import BackButton from "../../../components/ui/BackButton";
 import Button from "../../../components/ui/Button";
@@ -32,6 +37,7 @@ export default function CreateInvoicePage() {
   const purchaseOrderId = searchParams.get("purchaseOrderId");
   const from = searchParams.get("from");
   const navigate = useNavigate();
+  const location = useLocation();
   const canCreateInvoice = userHasPermission("invoice.create");
 
   const [purchaseOrder, setPurchaseOrder] =
@@ -83,12 +89,27 @@ export default function CreateInvoicePage() {
         const response = await getPurchaseOrderById(purchaseOrderId);
 
         if (response.status !== "SENT") {
-          showAlert(
-            "error",
-            "Please share PO with supplier or mark as shared with the supplier before creating an invoice.",
-          );
+          navigate(`/purchase-orders/${response.id}`, {
+            replace: true,
+            state: {
+              notice: {
+                type: "error",
+                message:
+                  "This purchase order has not been shared with the supplier yet. Mark it as shared before creating an invoice.",
+              },
+              backNavigation: location.state?.backNavigation ?? {
+                label:
+                  from === "invoices"
+                    ? "Back to Invoices"
+                    : "Back to Purchase Order",
+                to:
+                  from === "invoices"
+                    ? "/invoices"
+                    : `/purchase-orders/${response.id}`,
+              },
+            },
+          });
 
-          navigate(`/purchase-orders/${response.id}`);
           return;
         }
 
@@ -110,7 +131,7 @@ export default function CreateInvoicePage() {
     }
 
     fetchPurchaseOrder();
-  }, [purchaseOrderId, canCreateInvoice, navigate, showAlert]);
+  }, [purchaseOrderId, canCreateInvoice, navigate, from, location.state]);
 
   function updateLineItem(
     index: number,

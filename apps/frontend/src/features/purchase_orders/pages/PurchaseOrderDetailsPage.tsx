@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import {
+  Link,
+  useLocation,
+  useParams,
+  useSearchParams,
+} from "react-router-dom";
 
 import BackButton from "../../../components/ui/BackButton";
 import Button from "../../../components/ui/Button";
@@ -58,8 +63,17 @@ function formatQuantity(value: string | number | null | undefined) {
 export default function PurchaseOrderDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
 
   const returnTo = searchParams.get("returnTo");
+  const notice = (
+    location.state as {
+      notice?: {
+        type: "error" | "success" | "warning" | "info";
+        message: string;
+      };
+    } | null
+  )?.notice;
   const canCreateInvoice = userHasPermission("invoice.create");
 
   const [purchaseOrder, setPurchaseOrder] =
@@ -149,7 +163,7 @@ export default function PurchaseOrderDetailsPage() {
         description={`Supplier: ${purchaseOrder.supplier_name ?? "-"}`}
         actions={<PurchaseOrderStatusBadge status={purchaseOrder.status} />}
       />
-
+      {notice && <ErrorState message={notice.message} />}
       <Card>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
