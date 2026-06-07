@@ -178,7 +178,22 @@ export default function CreateInvoicePage() {
   }
 
   if (error && !purchaseOrder) {
-    return <ErrorState message={error} />;
+    return (
+      <PageContainer>
+        <BackButton fallbackLabel="Back to Invoices" fallbackTo="/invoices" />
+
+        <Card>
+          <h1 className="text-lg font-semibold text-primary-black">
+            Invoice creation is not available yet
+          </h1>
+
+          <p className="mt-2 text-sm text-primary-gray">
+            This purchase order must be sent to the supplier before an invoice
+            can be created.
+          </p>
+        </Card>
+      </PageContainer>
+    );
   }
 
   if (!purchaseOrder) {
