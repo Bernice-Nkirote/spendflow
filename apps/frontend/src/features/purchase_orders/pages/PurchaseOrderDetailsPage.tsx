@@ -149,12 +149,14 @@ export default function PurchaseOrderDetailsPage() {
 
   return (
     <PageContainer>
-      <BackButton
-        label={returnTo ? "Back to Approval" : undefined}
-        to={returnTo ?? undefined}
-        fallbackLabel="Back to Purchase Orders"
-        fallbackTo="/purchase-orders"
-      />
+      {returnTo ? (
+        <BackButton label="Back to Approval" to={returnTo} />
+      ) : (
+        <BackButton
+          fallbackLabel="Back to Purchase Orders"
+          fallbackTo="/purchase-orders"
+        />
+      )}
 
       <PageHeader
         title={`Purchase Order ${purchaseOrder.po_number}`}
