@@ -17,10 +17,7 @@ import { useFloatingAlert } from "../../../components/ui/useFloatingAlert";
 import { formatCurrency } from "../../../utils/formatCurrency";
 import { userHasPermission } from "../../../utils/permissions";
 
-import {
-  getPurchaseOrderById,
-  recordExternalPurchaseOrderDistribution,
-} from "../../purchase_orders/api/purchaseOrderApi";
+import { getPurchaseOrderById } from "../../purchase_orders/api/purchaseOrderApi";
 import type { PurchaseOrderDetails } from "../../purchase_orders/types/purchaseOrder.types";
 import { createInvoice } from "../api/invoiceApi";
 import {
@@ -42,8 +39,6 @@ export default function CreateInvoicePage() {
 
   const [invoiceNumber, setInvoiceNumber] = useState("");
   const [lineItems, setLineItems] = useState<InvoiceLineItemCreate[]>([]);
-  const [confirmExternalPoReceived, setConfirmExternalPoReceived] =
-    useState(false);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -87,9 +82,9 @@ export default function CreateInvoicePage() {
 
         const response = await getPurchaseOrderById(purchaseOrderId);
 
-        if (!["APPROVED", "SENT"].includes(response.status)) {
+        if (response.status !== "SENT") {
           setError(
-            "Invoices can only be created from approved or sent purchase orders.",
+            "Invoices can only be created after the purchase order has been shared with the supplier.",
           );
           return;
         }
@@ -137,14 +132,6 @@ export default function CreateInvoicePage() {
       return;
     }
 
-    if (purchaseOrder.status === "APPROVED" && !confirmExternalPoReceived) {
-      showAlert(
-        "error",
-        "Please confirm that the supplier received this purchase order outside Tendaflow.",
-      );
-      return;
-    }
-
     if (lineItems.length === 0) {
       showAlert("error", "At least one invoice line item is required.");
       return;
@@ -154,19 +141,9 @@ export default function CreateInvoicePage() {
       setSaving(true);
       setError(null);
 
-      let invoicePurchaseOrder = purchaseOrder;
-
-      if (purchaseOrder.status === "APPROVED" && confirmExternalPoReceived) {
-        invoicePurchaseOrder = await recordExternalPurchaseOrderDistribution(
-          purchaseOrder.id,
-        );
-
-        setPurchaseOrder(invoicePurchaseOrder);
-      }
-
       const createdInvoice = await createInvoice({
-        purchase_order_id: invoicePurchaseOrder.id,
-        supplier_id: invoicePurchaseOrder.supplier_id,
+        purchase_order_id: purchaseOrder.id,
+        supplier_id: purchaseOrder.supplier_id,
         invoice_number: invoiceNumber.trim() || null,
         line_items: lineItems,
       });
@@ -267,39 +244,6 @@ export default function CreateInvoicePage() {
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-        {purchaseOrder.status === "APPROVED" && (
-          <Card>
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-              <p className="font-medium text-amber-800">
-                Purchase Order Not Marked as Sent
-              </p>
-
-              <p className="mt-2 text-sm text-amber-700">
-                This purchase order has been approved but has not been marked as
-                sent through Tendaflow. Continue only if the supplier received
-                the purchase order through another approved method such as
-                email, WhatsApp, printed copy, or verbal instruction.
-              </p>
-
-              <label className="mt-4 flex items-start gap-3 text-sm text-amber-800">
-                <input
-                  type="checkbox"
-                  checked={confirmExternalPoReceived}
-                  onChange={(event) =>
-                    setConfirmExternalPoReceived(event.target.checked)
-                  }
-                  className="mt-1 h-4 w-4 rounded border-amber-300"
-                />
-
-                <span>
-                  I confirm the supplier received this purchase order outside
-                  Tendaflow.
-                </span>
-              </label>
-            </div>
-          </Card>
-        )}
-
         <Card>
           <h2 className="text-lg font-semibold text-primary-black">
             Invoice Information
