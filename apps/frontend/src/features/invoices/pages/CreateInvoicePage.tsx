@@ -82,9 +82,9 @@ export default function CreateInvoicePage() {
 
         const response = await getPurchaseOrderById(purchaseOrderId);
 
-        if (!["APPROVED", "SENT"].includes(response.status)) {
+        if (response.status !== "SENT") {
           setError(
-            "Invoices can only be created from approved or sent purchase orders.",
+            "Invoices can only be created after the purchase order has been sent to the supplier.",
           );
           return;
         }

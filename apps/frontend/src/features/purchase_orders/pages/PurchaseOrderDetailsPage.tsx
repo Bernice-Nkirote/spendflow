@@ -196,13 +196,27 @@ export default function PurchaseOrderDetailsPage() {
                 </Button>
               )}
             {canCreateInvoice &&
-              ["APPROVED", "SENT"].includes(purchaseOrder.status) &&
+              purchaseOrder.status === "SENT" &&
               !linkedInvoiceId && (
                 <Link
                   to={`/invoices/new?purchaseOrderId=${purchaseOrder.id}&from=purchase-order`}
                 >
                   <Button type="button">Create Invoice</Button>
                 </Link>
+              )}
+
+            {canCreateInvoice &&
+              purchaseOrder.status === "APPROVED" &&
+              !linkedInvoiceId && (
+                <div className="flex flex-col items-start gap-1 sm:items-end">
+                  <Button type="button" disabled>
+                    Create Invoice
+                  </Button>
+
+                  <p className="max-w-xs text-xs text-primary-gray sm:text-right">
+                    Available after PO is sent to supplier.
+                  </p>
+                </div>
               )}
             {["APPROVED", "SENT"].includes(purchaseOrder.status) &&
               linkedInvoiceId && (
