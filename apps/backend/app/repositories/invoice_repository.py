@@ -105,6 +105,22 @@ class InvoiceRepository:
             .all()
         )
 
+
+    def exists_for_purchase_order(
+        self,
+        purchase_order_id: UUID,
+        company_id: UUID,
+    ) -> bool:
+        return (
+            self.db.query(Invoice.id)
+            .filter(
+                Invoice.purchase_order_id == purchase_order_id,
+                Invoice.company_id == company_id,
+            )
+            .first()
+            is not None
+        )
+
     def get_by_status(
         self,
         status: InvoiceStatusEnum,

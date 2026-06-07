@@ -134,6 +134,15 @@ class InvoiceService:
                 detail="Purchase order not found",
             )
 
+        if self.invoice_repo.exists_for_purchase_order(
+            purchase_order_id=po.id,
+            company_id=company_id,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="An invoice already exists for this purchase order",
+            )
+
         po_status = getattr(po.status, "value", str(po.status))
         if po_status not in {"APPROVED", "SENT"}:
             raise HTTPException(
