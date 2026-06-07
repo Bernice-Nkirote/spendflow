@@ -145,7 +145,7 @@ def get_my_action_tasks(
                         type="CREATE_PAYMENT",
                         reference=invoice.invoice_number,
                         message="Approved invoice ready for payment creation.",
-                        url=f"/payments/new?invoiceId={invoice.id}&from=tasks",
+                        url=f"/invoices/{invoice.id}/payments/new?from=tasks",
                         created_at=invoice.created_at,
                     )
                 )
