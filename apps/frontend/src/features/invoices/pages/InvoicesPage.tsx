@@ -113,7 +113,7 @@ export default function InvoicesPage() {
     <PageContainer>
       <PageHeader
         title="Invoices"
-        description="Manage invoices created from approved or sent purchase orders."
+        description="Manage invoices created from purchase orders sent to suppliers."
       />
 
       {initialLoading && <LoadingState />}
@@ -130,7 +130,7 @@ export default function InvoicesPage() {
                     Ready for Invoicing
                   </h2>
                   <p className="mt-1 text-sm text-primary-gray">
-                    Approved or sent purchase orders that can be converted into
+                    Purchase orders sent to suppliers that can be converted into
                     invoices.
                   </p>
                 </div>
@@ -138,8 +138,8 @@ export default function InvoicesPage() {
 
               {readyPurchaseOrders.length === 0 ? (
                 <div className="mt-4 rounded-lg border border-dashed bg-gray-50 p-4 text-sm text-primary-gray">
-                  No purchase orders are ready for invoicing. Approved or sent
-                  purchase orders that have not yet been invoiced will appear
+                  No purchase orders are ready for invoicing. Purchase orders
+                  sent to suppliers that have not yet been invoiced will appear
                   here.
                 </div>
               ) : (
@@ -256,7 +256,7 @@ export default function InvoicesPage() {
                 Invoice List
               </h2>
               <p className="mt-1 text-sm text-gray-600">
-                Track invoices created from approved or sent purchase orders.
+                Track invoices created from purchase orders sent to suppliers.
               </p>
             </div>
 
