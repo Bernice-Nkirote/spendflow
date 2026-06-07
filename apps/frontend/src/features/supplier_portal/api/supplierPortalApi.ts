@@ -53,6 +53,16 @@ export const getSupplierPurchaseOrderItems = async (poId: string) => {
   return response.data;
 };
 
+export const getSupplierInvoiceByPurchaseOrder = async (
+  purchaseOrderId: string,
+): Promise<SupplierInvoice | null> => {
+  const response = await supplierAxiosInstance.get(
+    `/supplier/invoices/purchase-order/${purchaseOrderId}`,
+  );
+
+  return response.data;
+};
+
 export const createSupplierInvoice = async (payload: {
   purchase_order_id: string;
   supplier_id: string;

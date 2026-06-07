@@ -14,15 +14,24 @@ import {
   stickyLeftHeader,
 } from "../../../components/ui/tableStickyStyles";
 import { formatCurrency } from "../../../utils/formatCurrency";
-import { getSupplierPurchaseOrder } from "../api/supplierPortalApi";
+import {
+  getSupplierInvoiceByPurchaseOrder,
+  getSupplierPurchaseOrder,
+} from "../api/supplierPortalApi";
 import SupplierPurchaseOrderStatusBadge from "../components/SupplierPurchaseOrderStatusBadge";
-import type { SupplierPurchaseOrder } from "../types/supplierPortal.types";
+import type {
+  SupplierPurchaseOrder,
+  SupplierInvoice,
+} from "../types/supplierPortal.types";
 
 function SupplierPurchaseOrderDetailsPage() {
   const { id } = useParams();
 
   const [purchaseOrder, setPurchaseOrder] =
     useState<SupplierPurchaseOrder | null>(null);
+  const [linkedInvoice, setLinkedInvoice] = useState<SupplierInvoice | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -37,8 +46,13 @@ function SupplierPurchaseOrderDetailsPage() {
       setLoading(true);
       setError("");
 
-      const data = await getSupplierPurchaseOrder(id);
-      setPurchaseOrder(data);
+      const [purchaseOrderData, invoiceData] = await Promise.all([
+        getSupplierPurchaseOrder(id),
+        getSupplierInvoiceByPurchaseOrder(id),
+      ]);
+
+      setPurchaseOrder(purchaseOrderData);
+      setLinkedInvoice(invoiceData);
     } catch {
       setError("Failed to load purchase order details.");
     } finally {
@@ -63,7 +77,8 @@ function SupplierPurchaseOrderDetailsPage() {
     );
   }
 
-  const canCreateInvoice = ["APPROVED", "SENT"].includes(purchaseOrder.status);
+  const canCreateInvoice =
+    ["APPROVED", "SENT"].includes(purchaseOrder.status) && !linkedInvoice;
 
   return (
     <div className="space-y-6">
@@ -84,13 +99,31 @@ function SupplierPurchaseOrderDetailsPage() {
           </p>
         </div>
 
-        {canCreateInvoice && (
-          <Link
-            to={`/supplier-portal/purchase-orders/${purchaseOrder.id}/create-invoice`}
-          >
-            <Button type="button">Create Invoice</Button>
-          </Link>
-        )}
+        <div className="flex flex-col gap-2 sm:items-end">
+          {canCreateInvoice ? (
+            <Link
+              to={`/supplier-portal/purchase-orders/${purchaseOrder.id}/create-invoice`}
+            >
+              <Button type="button">Create Invoice</Button>
+            </Link>
+          ) : linkedInvoice ? (
+            <>
+              <Button type="button" disabled>
+                Create Invoice
+              </Button>
+
+              <Link to={`/supplier-portal/invoices/${linkedInvoice.id}`}>
+                <Button type="button" variant="secondary">
+                  View Invoice
+                </Button>
+              </Link>
+
+              <p className="max-w-xs text-sm text-primary-gray sm:text-right">
+                Invoice already exists for this purchase order.
+              </p>
+            </>
+          ) : null}
+        </div>
       </div>
 
       {error && <ErrorState message={error} />}
