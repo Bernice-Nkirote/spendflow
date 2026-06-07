@@ -83,9 +83,12 @@ export default function CreateInvoicePage() {
         const response = await getPurchaseOrderById(purchaseOrderId);
 
         if (response.status !== "SENT") {
-          setError(
-            "Invoices can only be created after the purchase order has been shared with the supplier.",
+          showAlert(
+            "error",
+            "Please share PO with supplier or mark as shared with the supplier before creating an invoice.",
           );
+
+          navigate(`/purchase-orders/${response.id}`);
           return;
         }
 
@@ -107,7 +110,7 @@ export default function CreateInvoicePage() {
     }
 
     fetchPurchaseOrder();
-  }, [purchaseOrderId, canCreateInvoice]);
+  }, [purchaseOrderId, canCreateInvoice, navigate, showAlert]);
 
   function updateLineItem(
     index: number,
