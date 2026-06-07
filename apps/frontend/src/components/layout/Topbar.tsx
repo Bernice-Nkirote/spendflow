@@ -5,6 +5,7 @@ import Button from "../ui/Button";
 import { getMyPendingApprovalQueue } from "../../features/approvals/api/approvalApi";
 import type { ApprovalInstance } from "../../features/approvals/types/approval.types";
 import GlobalSearch from "../../features/global-search/components/GlobalSearch";
+import MyTasksDropdown from "../../features/tasks/components/MyTasksDropdown";
 
 type TopbarProps = {
   onMenuClick?: () => void;
@@ -197,6 +198,9 @@ function Topbar({ onMenuClick }: TopbarProps) {
           <div className="hidden xl:block">
             <GlobalSearch placeholder="Search Tendaflow..." variant="inline" />
           </div>
+
+          <MyTasksDropdown />
+
           <div ref={notificationRef} className="relative">
             <button
               type="button"
