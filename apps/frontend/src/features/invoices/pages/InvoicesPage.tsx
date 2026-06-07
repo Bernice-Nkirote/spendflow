@@ -71,7 +71,11 @@ export default function InvoicesPage() {
         const purchaseOrderResponse =
           await getPurchaseOrdersReadyForInvoicing();
 
-        setReadyPurchaseOrders(purchaseOrderResponse);
+        setReadyPurchaseOrders(
+          purchaseOrderResponse.filter(
+            (purchaseOrder) => purchaseOrder.status === "SENT",
+          ),
+        );
       } catch {
         setError("Failed to load purchase orders ready for invoicing.");
       } finally {
