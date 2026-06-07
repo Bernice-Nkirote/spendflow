@@ -141,7 +141,10 @@ def get_paginated_supplier_invoices(
         limit=limit,
     )
 
-@router.get("/purchase-order/{purchase_order_id}")
+@router.get(
+        "/purchase-order/{purchase_order_id}",
+        response_model=InvoiceDetailRead | None,
+)
 def get_supplier_invoice_by_purchase_order(
     purchase_order_id: UUID,
     current_supplier=Depends(get_current_supplier),
