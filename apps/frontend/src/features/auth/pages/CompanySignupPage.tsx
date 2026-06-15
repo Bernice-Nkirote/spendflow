@@ -14,6 +14,7 @@ function CompanySignupPage() {
   const navigate = useNavigate();
 
   const [companyName, setCompanyName] = useState("");
+  const [businessType, setBusinessType] = useState("company");
   const [adminName, setAdminName] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,6 +22,7 @@ function CompanySignupPage() {
   const [phoneNumber, setPhoneNumber] = useState<Value | undefined>(undefined);
 
   const [companyNameError, setCompanyNameError] = useState("");
+  const [businessTypeError, setBusinessTypeError] = useState("");
   const [adminNameError, setAdminNameError] = useState("");
   const [adminEmailError, setAdminEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
@@ -33,6 +35,7 @@ function CompanySignupPage() {
     let isValid = true;
 
     setCompanyNameError("");
+    setBusinessTypeError("");
     setAdminNameError("");
     setAdminEmailError("");
     setPasswordError("");
@@ -42,6 +45,11 @@ function CompanySignupPage() {
 
     if (!companyName.trim()) {
       setCompanyNameError("Company name is required.");
+      isValid = false;
+    }
+
+    if (!businessType) {
+      setBusinessTypeError("Business type is required.");
       isValid = false;
     }
 
@@ -104,6 +112,7 @@ function CompanySignupPage() {
     try {
       await axiosInstance.post("/company-signup/", {
         company_name: companyName.trim(),
+        business_type: businessType,
         admin_name: adminName.trim(),
         admin_email: adminEmail.trim(),
         password,
@@ -173,7 +182,30 @@ function CompanySignupPage() {
             placeholder="Enter company name"
             error={companyNameError}
           />
-
+          <div>
+            <label
+              htmlFor="businessType"
+              className="mb-1 block text-sm font-medium text-primary-gray"
+            >
+              Business Type
+            </label>
+            <select
+              id="businessType"
+              name="businessType"
+              value={businessType}
+              onChange={(e) => setBusinessType(e.target.value)}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-blue focus:outline-none focus:ring-1 focus:ring-primary-blue"
+            >
+              <option value="sole_proprietorship">Sole Proprietorship</option>
+              <option value="partnership">Partnership</option>
+              <option value="company">Company</option>
+            </select>
+            {businessTypeError && (
+              <p className="mt-1 text-sm text-accent-error">
+                {businessTypeError}
+              </p>
+            )}
+          </div>
           <Input
             label="Admin Full Name"
             name="adminName"

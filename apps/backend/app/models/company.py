@@ -32,6 +32,7 @@ class Company(Base):
     )
 
     currency = Column(String,nullable=False, default="KES")
+    business_type = Column(String, nullable=False, default="company")
 
     __table_args__ = (
         UniqueConstraint("name", name="uq_companies_name"),

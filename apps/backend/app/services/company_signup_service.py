@@ -34,6 +34,7 @@ DEFAULT_DEPARTMENT_NAMES = [
     "Marketing",
 ]
 
+VALID_BUSINESS_TYPES = {"sole_proprietorship", "partnership", "company"}
 
 class CompanySignupService:
     def __init__(
@@ -56,6 +57,13 @@ class CompanySignupService:
         admin_email = data.admin_email.strip().lower()
         password = data.password.strip()
         phone_number = data.phone_number.strip() if data.phone_number else None
+        business_type = data.business_type or "company"
+
+        if business_type not in VALID_BUSINESS_TYPES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid business type.",
+            )
 
         if not company_name:
             raise HTTPException(
@@ -95,6 +103,7 @@ class CompanySignupService:
             company = Company(
                 id=uuid.uuid4(),
                 name=company_name,
+                business_type=business_type,
                 is_active=True,
             )
             self.company_repo.create(company)
@@ -137,7 +146,11 @@ class CompanySignupService:
                     is_active=True,
                 )
                 seeded_departments.append(self.department_repo.create(department))
-            seed_default_approval_workflows_for_company(company.id, self.db)
+            seed_default_approval_workflows_for_company(
+                company.id,
+                self.db,
+                business_type=business_type,
+                )
             
             admin_role = self.role_repo.get_by_name("Admin", company.id)
             if not admin_role:
@@ -153,10 +166,22 @@ class CompanySignupService:
                     detail="Admin email already exists in this company.",
                 )
 
+            admin_department = None
+            if business_type == "sole_proprietorship":
+                admin_department = self.department_repo.get_by_name(
+                    "Administration",
+                    company.id,
+                )
+                if not admin_department:
+                    raise HTTPException(
+                        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                        detail="Administration department was not created during company signup.",
+                    )
+
             admin_user = User(
                 id=uuid.uuid4(),
                 company_id=company.id,
-                department_id=None,
+                department_id=admin_department.id if admin_department else None,
                 role_id=admin_role.id,
                 name=admin_name,
                 email=admin_email,

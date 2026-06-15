@@ -1,9 +1,10 @@
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr
 
+BusinessType = Literal["sole_proprietorship", "partnership", "company"]
 
 class CompanySignupRequest(BaseModel):
     company_name: str
@@ -11,6 +12,7 @@ class CompanySignupRequest(BaseModel):
     admin_email: EmailStr
     password: str
     phone_number: Optional[str] = None
+    business_type: BusinessType = "company"
 
 
 class SignupCompanyRead(BaseModel):
@@ -19,6 +21,7 @@ class SignupCompanyRead(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+    business_type: BusinessType = "company"
 
     model_config = ConfigDict(from_attributes=True)
 

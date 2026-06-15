@@ -5,7 +5,7 @@ from fastapi import HTTPException, status
 from app.models.company import Company
 from app.repositories.company_repository import CompanyRepository
 from app.schemas.company_schema import CompanyCreate, CompanyUpdate
-
+VALID_BUSINESS_TYPES = {"sole_proprietorship", "partnership", "company"}
 
 class CompanyService:
     def __init__(self, repo: CompanyRepository):
@@ -14,6 +14,13 @@ class CompanyService:
     def create_company(self, data: CompanyCreate) -> Company:
         name = data.name.strip()
         currency=data.currency.strip().upper() if data.currency else "KES"
+        business_type = data.business_type or "company"
+
+        if business_type not in VALID_BUSINESS_TYPES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid business type",
+            )
         if not name:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -30,6 +37,7 @@ class CompanyService:
         company = Company(
             name=name,
             currency=currency,
+            business_type=business_type,
             is_active=data.is_active if data.is_active is not None else True,
         )
 
@@ -93,6 +101,14 @@ class CompanyService:
                 )
 
             update_data["name"] = name
+
+        if "business_type" in update_data:
+            business_type = update_data["business_type"]
+            if business_type not in VALID_BUSINESS_TYPES:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid business type",
+                )
 
         for field, value in update_data.items():
             setattr(company, field, value)

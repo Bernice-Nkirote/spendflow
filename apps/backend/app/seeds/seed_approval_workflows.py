@@ -98,6 +98,7 @@ def _seed_single_workflow(
 def seed_default_approval_workflows_for_company(
     company_id: UUID,
     db: Session,
+    business_type: str = "company",
 ) -> None:
     """
     Seeds default approval workflows for a newly created company.
@@ -114,18 +115,25 @@ def seed_default_approval_workflows_for_company(
     role_repo = RoleRepository(db)
     department_repo = DepartmentRepository(db)
 
-    approver_role = role_repo.get_by_name("Approver", company_id)
+    if business_type == "sole_proprietorship":
+        approver_role_name = "Admin"
+        approval_department_name = "Administration"
+    else:
+        approver_role_name = "Approver"
+        approval_department_name = "Procurement"
+
+    approver_role = role_repo.get_by_name(approver_role_name, company_id)
     if not approver_role:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Approver role was not found during approval workflow seeding.",
+            detail=f"{approver_role_name} role was not found during approval workflow seeding.",
         )
 
-    procurement_department = department_repo.get_by_name("Procurement", company_id)
-    if not procurement_department:
+    approval_department = department_repo.get_by_name(approval_department_name, company_id)
+    if not approval_department:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Procurement department was not found during approval workflow seeding.",
+            detail=f"{approval_department_name} department was not found during approval workflow seeding.",
         )
 
     _seed_single_workflow(
@@ -134,7 +142,7 @@ def seed_default_approval_workflows_for_company(
         entity_type=EntityTypeEnum.PR,
         level_name="Procurement Review",
         approver_role_id=approver_role.id,
-        department_id=procurement_department.id,
+        department_id=approval_department.id,
         workflow_repo=workflow_repo,
         level_repo=level_repo,
         workflow_role_repo=workflow_role_repo,
@@ -146,8 +154,33 @@ def seed_default_approval_workflows_for_company(
         entity_type=EntityTypeEnum.PO,
         level_name="Purchase Order Review",
         approver_role_id=approver_role.id,
-        department_id=procurement_department.id,
+        department_id=approval_department.id,
         workflow_repo=workflow_repo,
         level_repo=level_repo,
         workflow_role_repo=workflow_role_repo,
     )
+
+    if business_type == "sole_proprietorship":
+        _seed_single_workflow(
+            company_id=company_id,
+            workflow_name="Invoice Approval",
+            entity_type=EntityTypeEnum.INVOICE,
+            level_name="Owner Invoice Review",
+            approver_role_id=approver_role.id,
+            department_id=approval_department.id,
+            workflow_repo=workflow_repo,
+            level_repo=level_repo,
+            workflow_role_repo=workflow_role_repo,
+        )
+
+        _seed_single_workflow(
+            company_id=company_id,
+            workflow_name="Payment Approval",
+            entity_type=EntityTypeEnum.PAYMENT,
+            level_name="Owner Payment Review",
+            approver_role_id=approver_role.id,
+            department_id=approval_department.id,
+            workflow_repo=workflow_repo,
+            level_repo=level_repo,
+            workflow_role_repo=workflow_role_repo,
+        )
