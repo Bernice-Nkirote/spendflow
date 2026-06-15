@@ -42,6 +42,18 @@ function MyTasksDropdown() {
     }
   }
 
+  function handleToggleTasks() {
+    setIsOpen((current) => {
+      const nextIsOpen = !current;
+
+      if (nextIsOpen) {
+        void loadTasks();
+      }
+
+      return nextIsOpen;
+    });
+  }
+
   useEffect(() => {
     loadTasks();
 
@@ -68,7 +80,7 @@ function MyTasksDropdown() {
     <div ref={taskRef} className="relative">
       <button
         type="button"
-        onClick={() => setIsOpen((current) => !current)}
+        onClick={handleToggleTasks}
         className="relative inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-gray-200 bg-white text-primary-blue shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary-blue/20 hover:bg-blue-50 hover:shadow-md"
         aria-label="Open my tasks"
       >
