@@ -40,6 +40,14 @@ class PaginatedSupplierResponse(BaseModel):
     rows: list[SupplierRead]
     total_count: int
 
+
+class SupplierSummaryRead(BaseModel):
+    supplier_id: UUID
+    supplies: list[str]
+    location: Optional[str] = None
+    recent_supplied_items: list[str]
+
+
 # SUPPLIER IMPORT 
 class SupplierImportError(BaseModel):
     row: int

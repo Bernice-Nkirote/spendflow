@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { isValidPhoneNumber } from "react-phone-number-input";
 import type { Value } from "react-phone-number-input";
@@ -30,6 +30,7 @@ import {
   deactivateSupplier,
   deleteSupplier,
   getPaginatedSuppliers,
+  getSupplierSummary,
   importSuppliersFromExcel,
 } from "../api/supplierApi";
 import SupplierStatusBadge from "../components/SupplierStatusBadge";
@@ -37,6 +38,7 @@ import type {
   Supplier,
   SupplierCreatePayload,
   SupplierImportResult,
+  SupplierSummary,
 } from "../types/supplier.types";
 
 const initialFormState: SupplierCreatePayload = {
@@ -110,6 +112,16 @@ function SuppliersPage() {
   );
   const [selectedMobileSupplier, setSelectedMobileSupplier] =
     useState<Supplier | null>(null);
+  const [expandedSupplierId, setExpandedSupplierId] = useState<string | null>(
+    null,
+  );
+  const [supplierSummaries, setSupplierSummaries] = useState<
+    Record<string, SupplierSummary>
+  >({});
+  const [summaryLoadingId, setSummaryLoadingId] = useState<string | null>(null);
+  const [summaryErrors, setSummaryErrors] = useState<Record<string, string>>(
+    {},
+  );
   const [actionSupplierId, setActionSupplierId] = useState<string | null>(null);
   const [confirmError, setConfirmError] = useState("");
 
@@ -273,6 +285,44 @@ function SuppliersPage() {
     setSelectedMobileSupplier((current) =>
       current?.id === supplier.id ? null : supplier,
     );
+  }
+
+  async function toggleSupplierSummary(supplier: Supplier) {
+    if (expandedSupplierId === supplier.id) {
+      setExpandedSupplierId(null);
+      return;
+    }
+
+    setExpandedSupplierId(supplier.id);
+
+    if (supplierSummaries[supplier.id]) {
+      return;
+    }
+
+    try {
+      setSummaryLoadingId(supplier.id);
+      setSummaryErrors((current) => ({
+        ...current,
+        [supplier.id]: "",
+      }));
+
+      const summary = await getSupplierSummary(supplier.id);
+
+      setSupplierSummaries((current) => ({
+        ...current,
+        [supplier.id]: summary,
+      }));
+    } catch (err: any) {
+      setSummaryErrors((current) => ({
+        ...current,
+        [supplier.id]: getApiErrorMessage(
+          err,
+          "Failed to load supplier summary.",
+        ),
+      }));
+    } finally {
+      setSummaryLoadingId(null);
+    }
   }
 
   function handleToggleSupplier(supplier: Supplier) {
@@ -621,6 +671,9 @@ function SuppliersPage() {
                         >
                           Status
                         </th>
+                        <th className="w-[10%] whitespace-nowrap px-4 py-3">
+                          More
+                        </th>
                         {hasRowActions && (
                           <th
                             className={
@@ -637,131 +690,219 @@ function SuppliersPage() {
 
                     <tbody className="divide-y">
                       {suppliers.map((supplier) => (
-                        <tr
-                          key={supplier.id}
-                          className="group hover:bg-gray-50"
-                        >
-                          <td
-                            className={`${stickyLeftCell} px-4 py-3 font-medium text-primary-black`}
-                          >
-                            <button
-                              type="button"
-                              onClick={() =>
-                                toggleMobileSupplierActions(supplier)
-                              }
-                              className="block max-w-[260px] truncate text-left lg:pointer-events-none"
-                              title="Tap to show actions"
+                        <Fragment key={supplier.id}>
+                          <tr className="group hover:bg-gray-50">
+                            <td
+                              className={`${stickyLeftCell} px-4 py-3 font-medium text-primary-black`}
                             >
-                              {supplier.name}
-                            </button>
-                          </td>
-
-                          <td className="px-4 py-3 text-primary-black">
-                            <span
-                              className="block truncate"
-                              title={supplier.contact_person ?? ""}
-                            >
-                              {supplier.contact_person || "-"}
-                            </span>
-                          </td>
-
-                          <td className="px-4 py-3 text-primary-black">
-                            <span
-                              className="block truncate"
-                              title={supplier.email ?? ""}
-                            >
-                              {supplier.email || "-"}
-                            </span>
-                          </td>
-
-                          <td className="px-4 py-3 text-primary-black">
-                            {supplier.phone || "-"}
-                          </td>
-
-                          <td className="px-4 py-3">
-                            <SupplierStatusBadge
-                              isActive={supplier.is_active}
-                            />
-                          </td>
-
-                          {hasRowActions && (
-                            <td className="hidden px-4 py-3 lg:table-cell">
-                              <div
-                                className={
-                                  canDeleteSuppliers
-                                    ? "flex min-w-max justify-end gap-3 whitespace-nowrap"
-                                    : "flex justify-end gap-2 whitespace-nowrap"
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  toggleMobileSupplierActions(supplier)
                                 }
+                                className="block max-w-[260px] truncate text-left lg:pointer-events-none"
+                                title="Tap to show actions"
                               >
-                                {canViewSuppliers && (
-                                  <Link
-                                    to={`/suppliers/${supplier.id}`}
-                                    state={{
-                                      from: "suppliers",
-                                      label: "Back to Suppliers",
-                                      to: "/suppliers",
-                                    }}
-                                  >
-                                    <Button type="button" size="sm">
-                                      View
-                                    </Button>
-                                  </Link>
-                                )}
-                                {canUpdateSuppliers && (
-                                  <>
-                                    {isAdminUser && (
-                                      <Link
-                                        to={`/suppliers/${supplier.id}#portal-users`}
-                                        state={{
-                                          from: "suppliers",
-                                          label: "Back to Suppliers",
-                                          to: "/suppliers",
-                                        }}
-                                      >
-                                        <Button
-                                          type="button"
-                                          variant="secondary"
-                                          size="sm"
-                                        >
-                                          Portal Users
-                                        </Button>
-                                      </Link>
-                                    )}
+                                {supplier.name}
+                              </button>
+                            </td>
 
+                            <td className="px-4 py-3 text-primary-black">
+                              <span
+                                className="block truncate"
+                                title={supplier.contact_person ?? ""}
+                              >
+                                {supplier.contact_person || "-"}
+                              </span>
+                            </td>
+
+                            <td className="px-4 py-3 text-primary-black">
+                              <span
+                                className="block truncate"
+                                title={supplier.email ?? ""}
+                              >
+                                {supplier.email || "-"}
+                              </span>
+                            </td>
+
+                            <td className="px-4 py-3 text-primary-black">
+                              {supplier.phone || "-"}
+                            </td>
+
+                            <td className="px-4 py-3">
+                              <SupplierStatusBadge
+                                isActive={supplier.is_active}
+                              />
+                            </td>
+
+                            <td className="px-4 py-3">
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => toggleSupplierSummary(supplier)}
+                              >
+                                {expandedSupplierId === supplier.id
+                                  ? "Less"
+                                  : "More"}
+                              </Button>
+                            </td>
+
+                            {hasRowActions && (
+                              <td className="hidden px-4 py-3 lg:table-cell">
+                                <div
+                                  className={
+                                    canDeleteSuppliers
+                                      ? "flex min-w-max justify-end gap-3 whitespace-nowrap"
+                                      : "flex justify-end gap-2 whitespace-nowrap"
+                                  }
+                                >
+                                  {canViewSuppliers && (
+                                    <Link
+                                      to={`/suppliers/${supplier.id}`}
+                                      state={{
+                                        from: "suppliers",
+                                        label: "Back to Suppliers",
+                                        to: "/suppliers",
+                                      }}
+                                    >
+                                      <Button type="button" size="sm">
+                                        View
+                                      </Button>
+                                    </Link>
+                                  )}
+                                  {canUpdateSuppliers && (
+                                    <>
+                                      {isAdminUser && (
+                                        <Link
+                                          to={`/suppliers/${supplier.id}#portal-users`}
+                                          state={{
+                                            from: "suppliers",
+                                            label: "Back to Suppliers",
+                                            to: "/suppliers",
+                                          }}
+                                        >
+                                          <Button
+                                            type="button"
+                                            variant="secondary"
+                                            size="sm"
+                                          >
+                                            Portal Users
+                                          </Button>
+                                        </Link>
+                                      )}
+
+                                      <Button
+                                        type="button"
+                                        variant="secondary"
+                                        size="sm"
+                                        onClick={() =>
+                                          handleToggleSupplier(supplier)
+                                        }
+                                        disabled={
+                                          actionSupplierId === supplier.id
+                                        }
+                                      >
+                                        {supplier.is_active
+                                          ? "Deactivate"
+                                          : "Activate"}
+                                      </Button>
+                                    </>
+                                  )}
+                                  {canDeleteSuppliers && (
                                     <Button
                                       type="button"
-                                      variant="secondary"
+                                      variant="danger"
                                       size="sm"
                                       onClick={() =>
-                                        handleToggleSupplier(supplier)
+                                        handleDeleteSupplier(supplier)
                                       }
                                       disabled={
                                         actionSupplierId === supplier.id
                                       }
                                     >
-                                      {supplier.is_active
-                                        ? "Deactivate"
-                                        : "Activate"}
+                                      Delete
                                     </Button>
-                                  </>
+                                  )}
+                                </div>
+                              </td>
+                            )}
+                          </tr>
+
+                          {expandedSupplierId === supplier.id && (
+                            <tr className="bg-gray-50/70">
+                              <td
+                                colSpan={hasRowActions ? 7 : 6}
+                                className="px-4 py-4"
+                              >
+                                {summaryLoadingId === supplier.id ? (
+                                  <p className="text-sm text-primary-gray">
+                                    Loading supplier details...
+                                  </p>
+                                ) : summaryErrors[supplier.id] ? (
+                                  <p className="text-sm text-accent-error">
+                                    {summaryErrors[supplier.id]}
+                                  </p>
+                                ) : (
+                                  <div className="grid gap-4 text-sm md:grid-cols-3">
+                                    <div>
+                                      <p className="font-semibold text-primary-black">
+                                        Supplies
+                                      </p>
+                                      <p className="mt-1 text-primary-gray">
+                                        {supplierSummaries[supplier.id]
+                                          ?.supplies.length
+                                          ? supplierSummaries[
+                                              supplier.id
+                                            ].supplies.join(", ")
+                                          : "No supplied items recorded yet."}
+                                      </p>
+                                    </div>
+
+                                    <div>
+                                      <p className="font-semibold text-primary-black">
+                                        Location
+                                      </p>
+                                      <p className="mt-1 text-primary-gray">
+                                        {supplierSummaries[supplier.id]
+                                          ?.location ||
+                                          supplier.address ||
+                                          "No location recorded."}
+                                      </p>
+                                    </div>
+
+                                    <div>
+                                      <p className="font-semibold text-primary-black">
+                                        Last 5 supplied items
+                                      </p>
+                                      <div className="mt-2 flex flex-wrap gap-2">
+                                        {supplierSummaries[supplier.id]
+                                          ?.recent_supplied_items.length ? (
+                                          supplierSummaries[
+                                            supplier.id
+                                          ].recent_supplied_items.map(
+                                            (item) => (
+                                              <span
+                                                key={item}
+                                                className="rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-primary-blue"
+                                              >
+                                                {item}
+                                              </span>
+                                            ),
+                                          )
+                                        ) : (
+                                          <span className="text-primary-gray">
+                                            No supplied items recorded yet.
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
                                 )}
-                                {canDeleteSuppliers && (
-                                  <Button
-                                    type="button"
-                                    variant="danger"
-                                    size="sm"
-                                    onClick={() =>
-                                      handleDeleteSupplier(supplier)
-                                    }
-                                    disabled={actionSupplierId === supplier.id}
-                                  >
-                                    Delete
-                                  </Button>
-                                )}
-                              </div>
-                            </td>
+                              </td>
+                            </tr>
                           )}
-                        </tr>
+                        </Fragment>
                       ))}
                     </tbody>
                   </table>

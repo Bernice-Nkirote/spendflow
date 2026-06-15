@@ -15,6 +15,7 @@ from app.schemas.supplier_schema import (
     SupplierCreate,
     SupplierImportResult,
     SupplierRead,
+    SupplierSummaryRead,
     SupplierUpdate,
 )
 from app.services.audit_log_service import AuditLogService
@@ -125,6 +126,19 @@ def get_paginated_suppliers(
         actor_role_id=current_user.role_id,
         skip=skip,
         limit=limit,
+    )
+
+
+@router.get("/{supplier_id}/summary", response_model=SupplierSummaryRead)
+def get_supplier_summary(
+    supplier_id: UUID,
+    current_user=Depends(get_current_user),
+    service: SupplierService = Depends(get_supplier_service),
+):
+    return service.get_supplier_summary(
+        supplier_id=supplier_id,
+        company_id=current_user.company_id,
+        actor_role_id=current_user.role_id,
     )
 
 

@@ -4,6 +4,7 @@ import type {
   SupplierCreatePayload,
   SupplierUpdatePayload,
   SupplierImportResult,
+  SupplierSummary,
 } from "../types/supplier.types";
 
 // SUPPLIER USER
@@ -34,6 +35,16 @@ export async function getSupplierById(supplierId: string): Promise<Supplier> {
   const response = await axiosInstance.get<Supplier>(
     `/suppliers/${supplierId}`,
   );
+  return response.data;
+}
+
+export async function getSupplierSummary(
+  supplierId: string,
+): Promise<SupplierSummary> {
+  const response = await axiosInstance.get<SupplierSummary>(
+    `/suppliers/${supplierId}/summary`,
+  );
+
   return response.data;
 }
 

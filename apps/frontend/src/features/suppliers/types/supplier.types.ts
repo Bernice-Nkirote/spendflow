@@ -35,6 +35,13 @@ export type SupplierImportResult = {
   created_suppliers: Supplier[];
 };
 
+export type SupplierSummary = {
+  supplier_id: string;
+  supplies: string[];
+  location?: string | null;
+  recent_supplied_items: string[];
+};
+
 // SUPPLIER USER
 export type SupplierUser = {
   id: string;

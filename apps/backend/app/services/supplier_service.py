@@ -7,6 +7,7 @@ from app.models.supplier import Supplier
 from app.repositories.supplier_repository import SupplierRepository
 from app.schemas.supplier_schema import (
     SupplierCreate,
+    SupplierSummaryRead,
     SupplierUpdate,
 )
 
@@ -181,6 +182,36 @@ class SupplierService:
             "rows": suppliers,
             "total_count": total_count,
         }
+
+    def get_supplier_summary(
+        self,
+        supplier_id: UUID,
+        company_id: UUID,
+        actor_role_id: UUID,
+    ) -> SupplierSummaryRead:
+        self._require_permission(
+            role_id=actor_role_id,
+            company_id=company_id,
+            permission_name="suppliers.view",
+            error_message="You do not have permission to view suppliers.",
+        )
+
+        supplier = self.repo.get_by_id(supplier_id, company_id)
+        if not supplier:
+            raise HTTPException(status_code=404, detail="Supplier not found.")
+
+        recent_items = self.repo.get_recent_supplied_item_names(
+            supplier_id=supplier_id,
+            company_id=company_id,
+            limit=5,
+        )
+
+        return SupplierSummaryRead(
+            supplier_id=supplier.id,
+            supplies=recent_items,
+            location=supplier.address,
+            recent_supplied_items=recent_items,
+        )
 
     def update_supplier(
         self,
