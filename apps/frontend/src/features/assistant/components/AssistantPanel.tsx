@@ -5,9 +5,14 @@ import { askAssistant } from "../api/assistantApi";
 import type { AssistantChatResponse } from "../types/assistant.types";
 
 const starterPrompts = [
-  "Suggest suppliers for laptops and networking equipment",
   "Guide me through creating a PR",
+  "Suggest suppliers for laptops and networking equipment",
   "What should I check before approving an invoice?",
+  "How do I configure approval workflows?",
+  "What does assigning permissions do?",
+  "How do exchange rates affect reports?",
+  "What are audit logs used for?",
+  "How does the supplier portal work?",
 ];
 
 function getErrorMessage(error: unknown) {
@@ -59,10 +64,10 @@ export default function AssistantPanel() {
   }
 
   return (
-    <div className="fixed bottom-5 right-5 z-40 flex flex-col items-end gap-3">
+    <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3">
       {isOpen && (
-        <section className="w-[calc(100vw-2.5rem)] max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
-          <div className="border-b border-gray-100 bg-primary-blue px-5 py-4 text-white">
+        <section className="w-[calc(100vw-2.5rem)] max-w-xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
+          <div className="border-b border-white/10 bg-primary-blue px-5 py-4 text-white shadow-sm">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
@@ -71,30 +76,36 @@ export default function AssistantPanel() {
                 <h2 className="mt-1 text-lg font-semibold">
                   Procurement guidance
                 </h2>
+                <p className="mt-1 text-sm text-white/75">
+                  Guidance, supplier suggestions, and workflow help.
+                </p>
               </div>
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="rounded-full border border-white/20 px-3 py-1 text-sm font-semibold text-white/80 transition hover:bg-white/10 hover:text-white"
+                className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-sm font-semibold text-white/85 transition hover:bg-white/15 hover:text-white"
               >
                 Close
               </button>
             </div>
           </div>
 
-          <div className="max-h-[65vh] space-y-4 overflow-y-auto p-5 [scrollbar-width:thin]">
-            <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-primary-blue">
+          <div className="max-h-[72vh] space-y-4 overflow-y-auto bg-gray-50/80 p-5 [scrollbar-width:thin]">
+            <div className="rounded-xl border border-blue-100 bg-white p-4 text-sm leading-6 text-primary-gray shadow-sm">
+              <span className="font-semibold text-primary-blue">
+                Safe assistant:
+              </span>{" "}
               I can draft guidance and recommend suppliers, but I will never
               submit, approve, reject, issue, or pay anything for you.
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="grid gap-2 sm:grid-cols-2">
               {starterPrompts.map((prompt) => (
                 <button
                   key={prompt}
                   type="button"
                   onClick={() => handleStarterPrompt(prompt)}
-                  className="rounded-full border border-gray-200 bg-white px-3 py-2 text-left text-xs font-semibold text-primary-gray transition hover:border-primary-blue/30 hover:bg-blue-50 hover:text-primary-blue"
+                  className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-left text-xs font-semibold leading-5 text-primary-gray shadow-sm transition hover:border-primary-blue/30 hover:bg-blue-50 hover:text-primary-blue"
                 >
                   {prompt}
                 </button>
@@ -108,7 +119,7 @@ export default function AssistantPanel() {
               <textarea
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
-                placeholder="Example: Suggest suppliers for catering services"
+                placeholder="Example: How do I approve an invoice? Suggest suppliers for catering services."
                 className="min-h-24 w-full resize-none rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
               />
               <button
@@ -133,7 +144,7 @@ export default function AssistantPanel() {
                   <h3 className="text-sm font-semibold text-primary-black">
                     Guidance
                   </h3>
-                  <p className="mt-2 text-sm leading-6 text-primary-gray">
+                  <p className="mt-2 whitespace-pre-line text-sm leading-6 text-primary-gray">
                     {response.answer}
                   </p>
                 </div>
@@ -159,13 +170,18 @@ export default function AssistantPanel() {
                             <p className="mt-1 text-xs text-primary-gray">
                               {supplier.category || "Uncategorised"}
                               {supplier.sub_category
-                                ? ` • ${supplier.sub_category}`
+                                ? ` - ${supplier.sub_category}`
                                 : ""}
                             </p>
                           </div>
                           <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-primary-blue">
                             Score {supplier.score}
                           </span>
+                        </div>
+
+                        <div className="mt-3 grid gap-2 text-xs text-primary-gray sm:grid-cols-2">
+                          <span>{supplier.email || "No email recorded"}</span>
+                          <span>{supplier.phone || "No phone recorded"}</span>
                         </div>
 
                         <div className="mt-3 flex flex-wrap gap-2">
@@ -191,13 +207,24 @@ export default function AssistantPanel() {
                   </div>
                 )}
 
-                <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                   <h3 className="text-sm font-semibold text-primary-black">
                     Next steps
                   </h3>
                   <ul className="mt-2 space-y-1 text-sm text-primary-gray">
                     {response.suggested_next_steps.map((step) => (
                       <li key={step}>- {step}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="rounded-xl border border-amber-100 bg-amber-50 p-4">
+                  <h3 className="text-sm font-semibold text-amber-900">
+                    Guardrails
+                  </h3>
+                  <ul className="mt-2 space-y-1 text-sm text-amber-800">
+                    {response.cautions.map((caution) => (
+                      <li key={caution}>- {caution}</li>
                     ))}
                   </ul>
                 </div>
@@ -210,7 +237,7 @@ export default function AssistantPanel() {
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
-        className="inline-flex h-14 items-center gap-2 rounded-full bg-primary-blue px-5 text-sm font-semibold text-white shadow-xl transition hover:-translate-y-0.5 hover:bg-primary-blue/90"
+        className="inline-flex h-14 items-center gap-2 rounded-full border border-white/20 bg-primary-blue px-5 text-sm font-semibold text-white shadow-xl shadow-primary-blue/20 transition hover:-translate-y-0.5 hover:bg-primary-blue/90"
       >
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-xs font-bold">
           AI

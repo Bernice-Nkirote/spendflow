@@ -12,6 +12,166 @@ from app.schemas.assistant_schema import (
 
 
 class AssistantService:
+    GUIDE_TOPICS = {
+        "setup": {
+            "keywords": ("setup", "configure", "start", "getting started", "company"),
+            "answer": (
+                "Recommended setup order: confirm company and business type, add departments, configure roles and permissions, set approval workflows, add exchange rates if you use multiple currencies, add suppliers with categories, then start procurement with PRs and POs."
+            ),
+            "steps": [
+                "Open Departments and add the teams that raise or approve requests.",
+                "Open Roles and Permissions to decide who can view, create, update, approve, and export.",
+                "Open Approval Workflows and configure levels for PR, PO, invoice, and payment approvals.",
+                "Add Exchange Rates if you buy in foreign currencies.",
+                "Add Suppliers with category, contact, location, and import data where possible.",
+            ],
+        },
+        "purchase requisitions": {
+            "keywords": ("purchase requisition", "requisition", "create pr", "draft pr", " pr "),
+            "answer": (
+                "To draft a PR, open Purchase Requisitions, click Create PR, enter the title, department, business reason, items, quantities, estimated unit prices, currency, and exchange rate if needed. Save the draft, review totals, then submit for approval. The assistant can help draft wording and check missing fields, but the user must submit it."
+            ),
+            "steps": [
+                "Go to Purchase Requisitions.",
+                "Click Create PR.",
+                "Add department, reason, items, quantities, unit prices, and currency.",
+                "Review totals, save, then submit for approval.",
+            ],
+        },
+        "purchase orders": {
+            "keywords": ("purchase order", "create po", " po ", "order supplier"),
+            "answer": (
+                "To create a PO, open Purchase Orders and click Create PO, or open an approved PR and choose Create PO from PR. Select a supplier, confirm item quantities, pricing, currency, department, and notes, then save or submit through the approval workflow. For supplier suggestions, ask with item names or a supplier category."
+            ),
+            "steps": [
+                "Use Create PO from an approved PR where possible.",
+                "Choose a supplier and review the supplier preview.",
+                "Confirm items, pricing, totals, currency, department, and notes.",
+                "Submit for approval only after the user reviews the PO.",
+            ],
+        },
+        "suppliers": {
+            "keywords": ("supplier", "suppliers", "vendor", "category", "source", "rfq"),
+            "answer": (
+                "Suppliers store vendor contact details, category, sub-category, location, and supply history. Use categories such as Technology, Electronics, Building Materials, Catering Services, or a custom category. The More view shows contact details and recent supplied items, which helps users choose suppliers for PRs and POs."
+            ),
+            "steps": [
+                "Go to Suppliers.",
+                "Add or import suppliers with category and contact details.",
+                "Use More to review supplier profile and supply history.",
+                "Ask the assistant for supplier suggestions using item names or category.",
+            ],
+        },
+        "invoices": {
+            "keywords": ("invoice", "invoices", "bill", "supplier invoice"),
+            "answer": (
+                "To create or review an invoice, open Invoices, click Create Invoice, select the supplier and linked PO where applicable, then verify invoice number, item descriptions, quantities, unit prices, totals, currency, and dates. To approve an invoice, a user with invoice approver permissions signs in, opens Tasks or Approvals, reviews the invoice, then approves or rejects manually."
+            ),
+            "steps": [
+                "Open Invoices and create or view the invoice.",
+                "Match invoice details against the PO and supplied items.",
+                "Submit for approval if the invoice is ready.",
+                "The authorised approver signs in and approves from Tasks or Approvals.",
+            ],
+        },
+        "payments": {
+            "keywords": ("payment", "payments", "pay", "paid", "record payment"),
+            "answer": (
+                "To record a payment, open an approved invoice, choose the payment action, enter the amount, payment method, reference, currency, and date, then review the outstanding balance before saving. Payment creation and approval remain controlled by permissions and workflow."
+            ),
+            "steps": [
+                "Open the approved invoice.",
+                "Create payment from the invoice page.",
+                "Confirm amount, method, reference, currency, date, and remaining balance.",
+                "Save or submit only after user review.",
+            ],
+        },
+        "approvals": {
+            "keywords": ("approve", "approval", "approvals", "reject", "task", "tasks"),
+            "answer": (
+                "Approvals are handled by authorised users only. A user with the correct approver permissions signs in, opens Tasks or Approvals, reviews the PR, PO, invoice, or payment, checks budget, supplier, totals, attachments, and workflow level, then approves or rejects. The assistant can explain what to check but cannot approve or reject."
+            ),
+            "steps": [
+                "Open Tasks or Approvals.",
+                "Open the pending approval record.",
+                "Review details, totals, supplier, requester, and workflow level.",
+                "Approve or reject manually as the authorised user.",
+            ],
+        },
+        "approval workflows": {
+            "keywords": ("approval workflow", "approval workflows", "workflow", "levels", "approval level"),
+            "answer": (
+                "Approval Workflows define who must approve each record type and in what order. Admins configure levels for PRs, POs, invoices, and payments, then assign approver roles to each level. Sole proprietorships can use single-person workflows; partnerships and companies can use multiple levels for separation of duties."
+            ),
+            "steps": [
+                "Open Approval Workflows.",
+                "Choose the workflow for PR, PO, invoice, or payment.",
+                "Add approval levels in the order they should happen.",
+                "Assign the correct approver roles to each level.",
+                "Test with a sample record before relying on the workflow.",
+            ],
+        },
+        "permissions": {
+            "keywords": ("permission", "permissions", "role", "roles", "assign permission"),
+            "answer": (
+                "Permissions control what each role can view, create, update, approve, export, or administer. Assigning permissions to a role gives users in that role access to those actions. For example, pr.create lets a user create PRs, while pr.approve lets them approve PRs if they are part of the workflow."
+            ),
+            "steps": [
+                "Open Roles to manage role names and assign users.",
+                "Open Permissions to assign allowed actions to roles.",
+                "Give each role only the access needed for that job.",
+                "Test with a real user account before using the workflow in production.",
+            ],
+        },
+        "exchange rates": {
+            "keywords": ("exchange", "exchange rate", "currency", "foreign currency", "rate"),
+            "answer": (
+                "Exchange Rates help Tendaflow convert foreign-currency PRs, POs, invoices, and payments into the base currency for reporting. Before creating records in another currency, add or update the exchange rate, confirm the rate date, then review base-currency totals in reports."
+            ),
+            "steps": [
+                "Open Exchange Rates.",
+                "Add or update the currency rate and effective date.",
+                "Use that currency on PR, PO, invoice, or payment records.",
+                "Review base-currency totals in Reports.",
+            ],
+        },
+        "audit logs": {
+            "keywords": ("audit", "audit log", "audit logs", "logs", "history", "trace"),
+            "answer": (
+                "Audit Logs show important user actions for accountability: who did what, when, and on which record. Use them to verify setup changes, supplier updates, approvals, report exports, or suspicious activity. Audit logs are for traceability and review, not editing business records."
+            ),
+            "steps": [
+                "Open Audit Logs.",
+                "Filter by user, action, record, or date where available.",
+                "Use the log to support investigations, audits, and dissertation evidence.",
+            ],
+        },
+        "reports": {
+            "keywords": ("report", "reports", "spend", "supplier spend", "lead time"),
+            "answer": (
+                "Reports help users review procurement activity, totals, outstanding invoices, payments, supplier spend, and supplier lead time. Use filters such as date, status, supplier, department, payment method, or supplier category, then export CSV or Excel for management review, audit support, or dissertation evidence."
+            ),
+            "steps": [
+                "Open Reports.",
+                "Choose the report tab.",
+                "Apply filters and review the summary cards.",
+                "Export CSV or Excel if needed.",
+            ],
+        },
+        "supplier portal": {
+            "keywords": ("supplier portal", "portal", "supplier login"),
+            "answer": (
+                "The Supplier Portal lets external suppliers sign in separately to view their POs, create invoices from eligible POs, and track invoice or payment status. Internal users manage suppliers and procurement records from the main Tendaflow workspace."
+            ),
+            "steps": [
+                "Create or invite supplier users where supported.",
+                "Supplier signs in through the supplier login.",
+                "Supplier views POs and creates invoices from the portal.",
+                "Internal users review submitted invoices in the main workspace.",
+            ],
+        },
+    }
+
     def __init__(
         self,
         repo: AssistantRepository,
@@ -54,7 +214,7 @@ class AssistantService:
         company_id: UUID,
         actor_role_id: UUID,
     ) -> AssistantChatResponse:
-        message = request.message.strip()
+        message = f" {request.message.strip()} "
         requested_supplier_help = self._mentions_supplier_help(
             message=message,
             item_names=request.item_names,
@@ -111,7 +271,12 @@ class AssistantService:
                 company_id=company_id,
                 limit=6,
             )
-            score, reasons = self._score_supplier(candidate, recent_items, search_terms, category)
+            score, reasons = self._score_supplier(
+                candidate,
+                recent_items,
+                search_terms,
+                category,
+            )
 
             if score <= 0 and (search_terms or category):
                 continue
@@ -229,36 +394,12 @@ class AssistantService:
         ][:10]
 
     def _build_guidance(self, message: str) -> str:
-        lower_message = message.lower()
-
-        if "approve" in lower_message or "approval" in lower_message:
-            return (
-                "For approvals, review the record, confirm the budget and supplier details, "
-                "then use the existing approval action yourself. I can explain what to check, "
-                "but the approval decision must stay with the authorised user."
-            )
-
-        if "invoice" in lower_message:
-            return (
-                "For invoices, match the invoice to the PO, verify quantities, totals, currency, "
-                "and payment status, then save or submit through the normal invoice screen."
-            )
-
-        if "po" in lower_message or "purchase order" in lower_message:
-            return (
-                "For purchase orders, start from an approved PR where possible, choose a supplier, "
-                "confirm item quantities and pricing, then submit the PO through the normal workflow."
-            )
-
-        if "pr" in lower_message or "requisition" in lower_message:
-            return (
-                "For purchase requisitions, list the needed items, quantities, estimated unit prices, "
-                "department, and business reason before submitting for approval."
-            )
+        topic = self._match_topic(message)
+        if topic:
+            return topic["answer"]
 
         return (
-            "I can help draft procurement records, explain workflows, and recommend suppliers "
-            "using Tendaflow data. I will keep actions as suggestions until a user reviews them."
+            "I can guide users across Tendaflow setup, suppliers, PRs, POs, invoices, payments, approvals, approval workflows, permissions, exchange rates, reports, audit logs, and the supplier portal. Ask about a specific task, for example: How do I create a PR? How do I approve an invoice? Suggest suppliers for catering services."
         )
 
     def _build_next_steps(
@@ -266,8 +407,10 @@ class AssistantService:
         message: str,
         supplier_suggestions: list[AssistantSupplierSuggestion],
     ) -> list[str]:
-        steps = [
-            "Review the suggested details before creating or updating any record.",
+        topic = self._match_topic(message)
+        steps = list(topic["steps"]) if topic else [
+            "Ask about a specific area such as PRs, POs, invoices, payments, suppliers, approvals, workflows, permissions, exchange rates, reports, audit logs, or supplier portal.",
+            "Review assistant guidance before changing or submitting any record.",
             "Use the normal Tendaflow screen to save, submit, approve, or pay.",
         ]
 
@@ -278,3 +421,23 @@ class AssistantService:
             steps.insert(0, "Add supplier category and supply history data to improve future recommendations.")
 
         return steps
+
+    def _match_topic(self, message: str):
+        lower_message = message.lower()
+        matches = []
+
+        for topic in self.GUIDE_TOPICS.values():
+            if any(keyword in lower_message for keyword in topic["keywords"]):
+                matches.append(topic)
+
+        if not matches:
+            return None
+
+        return max(
+            matches,
+            key=lambda topic: max(
+                len(keyword)
+                for keyword in topic["keywords"]
+                if keyword in lower_message
+            ),
+        )
