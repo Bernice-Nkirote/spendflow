@@ -69,6 +69,12 @@ class SupplierService:
             if supplier_data.contact_person
             else None
         )
+        category = supplier_data.category.strip() if supplier_data.category else None
+        sub_category = (
+            supplier_data.sub_category.strip()
+            if supplier_data.sub_category
+            else None
+        )
 
         if self.repo.get_by_name(name, company_id):
             raise HTTPException(
@@ -96,6 +102,8 @@ class SupplierService:
             phone=phone,
             address=address,
             contact_person=contact_person,
+            category=category,
+            sub_category=sub_category,
             is_active=True,
         )
 
@@ -200,17 +208,44 @@ class SupplierService:
         if not supplier:
             raise HTTPException(status_code=404, detail="Supplier not found.")
 
-        recent_items = self.repo.get_recent_supplied_item_names(
+        supply_history = self.repo.get_recent_supply_history(
             supplier_id=supplier_id,
             company_id=company_id,
-            limit=5,
+            limit=6,
+        )
+        supplies = list(
+            dict.fromkeys(
+                row.item_name
+                for row in supply_history
+                if row.item_name
+            )
         )
 
         return SupplierSummaryRead(
             supplier_id=supplier.id,
-            supplies=recent_items,
+            name=supplier.name,
+            category=supplier.category,
+            sub_category=supplier.sub_category,
+            contact_person=supplier.contact_person,
+            email=supplier.email,
+            phone=supplier.phone,
+            supplies=supplies,
             location=supplier.address,
-            recent_supplied_items=recent_items,
+            recent_supplied_items=[
+                {
+                    "item_name": row.item_name,
+                    "quantity": float(row.quantity),
+                    "unit_price": float(row.unit_price),
+                    "total_price": float(row.total_price),
+                    "po_id": row.po_id,
+                    "po_number": row.po_number,
+                    "po_status": row.po_status.value
+                    if hasattr(row.po_status, "value")
+                    else str(row.po_status),
+                    "supplied_at": row.supplied_at,
+                }
+                for row in supply_history
+            ],
         )
 
     def update_supplier(
@@ -295,6 +330,16 @@ class SupplierService:
             contact_person = update_data["contact_person"]
             update_data["contact_person"] = (
                 contact_person.strip() if contact_person else None
+            )
+
+        if "category" in update_data:
+            category = update_data["category"]
+            update_data["category"] = category.strip() if category else None
+
+        if "sub_category" in update_data:
+            sub_category = update_data["sub_category"]
+            update_data["sub_category"] = (
+                sub_category.strip() if sub_category else None
             )
 
         for field, value in update_data.items():

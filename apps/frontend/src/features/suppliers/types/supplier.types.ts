@@ -6,6 +6,8 @@ export type Supplier = {
   phone?: string | null;
   address?: string | null;
   contact_person?: string | null;
+  category?: string | null;
+  sub_category?: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -17,6 +19,8 @@ export type SupplierCreatePayload = {
   phone?: string | null;
   address?: string | null;
   contact_person?: string | null;
+  category?: string | null;
+  sub_category?: string | null;
 };
 
 export type SupplierUpdatePayload = Partial<SupplierCreatePayload> & {
@@ -37,9 +41,26 @@ export type SupplierImportResult = {
 
 export type SupplierSummary = {
   supplier_id: string;
+  name: string;
+  category?: string | null;
+  sub_category?: string | null;
+  contact_person?: string | null;
+  email?: string | null;
+  phone?: string | null;
   supplies: string[];
   location?: string | null;
-  recent_supplied_items: string[];
+  recent_supplied_items: SupplierSupplyHistoryItem[];
+};
+
+export type SupplierSupplyHistoryItem = {
+  item_name: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  po_id: string;
+  po_number: string;
+  po_status: string;
+  supplied_at: string;
 };
 
 // SUPPLIER USER

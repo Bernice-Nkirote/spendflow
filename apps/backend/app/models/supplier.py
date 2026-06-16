@@ -30,6 +30,10 @@ class Supplier(Base):
 # name of contact person in supplier company
     contact_person = Column(String, nullable=True)
 
+    category = Column(String, nullable=True)
+
+    sub_category = Column(String, nullable=True)
+
     is_active = Column(Boolean, nullable=False, default=True)
 
     created_at = Column(

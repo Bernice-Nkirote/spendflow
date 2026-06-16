@@ -128,6 +128,37 @@ class SupplierRepository:
 
         return [row.item_name for row in rows]
 
+    def get_recent_supply_history(
+        self,
+        supplier_id: UUID,
+        company_id: UUID,
+        limit: int = 6,
+    ):
+        return (
+            self.db.query(
+                PurchaseOrderItem.item_name,
+                PurchaseOrderItem.quantity,
+                PurchaseOrderItem.unit_price,
+                PurchaseOrderItem.total_price,
+                PurchaseOrder.id.label("po_id"),
+                PurchaseOrder.po_number,
+                PurchaseOrder.status.label("po_status"),
+                PurchaseOrder.created_at.label("supplied_at"),
+            )
+            .join(
+                PurchaseOrder,
+                PurchaseOrder.id == PurchaseOrderItem.purchase_order_id,
+            )
+            .filter(
+                PurchaseOrder.company_id == company_id,
+                PurchaseOrder.supplier_id == supplier_id,
+                PurchaseOrderItem.company_id == company_id,
+            )
+            .order_by(PurchaseOrder.created_at.desc())
+            .limit(limit)
+            .all()
+        )
+
     def update(self, supplier: Supplier) -> Supplier:
         self.db.flush()
         self.db.refresh(supplier)

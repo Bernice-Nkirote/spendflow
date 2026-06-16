@@ -46,6 +46,26 @@ HEADER_ALIASES = {
         "representative",
         "supplier_contact",
     },
+    "category": {
+        "category",
+        "supplier_category",
+        "supplier category",
+        "primary_category",
+        "primary category",
+        "service_type",
+        "service type",
+        "what_they_supply",
+        "what they supply",
+    },
+    "sub_category": {
+        "sub_category",
+        "sub category",
+        "subcategory",
+        "supplier_sub_category",
+        "supplier sub category",
+        "specialization",
+        "specialisation",
+    },
 }
 
 
@@ -324,6 +344,8 @@ class SupplierExcelImportService:
         phone = raw_data.get("phone")
         address = raw_data.get("address")
         contact_person = raw_data.get("contact_person")
+        category = raw_data.get("category")
+        sub_category = raw_data.get("sub_category")
 
         return Supplier(
             id=uuid.uuid4(),
@@ -333,5 +355,7 @@ class SupplierExcelImportService:
             phone=phone.strip() if phone else None,
             address=address.strip() if address else None,
             contact_person=contact_person.strip() if contact_person else None,
+            category=category.strip() if category else None,
+            sub_category=sub_category.strip() if sub_category else None,
             is_active=True,
         )

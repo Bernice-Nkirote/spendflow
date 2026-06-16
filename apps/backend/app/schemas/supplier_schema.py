@@ -11,6 +11,8 @@ class SupplierCreate(BaseModel):
     phone: Optional[str] = None
     address: Optional[str] = None
     contact_person: Optional[str] = None
+    category: Optional[str] = None
+    sub_category: Optional[str] = None
 
 
 class SupplierUpdate(BaseModel):
@@ -19,6 +21,8 @@ class SupplierUpdate(BaseModel):
     phone: Optional[str] = None
     address: Optional[str] = None
     contact_person: Optional[str] = None
+    category: Optional[str] = None
+    sub_category: Optional[str] = None
     is_active: Optional[bool] = None
 
 
@@ -30,6 +34,8 @@ class SupplierRead(BaseModel):
     phone: Optional[str] = None
     address: Optional[str] = None
     contact_person: Optional[str] = None
+    category: Optional[str] = None
+    sub_category: Optional[str] = None
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -41,11 +47,28 @@ class PaginatedSupplierResponse(BaseModel):
     total_count: int
 
 
+class SupplierSupplyHistoryItem(BaseModel):
+    item_name: str
+    quantity: float
+    unit_price: float
+    total_price: float
+    po_id: UUID
+    po_number: str
+    po_status: str
+    supplied_at: datetime
+
+
 class SupplierSummaryRead(BaseModel):
     supplier_id: UUID
+    name: str
+    category: Optional[str] = None
+    sub_category: Optional[str] = None
+    contact_person: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
     supplies: list[str]
     location: Optional[str] = None
-    recent_supplied_items: list[str]
+    recent_supplied_items: list[SupplierSupplyHistoryItem]
 
 
 # SUPPLIER IMPORT 
