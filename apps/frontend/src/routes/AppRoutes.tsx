@@ -54,6 +54,7 @@ import SupplierInvoiceDetailsPage from "../features/supplier_portal/pages/Suppli
 import SupplierPaymentsPage from "../features/supplier_portal/pages/SupplierPaymentsPage";
 import PermissionsPage from "../features/permission/pages/PermissionPage";
 import AuditLogsPage from "../features/audit_logs/pages/AuditLogsPage";
+import UserGuidePage from "../features/user_guide/pages/UserGuidePage";
 
 function AppRoutes() {
   return (
@@ -99,6 +100,8 @@ function AppRoutes() {
               </PermissionRoute>
             }
           />
+
+          <Route path="/user-guide" element={<UserGuidePage />} />
 
           {/* APPROVALS */}
           <Route

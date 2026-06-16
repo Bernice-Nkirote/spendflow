@@ -38,6 +38,10 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
       ],
     },
     {
+      section: "Help",
+      items: [{ label: "User Guide", path: "/user-guide" }],
+    },
+    {
       section: "Administration",
       items: [
         { label: "Exchange Rates", path: "/exchange-rates" },
