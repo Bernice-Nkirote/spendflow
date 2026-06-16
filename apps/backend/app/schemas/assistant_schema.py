@@ -1,6 +1,12 @@
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+from typing import Literal
+
+
+class AssistantChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(..., min_length=1, max_length=3000)
 
 
 class AssistantChatRequest(BaseModel):
@@ -8,6 +14,7 @@ class AssistantChatRequest(BaseModel):
     context: str | None = Field(default=None, max_length=100)
     item_names: list[str] = Field(default_factory=list, max_length=20)
     category: str | None = Field(default=None, max_length=100)
+    history: list[AssistantChatMessage] = Field(default_factory=list, max_length=12)
 
 
 class AssistantSupplierSuggestion(BaseModel):

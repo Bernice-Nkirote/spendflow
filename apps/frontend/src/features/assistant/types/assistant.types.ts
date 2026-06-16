@@ -19,6 +19,10 @@ export type AssistantChatRequest = {
   context?: string;
   item_names?: string[];
   category?: string;
+  history?: {
+    role: "user" | "assistant";
+    content: string;
+  }[];
 };
 
 export type AssistantChatResponse = {

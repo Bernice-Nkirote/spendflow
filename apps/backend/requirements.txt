@@ -27,5 +27,6 @@ python-dotenv
 Jinja2
 reportlab
 openpyxl
+openai
 # render
 gunicorn

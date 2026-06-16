@@ -1,7 +1,10 @@
+import json
 from uuid import UUID
 
 from fastapi import HTTPException, status
+from pydantic import ValidationError
 
+from app.core.config import settings
 from app.repositories.assistant_repository import AssistantRepository
 from app.schemas.assistant_schema import (
     AssistantActionLink,
@@ -13,6 +16,27 @@ from app.schemas.assistant_schema import (
 
 
 class AssistantService:
+    ACTION_CATALOG = {
+        "/approval-workflows": "Approval Workflows",
+        "/approvals": "Approvals",
+        "/audit-logs": "Audit Logs",
+        "/departments": "Departments",
+        "/exchange-rates": "Exchange Rates",
+        "/invoices": "Invoices",
+        "/invoices/new": "Create Invoice",
+        "/payments": "Payments",
+        "/permissions": "Permissions",
+        "/purchase-orders": "Purchase Orders",
+        "/purchase-orders/new": "Create PO",
+        "/purchase-requisitions": "Purchase Requisitions",
+        "/purchase-requisitions/new": "Create PR",
+        "/reports": "Reports",
+        "/roles": "Roles",
+        "/supplier-login": "Supplier Login",
+        "/suppliers": "Suppliers",
+        "/user-guide": "User Guide",
+    }
+
     GUIDE_TOPICS = {
         "purchase requisitions": {
             "keywords": ("purchase requisition", "requisition", "create pr", "draft pr", " pr "),
@@ -303,6 +327,14 @@ class AssistantService:
                 actor_role_id=actor_role_id,
             )
 
+        model_response = self._build_model_response(
+            request=request,
+            topic=topic,
+            supplier_suggestions=supplier_suggestions,
+        )
+        if model_response:
+            return model_response
+
         return AssistantChatResponse(
             answer=self._build_guidance(topic),
             cautions=[self._build_guardrail(topic, supplier_suggestions)],
@@ -500,6 +532,166 @@ class AssistantService:
             actions.append(AssistantActionLink(label="Open Suppliers", path="/suppliers"))
 
         return actions[:4]
+
+    def _build_model_response(
+        self,
+        request: AssistantChatRequest,
+        topic,
+        supplier_suggestions: list[AssistantSupplierSuggestion],
+    ) -> AssistantChatResponse | None:
+        if not settings.OPENAI_API_KEY:
+            return None
+
+        try:
+            from openai import OpenAI
+        except ImportError:
+            return None
+
+        prompt_messages = self._build_model_messages(request=request, topic=topic)
+
+        try:
+            client = OpenAI(api_key=settings.OPENAI_API_KEY)
+            response = client.responses.create(
+                model=settings.OPENAI_MODEL,
+                input=prompt_messages,
+                text={
+                    "format": {
+                        "type": "json_schema",
+                        "name": "tendaflow_assistant_response",
+                        "strict": True,
+                        "schema": self._model_response_schema(),
+                    }
+                },
+            )
+            payload = json.loads(response.output_text)
+        except Exception:
+            return None
+
+        try:
+            actions = self._normalise_model_actions(payload.get("actions", []))
+            return AssistantChatResponse(
+                answer=str(payload.get("answer", "")).strip()
+                or self._build_guidance(topic),
+                cautions=self._normalise_text_list(
+                    payload.get("cautions", []),
+                    fallback=[self._build_guardrail(topic, supplier_suggestions)],
+                ),
+                suggested_next_steps=self._normalise_text_list(
+                    payload.get("suggested_next_steps", []),
+                    fallback=self._build_next_steps(topic, supplier_suggestions),
+                ),
+                actions=actions or self._build_actions(topic, supplier_suggestions),
+                supplier_suggestions=supplier_suggestions,
+            )
+        except (TypeError, ValidationError):
+            return None
+
+    def _build_model_messages(self, request: AssistantChatRequest, topic) -> list[dict]:
+        topic_hint = self._build_guidance(topic)
+        action_catalog = "\n".join(
+            f"- {label}: {path}"
+            for path, label in sorted(self.ACTION_CATALOG.items())
+        )
+        system_prompt = f"""
+You are Tendaflow's in-app procurement assistant.
+
+Voice:
+- Warm, supportive, concise, and lightly quirky.
+- Help the user feel safe when confused.
+- Be practical: tell them exactly where to click and what to review.
+
+Boundaries:
+- You must not submit PRs, create or submit POs, approve, reject, create payments, complete payments, delete records, or change records.
+- Always tell the user to review and take the final action inside Tendaflow.
+- If approval, payment, permissions, exchange rates, audit logs, supplier portal, reports, departments, roles, suppliers, PRs, POs, or invoices are mentioned, give clear Tendaflow-specific guidance.
+- Keep answers short enough for a chat panel. Send deep learning to /user-guide.
+- Use only the route paths listed below for actions.
+
+Important Tendaflow route shortcuts:
+{action_catalog}
+
+Current page: {request.context or "unknown"}
+Known guidance hint: {topic_hint}
+""".strip()
+
+        messages = [{"role": "system", "content": system_prompt}]
+        for history_item in request.history[-8:]:
+            messages.append(
+                {
+                    "role": history_item.role,
+                    "content": history_item.content,
+                }
+            )
+        messages.append({"role": "user", "content": request.message})
+        return messages
+
+    def _model_response_schema(self) -> dict:
+        return {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "answer": {"type": "string"},
+                "cautions": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "maxItems": 3,
+                },
+                "suggested_next_steps": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "maxItems": 6,
+                },
+                "actions": {
+                    "type": "array",
+                    "maxItems": 4,
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "properties": {
+                            "label": {"type": "string"},
+                            "path": {
+                                "type": "string",
+                                "enum": sorted(self.ACTION_CATALOG.keys()),
+                            },
+                        },
+                        "required": ["label", "path"],
+                    },
+                },
+            },
+            "required": [
+                "answer",
+                "cautions",
+                "suggested_next_steps",
+                "actions",
+            ],
+        }
+
+    def _normalise_model_actions(self, raw_actions) -> list[AssistantActionLink]:
+        actions: list[AssistantActionLink] = []
+        if not isinstance(raw_actions, list):
+            return actions
+
+        for raw_action in raw_actions:
+            if not isinstance(raw_action, dict):
+                continue
+            path = raw_action.get("path")
+            if path not in self.ACTION_CATALOG:
+                continue
+            label = str(raw_action.get("label") or self.ACTION_CATALOG[path]).strip()
+            actions.append(AssistantActionLink(label=label[:60], path=path))
+
+        return actions[:4]
+
+    def _normalise_text_list(self, raw_values, fallback: list[str]) -> list[str]:
+        if not isinstance(raw_values, list):
+            return fallback
+
+        values = [
+            str(value).strip()
+            for value in raw_values
+            if str(value).strip()
+        ]
+        return values[:6] or fallback
 
     def _build_guardrail(
         self,

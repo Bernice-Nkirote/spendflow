@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     FROM_EMAIL: str
     SMTP_USE_TLS: bool = True
 
+    OPENAI_API_KEY: str | None = None
+    OPENAI_MODEL: str = "gpt-5.5"
+
     class Config:
         env_file = ".env"
 
