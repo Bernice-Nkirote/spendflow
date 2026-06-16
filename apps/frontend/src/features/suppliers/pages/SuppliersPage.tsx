@@ -485,29 +485,29 @@ function SuppliersPage() {
           <button
             type="button"
             aria-label="Close supplier details"
-            className="absolute inset-0 bg-primary-black/40"
+            className="absolute inset-0 bg-primary-black/50 backdrop-blur-[1px]"
             onClick={() => setSelectedDetailSupplier(null)}
           />
 
-          <aside className="absolute right-0 top-0 flex h-full w-full max-w-2xl flex-col bg-white shadow-2xl">
-            <div className="border-b border-gray-200 px-6 py-5">
+          <aside className="absolute right-0 top-0 flex h-full w-full max-w-3xl flex-col bg-white shadow-2xl">
+            <div className="border-b border-gray-200 bg-gray-50 px-5 py-5 sm:px-7">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase text-primary-blue">
                     Supplier details
                   </p>
-                  <h2 className="mt-1 truncate text-xl font-bold text-primary-black">
+                  <h2 className="mt-1 text-2xl font-bold leading-tight text-primary-black">
                     {selectedDetailSupplier.name}
                   </h2>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-primary-blue">
+                    <span className="rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-semibold text-primary-blue">
                       {selectedSummary?.category ||
                         selectedDetailSupplier.category ||
                         "Uncategorised"}
                     </span>
                     {(selectedSummary?.sub_category ||
                       selectedDetailSupplier.sub_category) && (
-                      <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-primary-black">
+                      <span className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-primary-black">
                         {selectedSummary?.sub_category ||
                           selectedDetailSupplier.sub_category}
                       </span>
@@ -525,16 +525,16 @@ function SuppliersPage() {
                 </Button>
               </div>
 
-              <div className="mt-5 flex gap-2 border-b border-gray-200">
+              <div className="mt-6 flex rounded-lg border border-gray-200 bg-white p-1">
                 {(["overview", "history", "contacts"] as const).map((tab) => (
                   <button
                     key={tab}
                     type="button"
                     onClick={() => setActiveDetailTab(tab)}
-                    className={`border-b-2 px-3 py-2 text-sm font-semibold capitalize ${
+                    className={`flex-1 rounded-md px-3 py-2 text-sm font-semibold capitalize transition ${
                       activeDetailTab === tab
-                        ? "border-primary-blue text-primary-blue"
-                        : "border-transparent text-primary-gray hover:text-primary-black"
+                        ? "bg-primary-blue text-white shadow-sm"
+                        : "text-primary-gray hover:bg-gray-50 hover:text-primary-black"
                     }`}
                   >
                     {tab === "history" ? "Supply History" : tab}
@@ -543,15 +543,15 @@ function SuppliersPage() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-6 py-5">
+            <div className="flex-1 overflow-y-auto px-5 py-6 sm:px-7">
               {summaryLoadingId === selectedDetailSupplier.id ? (
                 <LoadingState message="Loading supplier details..." />
               ) : selectedSummaryError ? (
                 <ErrorState message={selectedSummaryError} />
               ) : activeDetailTab === "overview" ? (
                 <div className="space-y-6">
-                  <div>
-                    <h3 className="text-sm font-semibold text-primary-black">
+                  <div className="rounded-xl border border-blue-100 bg-blue-50/70 p-5">
+                    <h3 className="text-sm font-semibold text-primary-blue">
                       What They Supply
                     </h3>
                     <div className="mt-3 flex flex-wrap gap-2">
@@ -559,7 +559,7 @@ function SuppliersPage() {
                         selectedSummary.supplies.map((item) => (
                           <span
                             key={item}
-                            className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-primary-blue"
+                            className="rounded-full border border-blue-100 bg-white px-3 py-1 text-xs font-semibold text-primary-blue"
                           >
                             {item}
                           </span>
@@ -573,7 +573,7 @@ function SuppliersPage() {
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="rounded-lg border border-gray-200 p-4">
+                    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                       <p className="text-xs font-semibold uppercase text-primary-gray">
                         Primary Category
                       </p>
@@ -584,7 +584,7 @@ function SuppliersPage() {
                       </p>
                     </div>
 
-                    <div className="rounded-lg border border-gray-200 p-4">
+                    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                       <p className="text-xs font-semibold uppercase text-primary-gray">
                         Sub-category
                       </p>
@@ -595,7 +595,7 @@ function SuppliersPage() {
                       </p>
                     </div>
 
-                    <div className="rounded-lg border border-gray-200 p-4 sm:col-span-2">
+                    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:col-span-2">
                       <p className="text-xs font-semibold uppercase text-primary-gray">
                         Location
                       </p>
@@ -609,60 +609,65 @@ function SuppliersPage() {
                 </div>
               ) : activeDetailTab === "history" ? (
                 <div>
-                  <h3 className="text-sm font-semibold text-primary-black">
-                    Recent Supply History
-                  </h3>
-                  <p className="mt-1 text-sm text-primary-gray">
-                    Top 6 recent PO line items supplied by this vendor.
-                  </p>
+                  <div className="mb-5 flex items-start justify-between gap-4">
+                    <div>
+                      <h3 className="text-base font-semibold text-primary-black">
+                        Recent Supply History
+                      </h3>
+                      <p className="mt-1 text-sm text-primary-gray">
+                        Top 6 recent PO line items supplied by this vendor.
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-primary-blue">
+                      Auto-updated
+                    </span>
+                  </div>
 
                   {selectedSummary?.recent_supplied_items.length ? (
-                    <div className="mt-4 overflow-x-auto rounded-lg border border-gray-200">
-                      <table className="min-w-full text-left text-sm">
-                        <thead className="bg-gray-50 text-xs uppercase text-gray-500">
-                          <tr>
-                            <th className="px-4 py-3">Item</th>
-                            <th className="px-4 py-3">Qty</th>
-                            <th className="px-4 py-3">Total</th>
-                            <th className="px-4 py-3">PO</th>
-                            <th className="px-4 py-3">Date</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y">
-                          {selectedSummary.recent_supplied_items.map(
-                            (item) => (
-                              <tr key={`${item.po_id}-${item.item_name}`}>
-                                <td className="px-4 py-3 font-medium text-primary-black">
-                                  {item.item_name}
-                                </td>
-                                <td className="px-4 py-3 text-primary-black">
-                                  {formatMoney(item.quantity)}
-                                </td>
-                                <td className="px-4 py-3 text-primary-black">
-                                  {formatMoney(item.total_price)}
-                                </td>
-                                <td className="px-4 py-3">
-                                  <Link
-                                    to={`/purchase-orders/${item.po_id}`}
-                                    className="font-semibold text-primary-blue hover:underline"
-                                    onClick={() =>
-                                      setSelectedDetailSupplier(null)
-                                    }
-                                  >
-                                    {item.po_number}
-                                  </Link>
-                                  <p className="mt-1 text-xs text-primary-gray">
-                                    {item.po_status}
-                                  </p>
-                                </td>
-                                <td className="px-4 py-3 text-primary-black">
+                    <div className="space-y-3">
+                      {selectedSummary.recent_supplied_items.map((item) => (
+                        <div
+                          key={`${item.po_id}-${item.item_name}`}
+                          className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                        >
+                          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-primary-black">
+                                {item.item_name}
+                              </p>
+                              <div className="mt-2 flex flex-wrap gap-2 text-xs text-primary-gray">
+                                <span className="rounded-full bg-gray-100 px-2 py-1">
+                                  Qty {formatMoney(item.quantity)}
+                                </span>
+                                <span className="rounded-full bg-gray-100 px-2 py-1">
+                                  Unit {formatMoney(item.unit_price)}
+                                </span>
+                                <span className="rounded-full bg-gray-100 px-2 py-1">
+                                  Total {formatMoney(item.total_price)}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="shrink-0 text-left sm:text-right">
+                              <Link
+                                to={`/purchase-orders/${item.po_id}`}
+                                className="text-sm font-semibold text-primary-blue hover:underline"
+                                onClick={() => setSelectedDetailSupplier(null)}
+                              >
+                                {item.po_number}
+                              </Link>
+                              <div className="mt-2 flex flex-wrap gap-2 sm:justify-end">
+                                <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-primary-blue">
+                                  {item.po_status}
+                                </span>
+                                <span className="rounded-full bg-gray-100 px-2 py-1 text-xs font-semibold text-primary-gray">
                                   {formatDate(item.supplied_at)}
-                                </td>
-                              </tr>
-                            ),
-                          )}
-                        </tbody>
-                      </table>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <EmptyState
@@ -673,7 +678,7 @@ function SuppliersPage() {
                 </div>
               ) : (
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-lg border border-gray-200 p-4">
+                  <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                     <p className="text-xs font-semibold uppercase text-primary-gray">
                       Contact Person
                     </p>
@@ -684,7 +689,7 @@ function SuppliersPage() {
                     </p>
                   </div>
 
-                  <div className="rounded-lg border border-gray-200 p-4">
+                  <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                     <p className="text-xs font-semibold uppercase text-primary-gray">
                       Phone
                     </p>
@@ -695,7 +700,7 @@ function SuppliersPage() {
                     </p>
                   </div>
 
-                  <div className="rounded-lg border border-gray-200 p-4 sm:col-span-2">
+                  <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:col-span-2">
                     <p className="text-xs font-semibold uppercase text-primary-gray">
                       Email
                     </p>
@@ -706,7 +711,7 @@ function SuppliersPage() {
                     </p>
                   </div>
 
-                  <div className="rounded-lg border border-gray-200 p-4 sm:col-span-2">
+                  <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:col-span-2">
                     <p className="text-xs font-semibold uppercase text-primary-gray">
                       Address
                     </p>
@@ -850,16 +855,41 @@ function SuppliersPage() {
                 </p>
               </div>
 
-              <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-800">
-                <p className="font-semibold">Recommended Excel headers</p>
-                <div className="mt-2 grid gap-2 md:grid-cols-2">
-                  <p>Supplier name: name, supplier, supplier_name</p>
-                  <p>Category: category, supplier category, service type</p>
-                  <p>Sub-category: sub_category, specialization</p>
-                  <p>Email: email, supplier_email, email address</p>
-                  <p>Phone: phone, telephone, mobile, phone number</p>
-                  <p>Location: address, location, physical address</p>
-                  <p>Contact person: contact_person, representative</p>
+              <div className="rounded-xl border border-blue-100 bg-blue-50/70 p-5 text-sm text-blue-900">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-semibold">Recommended Excel headers</p>
+                    <p className="mt-1 text-blue-800">
+                      Use these columns to import cleaner supplier records.
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-primary-blue">
+                    .xlsx only
+                  </span>
+                </div>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  {[
+                    ["Supplier name", "name, supplier, supplier_name"],
+                    ["Category", "category, supplier category, service type"],
+                    ["Sub-category", "sub_category, specialization"],
+                    ["Email", "email, supplier_email, email address"],
+                    ["Phone", "phone, telephone, mobile, phone number"],
+                    ["Location", "address, location, physical address"],
+                    ["Contact person", "contact_person, representative"],
+                  ].map(([label, examples]) => (
+                    <div
+                      key={label}
+                      className="rounded-lg border border-blue-100 bg-white px-3 py-2"
+                    >
+                      <p className="text-xs font-semibold uppercase text-primary-blue">
+                        {label}
+                      </p>
+                      <p className="mt-1 text-xs text-primary-gray">
+                        {examples}
+                      </p>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -1161,6 +1191,18 @@ function SuppliersPage() {
                 >
                   {selectedMobileSupplier && (
                     <>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          openSupplierDetails(selectedMobileSupplier);
+                          setSelectedMobileSupplier(null);
+                        }}
+                      >
+                        More
+                      </Button>
+
                       {canViewSuppliers && (
                         <Link
                           to={`/suppliers/${selectedMobileSupplier.id}`}
