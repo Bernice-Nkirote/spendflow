@@ -14,7 +14,7 @@ from app.schemas.assistant_schema import (
 class AssistantService:
     GUIDE_TOPICS = {
         "setup": {
-            "keywords": ("setup", "configure", "start", "getting started", "company"),
+            "keywords": ("setup", "configure", "start", "getting started", "company", "business type", "first time"),
             "answer": (
                 "Recommended setup order: confirm company and business type, add departments, configure roles and permissions, set approval workflows, add exchange rates if you use multiple currencies, add suppliers with categories, then start procurement with PRs and POs."
             ),
@@ -51,15 +51,40 @@ class AssistantService:
             ],
         },
         "suppliers": {
-            "keywords": ("supplier", "suppliers", "vendor", "category", "source", "rfq"),
+            "keywords": ("supplier", "suppliers", "vendor", "category", "source", "rfq", "add supplier", "import supplier", "supplier import"),
             "answer": (
-                "Suppliers store vendor contact details, category, sub-category, location, and supply history. Use categories such as Technology, Electronics, Building Materials, Catering Services, or a custom category. The More view shows contact details and recent supplied items, which helps users choose suppliers for PRs and POs."
+                "Suppliers store vendor contact details, category, sub-category, location, and supply history. To add suppliers, open Suppliers, use the form for one supplier, or use Import Excel for many suppliers. Include clear headers such as name, email, phone, address, contact_person, category, and sub_category. Use categories such as Technology, Electronics, Building Materials, Catering Services, or a custom category. The More view shows contact details and recent supplied items, which helps users choose suppliers for PRs and POs."
             ),
             "steps": [
                 "Go to Suppliers.",
-                "Add or import suppliers with category and contact details.",
+                "Click Add Supplier for one supplier, or Import Excel for bulk upload.",
+                "Include name, email, phone, address, contact person, category, and sub-category where possible.",
                 "Use More to review supplier profile and supply history.",
                 "Ask the assistant for supplier suggestions using item names or category.",
+            ],
+        },
+        "departments": {
+            "keywords": ("department", "departments", "create department", "add department", "team", "teams"),
+            "answer": (
+                "Departments organise procurement by team, branch, or cost centre. To create one, open Departments, add the department name and required details, then save. Users and procurement records can then be linked to departments, which helps approvals, reporting, and accountability."
+            ),
+            "steps": [
+                "Open Departments.",
+                "Click the add or create department action.",
+                "Enter the department name clearly.",
+                "Save, then use the department when creating users, PRs, POs, and reports.",
+            ],
+        },
+        "roles": {
+            "keywords": ("role", "roles", "create role", "add role", "assign role", "user role"),
+            "answer": (
+                "Roles group users by responsibility, such as Admin, Requester, Procurement Officer, Finance, or Approver. Create roles first, then assign permissions to those roles, then assign users to the right role. This keeps access controlled without editing every user one by one."
+            ),
+            "steps": [
+                "Open Roles.",
+                "Create a role that matches the user's job responsibility.",
+                "Open Permissions and assign only the actions the role needs.",
+                "Assign users to the role and test their access.",
             ],
         },
         "invoices": {
@@ -87,12 +112,14 @@ class AssistantService:
             ],
         },
         "approvals": {
-            "keywords": ("approve", "approval", "approvals", "reject", "task", "tasks"),
+            "keywords": ("approve", "approval", "approvals", "reject", "task", "tasks", "task icon", "notification", "notification bell", "bell"),
             "answer": (
-                "Approvals are handled by authorised users only. A user with the correct approver permissions signs in, opens Tasks or Approvals, reviews the PR, PO, invoice, or payment, checks budget, supplier, totals, attachments, and workflow level, then approves or rejects. The assistant can explain what to check but cannot approve or reject."
+                "Approvals are handled by authorised users only. A user with the correct approver permissions signs in, watches the Tasks icon for pending approval tasks, and checks the notification bell for approval alerts. They can also open Approvals directly, review the PR, PO, invoice, or payment, check budget, supplier, totals, attachments, and workflow level, then approve or reject manually. The assistant can explain what to check but cannot approve or reject."
             ),
             "steps": [
-                "Open Tasks or Approvals.",
+                "Check the Tasks icon for pending work.",
+                "Check the notification bell for approval alerts.",
+                "Open Tasks, Approvals, or the notification item.",
                 "Open the pending approval record.",
                 "Review details, totals, supplier, requester, and workflow level.",
                 "Approve or reject manually as the authorised user.",
@@ -112,7 +139,7 @@ class AssistantService:
             ],
         },
         "permissions": {
-            "keywords": ("permission", "permissions", "role", "roles", "assign permission"),
+            "keywords": ("permission", "permissions", "assign permission", "access control"),
             "answer": (
                 "Permissions control what each role can view, create, update, approve, export, or administer. Assigning permissions to a role gives users in that role access to those actions. For example, pr.create lets a user create PRs, while pr.approve lets them approve PRs if they are part of the workflow."
             ),
@@ -168,6 +195,18 @@ class AssistantService:
                 "Supplier signs in through the supplier login.",
                 "Supplier views POs and creates invoices from the portal.",
                 "Internal users review submitted invoices in the main workspace.",
+            ],
+        },
+        "user guide": {
+            "keywords": ("user guide", "guide", "manual", "help page", "documentation", "how to use"),
+            "answer": (
+                "The user guide should become a dedicated in-app Help area covering setup, departments, roles, permissions, approval workflows, suppliers, PRs, POs, invoices, payments, exchange rates, reports, audit logs, tasks, notifications, and the supplier portal. The assistant can answer quick questions now, and the guide should provide structured step-by-step reference pages."
+            ),
+            "steps": [
+                "Create a Help or User Guide page in the main navigation.",
+                "Group guide content by Setup, Procurement, Approvals, Finance, Reporting, and Supplier Portal.",
+                "Add short steps, screenshots later, and common mistakes for each area.",
+                "Link assistant answers to the relevant guide sections in a later enhancement.",
             ],
         },
     }
