@@ -5,6 +5,7 @@ import { askAssistant } from "../api/assistantApi";
 import type { AssistantChatResponse } from "../types/assistant.types";
 
 const starterPrompts = [
+  "Explain the business types",
   "Guide me through creating a PR",
   "How do I add suppliers?",
   "How do I create departments and roles?",
@@ -14,7 +15,7 @@ const starterPrompts = [
   "What does assigning permissions do?",
   "How do exchange rates affect reports?",
   "How should users watch tasks and notifications?",
-  "How should we structure the user guide?",
+  "How do I use the supplier portal?",
 ];
 
 function getErrorMessage(error: unknown) {
@@ -32,12 +33,49 @@ function getErrorMessage(error: unknown) {
   return "The assistant could not respond right now.";
 }
 
+function highlightActionText(text: string) {
+  const phrases = [
+    "More button",
+    "Tasks icon",
+    "notification bell",
+    "Approvals",
+    "Suppliers",
+    "Departments",
+    "Roles",
+    "Permissions",
+    "Approval Workflows",
+    "Exchange Rates",
+    "Reports",
+    "Audit Logs",
+    "Create PR",
+    "Create PO",
+    "Import Excel",
+    "FAQ",
+  ];
+
+  const matchedPhrase = phrases.find((phrase) => text.includes(phrase));
+  if (!matchedPhrase) return text;
+
+  const [before, after] = text.split(matchedPhrase);
+
+  return (
+    <>
+      {before}
+      <span className="rounded bg-blue-50 px-1 font-semibold text-primary-blue">
+        {matchedPhrase}
+      </span>
+      {after}
+    </>
+  );
+}
+
 export default function AssistantPanel() {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [response, setResponse] = useState<AssistantChatResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isFaqOpen, setIsFaqOpen] = useState(false);
 
   async function handleSubmit(nextMessage = message) {
     const trimmedMessage = nextMessage.trim();
@@ -101,17 +139,32 @@ export default function AssistantPanel() {
               submit, approve, reject, issue, or pay anything for you.
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-2">
-              {starterPrompts.map((prompt) => (
-                <button
-                  key={prompt}
-                  type="button"
-                  onClick={() => handleStarterPrompt(prompt)}
-                  className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-left text-xs font-semibold leading-5 text-primary-gray shadow-sm transition hover:border-primary-blue/30 hover:bg-blue-50 hover:text-primary-blue"
-                >
-                  {prompt}
-                </button>
-              ))}
+            <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setIsFaqOpen((current) => !current)}
+                className="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold text-primary-black"
+              >
+                <span>FAQ prompts</span>
+                <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-primary-blue">
+                  {isFaqOpen ? "Hide" : "Show"}
+                </span>
+              </button>
+
+              {isFaqOpen && (
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {starterPrompts.map((prompt) => (
+                    <button
+                      key={prompt}
+                      type="button"
+                      onClick={() => handleStarterPrompt(prompt)}
+                      className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-left text-xs font-semibold leading-5 text-primary-gray transition hover:border-primary-blue/30 hover:bg-blue-50 hover:text-primary-blue"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -215,7 +268,9 @@ export default function AssistantPanel() {
                   </h3>
                   <ul className="mt-2 space-y-1 text-sm text-primary-gray">
                     {response.suggested_next_steps.map((step) => (
-                      <li key={step}>- {step}</li>
+                      <li key={step}>
+                        - {highlightActionText(step)}
+                      </li>
                     ))}
                   </ul>
                 </div>

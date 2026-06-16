@@ -16,9 +16,10 @@ class AssistantService:
         "setup": {
             "keywords": ("setup", "configure", "start", "getting started", "company", "business type", "first time"),
             "answer": (
-                "Recommended setup order: confirm company and business type, add departments, configure roles and permissions, set approval workflows, add exchange rates if you use multiple currencies, add suppliers with categories, then start procurement with PRs and POs."
+                "Recommended setup order: confirm company and business type, add departments, configure roles and permissions, set approval workflows, add exchange rates if you use multiple currencies, add suppliers with categories, then start procurement with PRs and POs. Sole Proprietorship supports one-person shops with simple self-approval workflows. Partnership supports configurable partner approvals, so it is not limited to exactly two people. Company supports larger teams with departments, roles, and multi-level approvals."
             ),
             "steps": [
+                "Choose the correct business type: Sole Proprietorship, Partnership, or Company.",
                 "Open Departments and add the teams that raise or approve requests.",
                 "Open Roles and Permissions to decide who can view, create, update, approve, and export.",
                 "Open Approval Workflows and configure levels for PR, PO, invoice, and payment approvals.",
@@ -59,8 +60,20 @@ class AssistantService:
                 "Go to Suppliers.",
                 "Click Add Supplier for one supplier, or Import Excel for bulk upload.",
                 "Include name, email, phone, address, contact person, category, and sub-category where possible.",
-                "Use More to review supplier profile and supply history.",
+                "Use the More button to review supplier profile and supply history.",
                 "Ask the assistant for supplier suggestions using item names or category.",
+            ],
+        },
+        "business types": {
+            "keywords": ("business type", "business types", "sole proprietorship", "partnership", "company type"),
+            "answer": (
+                "Tendaflow supports three business types. Sole Proprietorship is for one-person shops and can use simple self-approval workflows. Partnership is for businesses with partners and should support configurable partner approvals, not only two people. Company is for larger teams that usually need departments, roles, permissions, and multi-level approval workflows."
+            ),
+            "steps": [
+                "Choose Sole Proprietorship when one person owns and approves procurement.",
+                "Choose Partnership when multiple partners may need configurable approval participation.",
+                "Choose Company when procurement is handled by teams, departments, and role-based workflows.",
+                "Configure Approval Workflows to match the selected business type.",
             ],
         },
         "departments": {
@@ -198,15 +211,15 @@ class AssistantService:
             ],
         },
         "user guide": {
-            "keywords": ("user guide", "guide", "manual", "help page", "documentation", "how to use"),
+            "keywords": ("user guide", "guide", "manual", "help page", "documentation", "how to use", "faq"),
             "answer": (
-                "The user guide should become a dedicated in-app Help area covering setup, departments, roles, permissions, approval workflows, suppliers, PRs, POs, invoices, payments, exchange rates, reports, audit logs, tasks, notifications, and the supplier portal. The assistant can answer quick questions now, and the guide should provide structured step-by-step reference pages."
+                "Use the in-app help and FAQ prompts to learn how Tendaflow works. The guide covers setup, business types, suppliers, departments, roles, permissions, approval workflows, PRs, POs, invoices, payments, exchange rates, reports, audit logs, tasks, notifications, and the supplier portal."
             ),
             "steps": [
-                "Create a Help or User Guide page in the main navigation.",
-                "Group guide content by Setup, Procurement, Approvals, Finance, Reporting, and Supplier Portal.",
-                "Add short steps, screenshots later, and common mistakes for each area.",
-                "Link assistant answers to the relevant guide sections in a later enhancement.",
+                "Click FAQ in the assistant to view common questions.",
+                "Choose the topic closest to what you want to do.",
+                "Follow the steps shown by the assistant.",
+                "Use the normal Tendaflow page to complete the action yourself.",
             ],
         },
     }
