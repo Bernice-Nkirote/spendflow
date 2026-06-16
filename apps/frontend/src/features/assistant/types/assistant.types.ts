@@ -25,5 +25,9 @@ export type AssistantChatResponse = {
   answer: string;
   cautions: string[];
   suggested_next_steps: string[];
+  actions: {
+    label: string;
+    path: string;
+  }[];
   supplier_suggestions: AssistantSupplierSuggestion[];
 };

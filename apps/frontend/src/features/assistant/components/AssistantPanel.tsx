@@ -6,16 +6,14 @@ import type { AssistantChatResponse } from "../types/assistant.types";
 
 const starterPrompts = [
   "Explain the business types",
-  "Guide me through creating a PR",
+  "Create a PR",
   "How do I add suppliers?",
   "How do I create departments and roles?",
   "Suggest suppliers for laptops and networking equipment",
-  "What should I check before approving an invoice?",
-  "How do I configure approval workflows?",
-  "What does assigning permissions do?",
-  "How do exchange rates affect reports?",
-  "How should users watch tasks and notifications?",
-  "How do I use the supplier portal?",
+  "Approve an invoice",
+  "Configure approval workflows",
+  "Record a payment",
+  "Open supplier spend report",
 ];
 
 function getErrorMessage(error: unknown) {
@@ -50,7 +48,7 @@ function highlightActionText(text: string) {
     "Create PR",
     "Create PO",
     "Import Excel",
-    "FAQ",
+    "Common Tasks",
   ];
 
   const matchedPhrase = phrases.find((phrase) => text.includes(phrase));
@@ -117,7 +115,7 @@ export default function AssistantPanel() {
                   Procurement guidance
                 </h2>
                 <p className="mt-1 text-xs text-white/75">
-                  Guidance, supplier suggestions, and workflow help.
+                  Quick steps, shortcuts, and supplier suggestions.
                 </p>
               </div>
               <button
@@ -135,8 +133,8 @@ export default function AssistantPanel() {
               <span className="font-semibold text-primary-blue">
                 Safe assistant:
               </span>{" "}
-              I can draft guidance and recommend suppliers, but I will never
-              submit, approve, reject, issue, or pay anything for you.
+              I can point, suggest, and steady the ship, but final actions stay
+              with you.
             </div>
 
             <div className="rounded-xl border border-gray-200 bg-white p-3 shadow-sm">
@@ -145,7 +143,7 @@ export default function AssistantPanel() {
                 onClick={() => setIsFaqOpen((current) => !current)}
                 className="flex w-full items-center justify-between gap-3 text-left text-sm font-semibold text-primary-black"
               >
-                <span>FAQ prompts</span>
+                <span>Common Tasks</span>
                 <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-primary-blue">
                   {isFaqOpen ? "Hide" : "Show"}
                 </span>
@@ -197,12 +195,32 @@ export default function AssistantPanel() {
               <div className="space-y-4">
                 <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                   <h3 className="text-sm font-semibold text-primary-black">
-                    Guidance
+                    Here is the clean path
                   </h3>
                   <p className="mt-2 whitespace-pre-line text-sm leading-6 text-primary-gray">
                     {response.answer}
                   </p>
                 </div>
+
+                {response.actions.length > 0 && (
+                  <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                    <h3 className="text-sm font-semibold text-primary-black">
+                      Shortcuts
+                    </h3>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {response.actions.map((action) => (
+                        <Link
+                          key={`${action.label}-${action.path}`}
+                          to={action.path}
+                          onClick={() => setIsOpen(false)}
+                          className="rounded-full bg-primary-blue px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-primary-blue/90"
+                        >
+                          {action.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {response.supplier_suggestions.length > 0 && (
                   <div className="space-y-3">
@@ -277,7 +295,7 @@ export default function AssistantPanel() {
 
                 <div className="rounded-xl border border-amber-100 bg-amber-50 p-4">
                   <h3 className="text-sm font-semibold text-amber-900">
-                    Guardrails
+                    Tiny checkpoint
                   </h3>
                   <ul className="mt-2 space-y-1 text-sm text-amber-800">
                     {response.cautions.map((caution) => (

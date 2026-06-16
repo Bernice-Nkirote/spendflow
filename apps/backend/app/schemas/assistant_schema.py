@@ -26,10 +26,16 @@ class AssistantSupplierSuggestion(BaseModel):
     reasons: list[str]
 
 
+class AssistantActionLink(BaseModel):
+    label: str
+    path: str
+
+
 class AssistantChatResponse(BaseModel):
     answer: str
     cautions: list[str]
     suggested_next_steps: list[str]
+    actions: list[AssistantActionLink]
     supplier_suggestions: list[AssistantSupplierSuggestion]
 
 
