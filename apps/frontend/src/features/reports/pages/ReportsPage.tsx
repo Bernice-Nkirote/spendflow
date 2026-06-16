@@ -68,6 +68,7 @@ function getInitialFilters(searchParams: URLSearchParams): ReportFiltersType {
     date_to: searchParams.get("date_to") || undefined,
     status: searchParams.get("status") || undefined,
     supplier_id: searchParams.get("supplier_id") || undefined,
+    supplier_category: searchParams.get("supplier_category") || undefined,
     department_id: searchParams.get("department_id") || undefined,
     payment_method: searchParams.get("payment_method") || undefined,
   };
@@ -87,6 +88,8 @@ function buildReportSearchParams(
   if (filters.date_to) params.set("date_to", filters.date_to);
   if (filters.status) params.set("status", filters.status);
   if (filters.supplier_id) params.set("supplier_id", filters.supplier_id);
+  if (filters.supplier_category)
+    params.set("supplier_category", filters.supplier_category);
   if (filters.department_id) params.set("department_id", filters.department_id);
   if (filters.payment_method)
     params.set("payment_method", filters.payment_method);
@@ -217,6 +220,18 @@ export default function ReportsPage() {
     activeReport === "supplier-spend"
       ? buildSupplierCategoryTotals(data as SupplierSpendReportItem[])
       : [];
+  const supplierCategoryOptions = supplierOptions
+    .map((supplier) => supplier.category)
+    .filter(
+      (category): category is string =>
+        typeof category === "string" && category.trim().length > 0,
+    )
+    .filter((category, index, categories) => categories.indexOf(category) === index)
+    .sort((first, second) => first.localeCompare(second))
+    .map((category) => ({
+      label: category,
+      value: category,
+    }));
 
   useEffect(() => {
     const params = buildReportSearchParams(activeReport, filters);
@@ -458,6 +473,7 @@ export default function ReportsPage() {
               onChange={setFilters}
               departmentOptions={departmentOptions}
               supplierOptions={supplierOptions}
+              supplierCategoryOptions={supplierCategoryOptions}
               statusOptions={statusOptions[activeReport] ?? []}
               paymentMethodOptions={paymentMethodOptions}
             />

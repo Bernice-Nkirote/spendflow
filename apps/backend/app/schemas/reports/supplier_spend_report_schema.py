@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, model_validator, ConfigDict
 
 class SupplierSpendReportFilter(BaseModel):
     supplier_id: UUID | None = None
+    supplier_category: str | None = None
 
     date_from: datetime | None = None
     date_to: datetime | None = None

@@ -11,6 +11,7 @@ type Props = {
   filterConfig: ReportFilterConfig[];
   onChange: (filters: ReportFiltersType) => void;
   supplierOptions?: ReportFilterOption[];
+  supplierCategoryOptions?: ReportFilterOption[];
   departmentOptions?: ReportFilterOption[];
   statusOptions?: string[];
   paymentMethodOptions?: string[];
@@ -29,6 +30,7 @@ export default function ReportFilters({
   filterConfig,
   onChange,
   supplierOptions = [],
+  supplierCategoryOptions = [],
   departmentOptions = [],
   statusOptions = [],
   paymentMethodOptions = [],
@@ -44,6 +46,7 @@ export default function ReportFilters({
     filters.date_to ||
     filters.status ||
     filters.supplier_id ||
+    filters.supplier_category ||
     filters.department_id ||
     filters.payment_method,
   );
@@ -168,6 +171,36 @@ export default function ReportFilters({
               {supplierOptions.map((supplier) => (
                 <option key={supplier.value} value={supplier.value}>
                   {supplier.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {hasFilter("supplier_category") && (
+          <div className="min-w-0 flex flex-col gap-1">
+            <label className={labelClassName}>Supplier Category</label>
+
+            <select
+              value={filters.supplier_category ?? ""}
+              onChange={(e) =>
+                onChange({
+                  ...filters,
+                  page: 1,
+                  supplier_category: e.target.value || undefined,
+                })
+              }
+              className={inputClassName}
+            >
+              <option value="">
+                {supplierCategoryOptions.length === 0
+                  ? "No categories yet"
+                  : "All categories"}
+              </option>
+
+              {supplierCategoryOptions.map((category) => (
+                <option key={category.value} value={category.value}>
+                  {category.label}
                 </option>
               ))}
             </select>

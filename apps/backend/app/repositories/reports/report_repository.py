@@ -699,6 +699,9 @@ class ReportRepository:
         if filters.supplier_id:
             query = query.filter(Supplier.id == filters.supplier_id)
 
+        if filters.supplier_category:
+            query = query.filter(Supplier.category == filters.supplier_category)
+
         if filters.date_from:
             query = query.filter(Invoice.created_at >= filters.date_from)
 

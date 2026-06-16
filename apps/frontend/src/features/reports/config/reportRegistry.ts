@@ -201,7 +201,11 @@ export const reportRegistry = {
   "supplier-spend": {
     ...reportConfig["supplier-spend"],
     columns: supplierSpendColumns,
-    filters: [{ type: "date_range" }, { type: "supplier" }],
+    filters: [
+      { type: "date_range" },
+      { type: "supplier" },
+      { type: "supplier_category" },
+    ],
     summaryCards: [
       { label: "Suppliers", type: "count", format: "number" },
       {

@@ -4,6 +4,7 @@ export type ReportFilterType =
   | "date_range"
   | "status"
   | "supplier"
+  | "supplier_category"
   | "department"
   | "payment_method";
 
@@ -15,6 +16,7 @@ export type ReportFilterConfig = {
 export type ReportFilterOption = {
   label: string;
   value: string;
+  category?: string;
 };
 
 export type ReportStatusOptions = Partial<Record<ReportType, string[]>>;
@@ -26,6 +28,7 @@ export type ReportFilters = {
   date_to?: string;
   status?: string;
   supplier_id?: string;
+  supplier_category?: string;
   department_id?: string;
   payment_method?: string;
   page?: number;

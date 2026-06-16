@@ -9,6 +9,7 @@ type DepartmentResponse = {
 type SupplierResponse = {
   id: string;
   name: string;
+  category?: string | null;
 };
 
 export async function getDepartmentOptions(): Promise<ReportFilterOption[]> {
@@ -23,10 +24,13 @@ export async function getDepartmentOptions(): Promise<ReportFilterOption[]> {
 }
 
 export async function getSupplierOptions(): Promise<ReportFilterOption[]> {
-  const response = await axiosInstance.get<SupplierResponse[]>("/suppliers/");
+  const response = await axiosInstance.get<SupplierResponse[]>("/suppliers/", {
+    params: { limit: 500 },
+  });
 
   return response.data.map((supplier) => ({
     label: supplier.name,
     value: supplier.id,
+    category: supplier.category ?? undefined,
   }));
 }
