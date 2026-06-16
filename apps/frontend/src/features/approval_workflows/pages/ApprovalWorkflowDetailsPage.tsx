@@ -19,7 +19,10 @@ import { getDepartments } from "../../Departments/api/departmentApi";
 import type { Department } from "../../Departments/types/department.types";
 import { getRoles } from "../../roles/api/roleApi";
 import type { Role } from "../../roles/types/role.types";
-import { getApprovalWorkflowById } from "../api/approvalWorkflowApi";
+import {
+  getApprovalWorkflowById,
+  updateApprovalWorkflow,
+} from "../api/approvalWorkflowApi";
 import {
   createWorkflowLevel,
   updateWorkflowLevel,
@@ -31,10 +34,14 @@ import {
 import type {
   ApprovalEntityType,
   ApprovalWorkflow,
+  PartnerApprovalMode,
   WorkflowLevel,
   WorkflowLevelRole,
 } from "../types/approvalWorkflow.types";
-import { approvalEntityTypeOptions } from "../types/approvalWorkflow.types";
+import {
+  approvalEntityTypeOptions,
+  partnerApprovalModeOptions,
+} from "../types/approvalWorkflow.types";
 import { useParams } from "react-router-dom";
 
 function getApiErrorMessage(error: unknown, fallback: string) {
@@ -67,6 +74,10 @@ function ApprovalWorkflowDetailsPage() {
   const [departmentId, setDepartmentId] = useState("");
   const [minAmount, setMinAmount] = useState("");
   const [maxAmount, setMaxAmount] = useState("");
+  const [partnerApprovalMode, setPartnerApprovalMode] =
+    useState<PartnerApprovalMode>("workflow_levels");
+  const [partnerApprovalMinCount, setPartnerApprovalMinCount] = useState("");
+  const [partnerRoleId, setPartnerRoleId] = useState("");
 
   const [selectedRoleByLevel, setSelectedRoleByLevel] = useState<
     Record<string, string>
@@ -74,6 +85,8 @@ function ApprovalWorkflowDetailsPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingLevel, setIsSavingLevel] = useState(false);
+  const [isSavingPartnershipConfig, setIsSavingPartnershipConfig] =
+    useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
   const [pageError, setPageError] = useState("");
   const [confirmError, setConfirmError] = useState("");
@@ -124,6 +137,15 @@ function ApprovalWorkflowDetailsPage() {
       ]);
 
       setWorkflow(workflowData);
+      setPartnerApprovalMode(
+        workflowData.partner_approval_mode ?? "workflow_levels",
+      );
+      setPartnerApprovalMinCount(
+        workflowData.partner_approval_min_count
+          ? String(workflowData.partner_approval_min_count)
+          : "",
+      );
+      setPartnerRoleId(workflowData.partner_role_id ?? "");
       setDepartments(departmentsData);
       setRoles(rolesData);
     } catch (error) {
@@ -280,6 +302,52 @@ function ApprovalWorkflowDetailsPage() {
     }
   }
 
+  async function handleSavePartnershipConfig(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    if (!workflowId) {
+      showAlert("error", "Workflow id is missing.");
+      return;
+    }
+
+    const parsedMinCount = partnerApprovalMinCount
+      ? Number(partnerApprovalMinCount)
+      : null;
+
+    if (
+      partnerApprovalMode === "minimum_partners" &&
+      (!parsedMinCount || Number.isNaN(parsedMinCount) || parsedMinCount < 1)
+    ) {
+      showAlert("error", "Minimum partner approvals must be at least 1.");
+      return;
+    }
+
+    try {
+      setIsSavingPartnershipConfig(true);
+
+      await updateApprovalWorkflow(workflowId, {
+        partner_approval_mode: partnerApprovalMode,
+        partner_approval_min_count:
+          partnerApprovalMode === "minimum_partners" ? parsedMinCount : null,
+        partner_role_id: partnerRoleId || null,
+      });
+
+      showAlert("success", "Partnership approval configuration saved.");
+      await loadPageData();
+    } catch (error) {
+      setPageError(
+        getApiErrorMessage(
+          error,
+          "Failed to save partnership approval configuration.",
+        ),
+      );
+    } finally {
+      setIsSavingPartnershipConfig(false);
+    }
+  }
+
   if (!canAccessAdminPage) {
     return (
       <PageContainer>
@@ -377,6 +445,97 @@ function ApprovalWorkflowDetailsPage() {
             value="Add levels in the order they should approve."
           />
         </div>
+      </Card>
+
+      <Card>
+        <form onSubmit={handleSavePartnershipConfig} className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold text-primary-black">
+              Partnership Approval Options
+            </h2>
+            <p className="mt-1 text-sm text-gray-600">
+              Optional configuration for partnerships. Keeping Use workflow
+              levels preserves the existing approval behavior.
+            </p>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-3">
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-primary-black">
+                Partner approval mode
+              </label>
+              <select
+                value={partnerApprovalMode}
+                onChange={(event) =>
+                  setPartnerApprovalMode(
+                    event.target.value as PartnerApprovalMode,
+                  )
+                }
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
+              >
+                {partnerApprovalModeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-primary-gray">
+                {
+                  partnerApprovalModeOptions.find(
+                    (option) => option.value === partnerApprovalMode,
+                  )?.description
+                }
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-primary-black">
+                Partner role
+              </label>
+              <select
+                value={partnerRoleId}
+                onChange={(event) => setPartnerRoleId(event.target.value)}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
+              >
+                <option value="">No partner role selected</option>
+                {activeRoles.map((role) => (
+                  <option key={role.id} value={role.id}>
+                    {role.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-primary-gray">
+                Select the role that represents partners for this workflow.
+              </p>
+            </div>
+
+            <Input
+              label="Minimum partner approvals"
+              type="number"
+              min="1"
+              value={partnerApprovalMinCount}
+              onChange={(event) =>
+                setPartnerApprovalMinCount(event.target.value)
+              }
+              placeholder={
+                partnerApprovalMode === "minimum_partners"
+                  ? "Required"
+                  : "Only for minimum mode"
+              }
+              disabled={partnerApprovalMode !== "minimum_partners"}
+            />
+          </div>
+
+          <Button
+            type="submit"
+            variant="primary"
+            disabled={isSavingPartnershipConfig}
+          >
+            {isSavingPartnershipConfig
+              ? "Saving..."
+              : "Save Partnership Options"}
+          </Button>
+        </form>
       </Card>
 
       <Card>

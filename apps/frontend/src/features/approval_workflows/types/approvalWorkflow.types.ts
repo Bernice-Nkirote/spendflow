@@ -43,20 +43,35 @@ export type ApprovalWorkflow = {
   name: string;
   entity_type: ApprovalEntityType;
   is_active: boolean;
+  partner_approval_mode?: PartnerApprovalMode | null;
+  partner_approval_min_count?: number | null;
+  partner_role_id?: string | null;
   created_at: string;
   updated_at: string;
   levels: WorkflowLevel[];
 };
 
+export type PartnerApprovalMode =
+  | "workflow_levels"
+  | "any_partner"
+  | "all_partners"
+  | "minimum_partners";
+
 export type CreateApprovalWorkflowPayload = {
   name: string;
   entity_type: ApprovalEntityType;
+  partner_approval_mode?: PartnerApprovalMode | null;
+  partner_approval_min_count?: number | null;
+  partner_role_id?: string | null;
 };
 
 export type UpdateApprovalWorkflowPayload = {
   name?: string;
   entity_type?: ApprovalEntityType;
   is_active?: boolean;
+  partner_approval_mode?: PartnerApprovalMode | null;
+  partner_approval_min_count?: number | null;
+  partner_role_id?: string | null;
 };
 
 export type CreateWorkflowLevelPayload = {
@@ -95,4 +110,31 @@ export const approvalEntityTypeOptions: {
   { label: "Purchase Order", value: "PO" },
   { label: "Invoice", value: "INVOICE" },
   { label: "Payment", value: "PAYMENT" },
+];
+
+export const partnerApprovalModeOptions: {
+  label: string;
+  value: PartnerApprovalMode;
+  description: string;
+}[] = [
+  {
+    label: "Use workflow levels",
+    value: "workflow_levels",
+    description: "Keep the normal configured approval levels.",
+  },
+  {
+    label: "Any partner",
+    value: "any_partner",
+    description: "One partner approval is enough.",
+  },
+  {
+    label: "All partners",
+    value: "all_partners",
+    description: "Every user in the selected partner role should approve.",
+  },
+  {
+    label: "Minimum partners",
+    value: "minimum_partners",
+    description: "Require a configurable minimum number of partner approvals.",
+  },
 ];

@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Boolean, ForeignKey, DateTime, Index, UniqueConstraint
+from sqlalchemy import Column, String, Boolean, ForeignKey, DateTime, Index, Integer, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -29,6 +29,16 @@ class ApprovalWorkflow(Base):
     # Allows workflows to be activated/deactivated without deletion
     is_active = Column(Boolean, default=True, nullable=False)
 
+    # Optional partnership-specific approval configuration.
+    # Blank values preserve the normal workflow-level approval behavior.
+    partner_approval_mode = Column(String, nullable=True)
+    partner_approval_min_count = Column(Integer, nullable=True)
+    partner_role_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("roles.id"),
+        nullable=True,
+    )
+
     created_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -49,6 +59,7 @@ class ApprovalWorkflow(Base):
 
     # Relationships
     company = relationship("Company", back_populates="workflows")
+    partner_role = relationship("Role", foreign_keys=[partner_role_id])
     # A workflow contains many ordered levels
     
     levels = relationship(

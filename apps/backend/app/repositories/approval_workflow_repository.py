@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.models.approval_workflows_table import ApprovalWorkflow
 from app.models.enums import EntityTypeEnum
+from app.models.role import Role
 
 
 class ApprovalWorkflowRepository:
@@ -89,6 +90,14 @@ class ApprovalWorkflowRepository:
         self.db.flush()
         self.db.refresh(workflow)
         return workflow
+
+    def role_belongs_to_company(self, role_id: UUID, company_id: UUID) -> bool:
+        return (
+            self.db.query(Role.id)
+            .filter(Role.id == role_id, Role.company_id == company_id)
+            .first()
+            is not None
+        )
 
     def delete(self, workflow: ApprovalWorkflow) -> None:
         self.db.delete(workflow)

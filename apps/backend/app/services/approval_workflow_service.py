@@ -11,6 +11,13 @@ from app.schemas.approval_workflows_schema import (
 
 
 class ApprovalWorkflowService:
+    PARTNER_APPROVAL_MODES = {
+        "workflow_levels",
+        "any_partner",
+        "all_partners",
+        "minimum_partners",
+    }
+
     def __init__(self, repo: ApprovalWorkflowRepository):
         self.repo = repo
 
@@ -45,7 +52,14 @@ class ApprovalWorkflowService:
             entity_type=workflow_data.entity_type,
             company_id=company_id,
             is_active=True,
+            partner_approval_mode=self._normalize_partner_mode(
+                workflow_data.partner_approval_mode,
+            ),
+            partner_approval_min_count=workflow_data.partner_approval_min_count,
+            partner_role_id=workflow_data.partner_role_id,
         )
+
+        self._validate_partner_approval_config(workflow, company_id)
 
         created_workflow = self.repo.create(workflow)
         self.repo.db.commit()
@@ -120,8 +134,15 @@ class ApprovalWorkflowService:
 
             update_data["name"] = normalized_name
 
+        if "partner_approval_mode" in update_data:
+            update_data["partner_approval_mode"] = self._normalize_partner_mode(
+                update_data["partner_approval_mode"],
+            )
+
         for field, value in update_data.items():
             setattr(workflow, field, value)
+
+        self._validate_partner_approval_config(workflow, company_id)
 
         updated_workflow = self.repo.update(workflow)
         self.repo.db.commit()
@@ -182,3 +203,44 @@ class ApprovalWorkflowService:
         self.repo.db.commit()
 
         return {"message": "Workflow deleted successfully"}
+
+    def _normalize_partner_mode(self, mode: str | None) -> str | None:
+        if mode is None:
+            return None
+
+        normalized_mode = mode.strip().lower()
+        return normalized_mode or None
+
+    def _validate_partner_approval_config(
+        self,
+        workflow: ApprovalWorkflow,
+        company_id: uuid.UUID,
+    ) -> None:
+        mode = workflow.partner_approval_mode
+
+        if mode is None:
+            return
+
+        if mode not in self.PARTNER_APPROVAL_MODES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid partnership approval mode.",
+            )
+
+        if mode == "minimum_partners" and not workflow.partner_approval_min_count:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Minimum partner approvals is required for this mode.",
+            )
+
+        if mode != "minimum_partners":
+            workflow.partner_approval_min_count = None
+
+        if workflow.partner_role_id and not self.repo.role_belongs_to_company(
+            workflow.partner_role_id,
+            company_id,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Selected partner role does not belong to this company.",
+            )

@@ -15,12 +15,19 @@ class ApprovalWorkflowCreate(BaseModel):
     # Type of record this workflow applies to
     entity_type: EntityTypeEnum
 
+    partner_approval_mode: Optional[str] = None
+    partner_approval_min_count: Optional[int] = Field(default=None, ge=1)
+    partner_role_id: Optional[UUID] = None
+
 
 class ApprovalWorkflowUpdate(BaseModel):
     # All fields optional for partial updates
     name: Optional[str] = None
     entity_type: Optional[EntityTypeEnum] = None
     is_active: Optional[bool] = None
+    partner_approval_mode: Optional[str] = None
+    partner_approval_min_count: Optional[int] = Field(default=None, ge=1)
+    partner_role_id: Optional[UUID] = None
 
 
 class ApprovalWorkflowRead(BaseModel):
@@ -29,6 +36,9 @@ class ApprovalWorkflowRead(BaseModel):
     name: str
     entity_type: EntityTypeEnum
     is_active: bool
+    partner_approval_mode: Optional[str] = None
+    partner_approval_min_count: Optional[int] = None
+    partner_role_id: Optional[UUID] = None
     created_at: datetime
     updated_at: datetime
 
