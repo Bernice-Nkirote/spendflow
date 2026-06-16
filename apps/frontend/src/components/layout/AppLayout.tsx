@@ -5,6 +5,7 @@ import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import ScrollToTopButton from "../ui/ScrollToTopButton";
+import AssistantPanel from "../../features/assistant/components/AssistantPanel";
 
 function AppLayout() {
   const { isSessionWarningOpen, staySignedIn, logoutNow } =
@@ -36,6 +37,7 @@ function AppLayout() {
             <Outlet />
           </main>
           <ScrollToTopButton />
+          <AssistantPanel />
         </div>
       </div>
     </div>
