@@ -24,6 +24,7 @@ import {
 } from "../hooks/useCreatePurchaseOrderDraft";
 import PurchaseOrderItemsForm from "../components/PurchaseOrderItemsForm";
 import type { PurchaseOrderItemCreate } from "../types/purchaseOrder.types";
+import SupplierPicker from "../components/SupplierPicker";
 
 import { currencyOptions } from "../../../utils/currencyOptions";
 import { userHasPermission } from "../../../utils/permissions";
@@ -202,23 +203,16 @@ export default function CreatePurchaseOrderPage() {
           </h2>
 
           <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-1">
+            <div className="space-y-2 md:col-span-2">
               <label className="block text-sm font-medium text-primary-black">
                 Supplier
               </label>
-              <select
+              <SupplierPicker
+                suppliers={suppliers}
                 value={supplierId}
-                onChange={(event) => setSupplierId(event.target.value)}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
-                required
-              >
-                <option value="">Select supplier</option>
-                {suppliers.map((supplier) => (
-                  <option key={supplier.id} value={supplier.id}>
-                    {supplier.name}
-                  </option>
-                ))}
-              </select>
+                onChange={setSupplierId}
+                suggestedItemNames={items.map((item) => item.item_name)}
+              />
             </div>
 
             <div className="space-y-1">

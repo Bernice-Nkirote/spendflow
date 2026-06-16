@@ -16,7 +16,12 @@ import type {
 } from "../types/supplier.types";
 
 export async function getSuppliers(): Promise<Supplier[]> {
-  const response = await axiosInstance.get<Supplier[]>("/suppliers/");
+  const response = await axiosInstance.get<Supplier[]>("/suppliers/", {
+    params: {
+      limit: 500,
+    },
+  });
+
   return response.data;
 }
 

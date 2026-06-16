@@ -117,6 +117,7 @@ function SuppliersPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [formData, setFormData] =
     useState<SupplierCreatePayload>(initialFormState);
+  const [customCategory, setCustomCategory] = useState("");
 
   const [phoneNumber, setPhoneNumber] = useState<Value | undefined>(undefined);
   const [phoneNumberError, setPhoneNumberError] = useState("");
@@ -236,6 +237,11 @@ function SuppliersPage() {
       return;
     }
 
+    if (formData.category === "Other" && !customCategory.trim()) {
+      showAlert("error", "Please enter the supplier category.");
+      return;
+    }
+
     setPhoneNumberError("");
 
     if (phoneNumber && !isValidPhoneNumber(phoneNumber)) {
@@ -253,11 +259,15 @@ function SuppliersPage() {
         phone: phoneNumber || null,
         address: formData.address?.trim() || null,
         contact_person: formData.contact_person?.trim() || null,
-        category: formData.category?.trim() || null,
+        category:
+          formData.category === "Other"
+            ? customCategory.trim()
+            : formData.category?.trim() || null,
         sub_category: formData.sub_category?.trim() || null,
       });
 
       setFormData(initialFormState);
+      setCustomCategory("");
       setPhoneNumber(undefined);
       setPage(1);
 
@@ -796,7 +806,12 @@ function SuppliersPage() {
                     <select
                       name="category"
                       value={formData.category ?? ""}
-                      onChange={handleChange}
+                      onChange={(event) => {
+                        handleChange(event);
+                        if (event.target.value !== "Other") {
+                          setCustomCategory("");
+                        }
+                      }}
                       className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
                     >
                       <option value="">Select category</option>
@@ -807,6 +822,18 @@ function SuppliersPage() {
                       ))}
                     </select>
                   </div>
+
+                  {formData.category === "Other" && (
+                    <Input
+                      label="Custom Category"
+                      name="customCategory"
+                      value={customCategory}
+                      onChange={(event) =>
+                        setCustomCategory(event.target.value)
+                      }
+                      placeholder="e.g. Medical Supplies"
+                    />
+                  )}
 
                   <Input
                     label="Sub-category"
