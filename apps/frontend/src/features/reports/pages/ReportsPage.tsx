@@ -34,9 +34,11 @@ import type {
   ReportFilterOption,
   ReportFilters as ReportFiltersType,
   ReportStatusOptions,
+  SupplierSpendReportItem,
 } from "../types/report.types";
 
 import { downloadFile } from "../utils/reportFormatter";
+import { formatCurrency } from "../../../utils/formatCurrency";
 import { userHasPermission } from "../../../utils/permissions";
 
 const DEFAULT_REPORT: ReportType = "purchase-requisitions";
@@ -118,6 +120,56 @@ async function getApiErrorMessage(error: unknown, fallback: string) {
   return fallback;
 }
 
+function toNumber(value: unknown): number {
+  if (value === null || value === undefined || value === "") return 0;
+
+  const numberValue = Number(value);
+  return Number.isNaN(numberValue) ? 0 : numberValue;
+}
+
+function buildSupplierCategoryTotals(rows: SupplierSpendReportItem[]) {
+  const categoryMap = new Map<
+    string,
+    {
+      category: string;
+      supplierCount: number;
+      invoiceValue: number;
+      paidAmount: number;
+      outstandingAmount: number;
+      currency: string;
+    }
+  >();
+
+  for (const row of rows) {
+    const category = row.supplier_category || "Uncategorised";
+    const existing = categoryMap.get(category) ?? {
+      category,
+      supplierCount: 0,
+      invoiceValue: 0,
+      paidAmount: 0,
+      outstandingAmount: 0,
+      currency: row.base_currency || "KES",
+    };
+
+    existing.supplierCount += 1;
+    existing.invoiceValue += toNumber(
+      row.base_total_invoice_amount ?? row.total_invoice_amount,
+    );
+    existing.paidAmount += toNumber(
+      row.base_total_paid_amount ?? row.total_paid_amount,
+    );
+    existing.outstandingAmount += toNumber(
+      row.base_outstanding_amount ?? row.outstanding_amount,
+    );
+
+    categoryMap.set(category, existing);
+  }
+
+  return Array.from(categoryMap.values()).sort(
+    (first, second) => second.invoiceValue - first.invoiceValue,
+  );
+}
+
 export default function ReportsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { alert, showAlert, clearAlert } = useFloatingAlert();
@@ -161,6 +213,10 @@ export default function ReportsPage() {
   const currentReport = reportRegistry[activeReport];
   const isReportEnabled = Boolean(currentReport?.isEnabled);
   const hasRows = data.length > 0;
+  const supplierCategoryTotals =
+    activeReport === "supplier-spend"
+      ? buildSupplierCategoryTotals(data as SupplierSpendReportItem[])
+      : [];
 
   useEffect(() => {
     const params = buildReportSearchParams(activeReport, filters);
@@ -420,6 +476,86 @@ export default function ReportsPage() {
               cards={currentReport.summaryCards}
             />
           )}
+
+          {!recordsError &&
+            hasRows &&
+            activeReport === "supplier-spend" &&
+            supplierCategoryTotals.length > 0 && (
+              <Card>
+                <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-primary-black">
+                      Spend by Supplier Category
+                    </h2>
+                    <p className="mt-1 text-sm text-primary-gray">
+                      Category totals use the same base-currency values shown
+                      in the supplier spend rows.
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-primary-blue">
+                    {supplierCategoryTotals.length} categories
+                  </span>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                  {supplierCategoryTotals.map((category) => (
+                    <div
+                      key={category.category}
+                      className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-primary-black">
+                            {category.category}
+                          </p>
+                          <p className="mt-1 text-xs text-primary-gray">
+                            {category.supplierCount} supplier
+                            {category.supplierCount === 1 ? "" : "s"}
+                          </p>
+                        </div>
+                        <span className="rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-primary-blue">
+                          {category.currency}
+                        </span>
+                      </div>
+
+                      <div className="mt-4 grid gap-3 text-sm">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-primary-gray">
+                            Invoice value
+                          </span>
+                          <span className="font-semibold text-primary-black">
+                            {formatCurrency(
+                              category.invoiceValue,
+                              category.currency,
+                            )}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-primary-gray">Paid</span>
+                          <span className="font-semibold text-green-700">
+                            {formatCurrency(
+                              category.paidAmount,
+                              category.currency,
+                            )}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-primary-gray">
+                            Outstanding
+                          </span>
+                          <span className="font-semibold text-primary-blue">
+                            {formatCurrency(
+                              category.outstandingAmount,
+                              category.currency,
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
 
           {!recordsLoading && recordsError && (
             <ErrorState message={recordsError} />

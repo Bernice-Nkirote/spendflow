@@ -574,6 +574,8 @@ class ReportRepository:
             self.db.query(
                 Supplier.id.label("supplier_id"),
                 Supplier.name.label("supplier_name"),
+                Supplier.category.label("supplier_category"),
+                Supplier.sub_category.label("supplier_sub_category"),
 
                 total_invoice_amount.label("total_invoice_amount"),
                 total_paid_amount.label("total_paid_amount"),

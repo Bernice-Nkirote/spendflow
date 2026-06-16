@@ -62,7 +62,6 @@ export default function ReportSummaryCards<T>({
 
         return primaryNumber;
       })
-      .filter((value) => value > 0);
 
     if (card.type === "average") {
       if (values.length === 0) return 0;

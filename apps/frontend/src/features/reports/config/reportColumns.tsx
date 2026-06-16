@@ -500,6 +500,16 @@ export const supplierSpendColumns: ReportTableColumn<SupplierSpendReportItem>[] 
       ),
     },
     {
+      header: "Category",
+      accessor: "supplier_category",
+      sortable: true,
+      render: (value) => (
+        <span className="inline-flex max-w-[160px] items-center rounded-full bg-blue-50 px-2 py-1 text-xs font-semibold text-primary-blue">
+          <TruncatedText value={value || "Uncategorised"} maxWidth="max-w-[130px]" />
+        </span>
+      ),
+    },
+    {
       header: "Invoice Total(KES)",
       accessor: "base_total_invoice_amount",
       align: "right",

@@ -172,6 +172,8 @@ export type PaymentReportItem = {
 export type SupplierSpendReportItem = {
   supplier_id: string;
   supplier_name: string;
+  supplier_category: string | null;
+  supplier_sub_category: string | null;
 
   total_invoice_amount: string;
   total_paid_amount: string;

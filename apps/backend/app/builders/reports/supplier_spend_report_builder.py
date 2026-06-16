@@ -7,6 +7,8 @@ class SupplierSpendReportBuilder:
             SupplierSpendReportRow(
                 supplier_id=row.supplier_id,
                 supplier_name=row.supplier_name,
+                supplier_category=row.supplier_category,
+                supplier_sub_category=row.supplier_sub_category,
 
                 total_invoice_amount=row.total_invoice_amount,
                 total_paid_amount=row.total_paid_amount,
@@ -26,6 +28,8 @@ class SupplierSpendReportBuilder:
     def headers(self) -> list[str]:
         return [
             "Supplier",
+            "Category",
+            "Sub-category",
 
             "Total Invoice Amount",
             "Total Paid Amount",
@@ -47,6 +51,8 @@ class SupplierSpendReportBuilder:
         return [
             [
                 row.supplier_name or "N/A",
+                row.supplier_category or "Uncategorised",
+                row.supplier_sub_category or "N/A",
 
                 row.total_invoice_amount,
                 row.total_paid_amount,

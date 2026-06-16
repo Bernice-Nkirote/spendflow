@@ -199,7 +199,13 @@ export default function SupplierPicker({
               </div>
             </div>
 
-            <Button type="button" variant="ghost" size="sm" onClick={() => onChange("")}>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => onChange("")}
+              className="border-primary-blue/30 text-primary-blue hover:bg-white"
+            >
               Clear
             </Button>
           </div>

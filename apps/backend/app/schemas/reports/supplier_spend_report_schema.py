@@ -54,6 +54,8 @@ class SupplierSpendReportFilter(BaseModel):
 class SupplierSpendReportRow(BaseModel):
     supplier_id: UUID
     supplier_name: str
+    supplier_category: str | None = None
+    supplier_sub_category: str | None = None
 
     total_invoice_amount: Decimal
     total_paid_amount: Decimal
