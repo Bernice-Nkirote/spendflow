@@ -39,6 +39,35 @@ class AssistantService:
     }
 
     GUIDE_TOPICS = {
+        "getting started": {
+            "keywords": (
+                "where to start",
+                "where do i start",
+                "how do i start",
+                "start from",
+                "getting started",
+                "new user",
+                "first time",
+                "setup order",
+                "what do i do first",
+            ),
+            "answer": "Start with the User Guide, then set up the workspace in order. That keeps roles, permissions, approvals, suppliers, and reports from feeling tangled later.",
+            "steps": [
+                "Open the User Guide and read Getting Started first.",
+                "Confirm the company business type.",
+                "Create departments for teams, branches, or cost centres.",
+                "Review default roles: Procurement can create PRs and POs; Finance can create invoices and payments.",
+                "Check permissions and adjust only where your workflow needs it.",
+                "Configure approval workflows, then add suppliers and exchange rates.",
+            ],
+            "actions": [
+                ("User Guide", "/user-guide"),
+                ("Departments", "/departments"),
+                ("Roles", "/roles"),
+                ("Approval Workflows", "/approval-workflows"),
+            ],
+            "guardrail": "Use the User Guide for the full setup path before creating live procurement records.",
+        },
         "purchase requisitions": {
             "keywords": ("purchase requisition", "requisition", "create pr", "draft pr", " pr "),
             "answer": "No worries, PRs are the clean starting point. Create the request, add the items, review the totals, then submit when it looks right.",
@@ -111,24 +140,26 @@ class AssistantService:
         },
         "roles": {
             "keywords": ("role", "roles", "create role", "add role", "assign role", "user role"),
-            "answer": "Roles are the job hats people wear in Tendaflow. Permissions decide what each hat can actually do.",
+            "answer": "Roles are the job hats people wear in Tendaflow. Some useful roles are already prepared so teams can start faster, then admins can adjust permissions if needed.",
             "steps": [
-                "Open Roles and create roles for each responsibility.",
-                "Open Permissions and assign only the access each role needs.",
-                "Assign users to the right role.",
-                "Test with a real user before relying on the workflow.",
+                "Open Roles to review the available roles.",
+                "Procurement-style roles are intended to create procurement work such as PRs and POs.",
+                "Finance-style roles are intended to create finance work such as invoices and payments.",
+                "Open Permissions if you need to fine-tune what each role can view, create, approve, export, or administer.",
+                "Assign users to the right role, then test with a real user before relying on the workflow.",
             ],
             "actions": [
                 ("Open Roles", "/roles"),
                 ("Open Permissions", "/permissions"),
             ],
-            "guardrail": "Be careful with approve, payment, export, and admin permissions.",
+            "guardrail": "Creation permissions are helpful defaults, but approve, payment, export, and admin permissions should still be reviewed carefully.",
         },
         "permissions": {
             "keywords": ("permission", "permissions", "assign permission", "access control"),
             "answer": "Permissions are the system's guardrails. They decide who can view, create, update, approve, export, or administer.",
             "steps": [
                 "Open Permissions.",
+                "Check the default role setup first: Procurement can create PRs and POs; Finance can create invoices and payments.",
                 "Assign permissions to roles based on job responsibility.",
                 "Keep requester, approver, finance, and admin access separate where possible.",
                 "Test the role with a user account.",
