@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 import Card from "../../../components/ui/Card";
 import PageContainer from "../../../components/ui/PageContainer";
@@ -322,6 +323,14 @@ export default function UserGuidePage() {
       <PageHeader
         title="User Guide"
         description="A practical guide to setting up and using Tendaflow safely."
+        actions={
+          <Link
+            to="/assistant"
+            className="inline-flex items-center justify-center rounded-xl bg-primary-blue px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-blue/90"
+          >
+            Ask AI Assistant
+          </Link>
+        }
       />
 
       <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
