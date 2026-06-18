@@ -67,7 +67,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       <aside
         className={`
-          fixed bottom-0 left-0 top-0 z-50 flex h-dvh w-64 shrink-0 transform flex-col overflow-hidden
+          fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 transform flex-col overflow-hidden
            bg-[#274C77] text-white transition-transform duration-200
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
           lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 lg:shadow-[4px_0_12px_rgba(0,0,0,0.05)]
