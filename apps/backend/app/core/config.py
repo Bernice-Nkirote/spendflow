@@ -1,4 +1,8 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings
+
+BACKEND_DIR = Path(__file__).resolve().parents[2]
 
 # Base will read your.env file , convert values to correct values and make them accessible via settings variable
 class Settings(BaseSettings):
@@ -29,6 +33,6 @@ class Settings(BaseSettings):
     EXCHANGE_RATE_API_KEY: str | None = None
 
     class Config:
-        env_file = ".env"
+        env_file = str(BACKEND_DIR / ".env")
 
 settings = Settings()
