@@ -603,16 +603,6 @@ function ExchangeRatesPage() {
 
                 </div>
 
-                <div className="max-w-sm">
-                  <Input
-                    label="Source"
-                    value={source}
-                    onChange={(event) => setSource(event.target.value)}
-                    placeholder="MANUAL"
-                    className="uppercase"
-                  />
-                </div>
-
                 <div className="flex flex-wrap justify-end gap-2 border-t border-gray-100 pt-4">
                   {editingRate && (
                     <Button
