@@ -1,13 +1,22 @@
 from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
+import json
+from urllib.error import HTTPError, URLError
+from urllib.request import urlopen
 from uuid import UUID
 
 from fastapi import HTTPException, status
 
+from app.core.config import settings
 from app.models.exchange_rate import ExchangeRate
 from app.repositories.company_repository import CompanyRepository
 from app.repositories.exchange_rate_repository import ExchangeRateRepository
-from app.schemas.exchange_rate_schema import ExchangeRateCreate, ExchangeRateUpdate
+from app.schemas.exchange_rate_schema import (
+    ExchangeRateCreate,
+    ExchangeRateSyncRequest,
+    ExchangeRateSyncResponse,
+    ExchangeRateUpdate,
+)
 
 
 class ExchangeRateService:
@@ -361,3 +370,166 @@ class ExchangeRateService:
 
         self.repo.delete(exchange_rate)
         self.repo.db.commit()
+
+    def sync_today_exchange_rates(
+        self,
+        data: ExchangeRateSyncRequest,
+        company_id: UUID,
+        actor_role_id: UUID,
+        created_by: UUID | None,
+    ) -> ExchangeRateSyncResponse:
+        self._require_permission(
+            role_id=actor_role_id,
+            company_id=company_id,
+            permission_name="exchange_rates.create",
+            error_message="You do not have permission to sync exchange rates.",
+        )
+
+        if self.company_repo is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Company repository is required for exchange rate sync.",
+            )
+
+        company = self.company_repo.get_by_id(company_id)
+        if not company:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Company not found.",
+            )
+
+        provider = settings.EXCHANGE_RATE_PROVIDER.strip().upper()
+        base_currency = self._normalize_currency(company.currency)
+        effective_date = data.effective_date or date.today()
+        from_currencies = data.from_currencies
+
+        if not from_currencies:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Choose at least one currency to sync.",
+            )
+
+        provider_rates = self._fetch_provider_rates(base_currency=base_currency)
+
+        created_count = 0
+        updated_count = 0
+        skipped_currencies: list[str] = []
+        failed_currencies: list[str] = []
+        synced_rates: list[ExchangeRate] = []
+
+        for from_currency in from_currencies:
+            normalized_from_currency = self._normalize_currency(from_currency)
+
+            if normalized_from_currency == base_currency:
+                skipped_currencies.append(normalized_from_currency)
+                continue
+
+            provider_rate = provider_rates.get(normalized_from_currency)
+            if provider_rate is None or provider_rate <= 0:
+                failed_currencies.append(normalized_from_currency)
+                continue
+
+            # Provider returns base -> currency. Tendaflow stores currency -> base.
+            rate_to_base = (Decimal("1") / provider_rate).quantize(
+                Decimal("0.000001"),
+                rounding=ROUND_HALF_UP,
+            )
+
+            existing_rate = self.repo.get_by_currency_pair_and_date(
+                company_id=company_id,
+                from_currency=normalized_from_currency,
+                to_currency=base_currency,
+                effective_date=effective_date,
+            )
+
+            if existing_rate and not data.overwrite_existing:
+                skipped_currencies.append(normalized_from_currency)
+                continue
+
+            if existing_rate:
+                existing_rate.rate = rate_to_base
+                existing_rate.source = provider
+                synced_rate = self.repo.update(existing_rate)
+                updated_count += 1
+            else:
+                exchange_rate = ExchangeRate(
+                    company_id=company_id,
+                    from_currency=normalized_from_currency,
+                    to_currency=base_currency,
+                    rate=rate_to_base,
+                    source=provider,
+                    effective_date=effective_date,
+                    created_by=created_by,
+                )
+                synced_rate = self.repo.create(exchange_rate)
+                created_count += 1
+
+            synced_rates.append(synced_rate)
+
+        self.repo.db.commit()
+        for synced_rate in synced_rates:
+            self.repo.db.refresh(synced_rate)
+
+        return ExchangeRateSyncResponse(
+            provider=provider,
+            base_currency=base_currency,
+            effective_date=effective_date,
+            created_count=created_count,
+            updated_count=updated_count,
+            skipped_count=len(skipped_currencies),
+            failed_count=len(failed_currencies),
+            synced_rates=synced_rates,
+            skipped_currencies=skipped_currencies,
+            failed_currencies=failed_currencies,
+        )
+
+    def _fetch_provider_rates(self, base_currency: str) -> dict[str, Decimal]:
+        provider = settings.EXCHANGE_RATE_PROVIDER.strip().upper()
+
+        if provider != "EXCHANGERATE_API":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Unsupported exchange rate provider.",
+            )
+
+        if not settings.EXCHANGE_RATE_API_KEY:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Exchange rate API key is not configured.",
+            )
+
+        url = (
+            "https://v6.exchangerate-api.com/v6/"
+            f"{settings.EXCHANGE_RATE_API_KEY}/latest/{base_currency}"
+        )
+
+        try:
+            with urlopen(url, timeout=20) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+        except (HTTPError, URLError, TimeoutError, json.JSONDecodeError):
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Could not fetch exchange rates from the provider.",
+            )
+
+        if payload.get("result") != "success":
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Exchange rate provider did not return rates.",
+            )
+
+        conversion_rates = payload.get("conversion_rates")
+        if not isinstance(conversion_rates, dict):
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Exchange rate provider response was invalid.",
+            )
+
+        rates: dict[str, Decimal] = {}
+        for currency, raw_rate in conversion_rates.items():
+            try:
+                rates[self._normalize_currency(currency)] = Decimal(str(raw_rate))
+            except Exception:
+                continue
+
+        return rates

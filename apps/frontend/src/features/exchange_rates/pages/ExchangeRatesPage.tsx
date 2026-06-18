@@ -29,6 +29,7 @@ import {
   createExchangeRate,
   deleteExchangeRate,
   getPaginatedExchangeRates,
+  syncTodayExchangeRates,
   updateExchangeRate,
 } from "../api/exchangeRateApi";
 import type { ExchangeRate } from "../types/exchangeRate.types";
@@ -95,12 +96,16 @@ function ExchangeRatesPage() {
   const [source, setSource] = useState("MANUAL");
   const [effectiveDate, setEffectiveDate] = useState("");
   const [editingRate, setEditingRate] = useState<ExchangeRate | null>(null);
+  const [syncCurrencies, setSyncCurrencies] = useState("USD, EUR, GBP");
+  const [syncDate, setSyncDate] = useState("");
+  const [overwriteExisting, setOverwriteExisting] = useState(false);
 
   const [initialLoading, setInitialLoading] = useState(true);
   const [recordsLoading, setRecordsLoading] = useState(true);
   const [recordsError, setRecordsError] = useState("");
 
   const [isSaving, setIsSaving] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [actionRateId, setActionRateId] = useState<string | null>(null);
 
   const [rateToDelete, setRateToDelete] = useState<ExchangeRate | null>(null);
@@ -162,6 +167,50 @@ function ExchangeRatesPage() {
   async function resetToFirstPageAndReloadRates() {
     updatePaginationSearchParams(1, pageSize);
     await loadExchangeRates(0, pageSize);
+  }
+
+  async function handleSyncToday() {
+    if (!canCreateExchangeRates) {
+      showAlert(
+        "error",
+        "You do not have permission to sync exchange rates.",
+      );
+      return;
+    }
+
+    const fromCurrencies = syncCurrencies
+      .split(/[,\s]+/)
+      .map((currency) => currency.trim().toUpperCase())
+      .filter(Boolean);
+
+    if (fromCurrencies.length === 0) {
+      showAlert("error", "Enter at least one currency to sync.");
+      return;
+    }
+
+    try {
+      setIsSyncing(true);
+
+      const response = await syncTodayExchangeRates({
+        from_currencies: fromCurrencies,
+        effective_date: syncDate || undefined,
+        overwrite_existing: overwriteExisting,
+      });
+
+      showAlert(
+        "success",
+        `Sync complete: ${response.created_count} created, ${response.updated_count} updated, ${response.skipped_count} skipped, ${response.failed_count} failed.`,
+      );
+
+      await resetToFirstPageAndReloadRates();
+    } catch (error) {
+      showAlert(
+        "error",
+        getApiErrorMessage(error, "Failed to sync exchange rates."),
+      );
+    } finally {
+      setIsSyncing(false);
+    }
   }
 
   useEffect(() => {
@@ -365,16 +414,78 @@ function ExchangeRatesPage() {
       {!initialLoading && (
         <>
           {canManageExchangeRates && (
-            <Card>
+            <div className="grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+              <Card>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary-blue">
+                      Automatic
+                    </p>
+                    <h2 className="mt-1 text-lg font-semibold text-primary-black">
+                      Sync market rates
+                    </h2>
+
+                    <p className="mt-1 text-sm leading-6 text-gray-600">
+                      Pull daily rates from the configured provider into your
+                      company base currency. Manual rates remain available for
+                      accountant-approved overrides.
+                    </p>
+                  </div>
+
+                  <Input
+                    label="Currencies to sync"
+                    value={syncCurrencies}
+                    onChange={(event) => setSyncCurrencies(event.target.value)}
+                    placeholder="USD, EUR, GBP"
+                  />
+
+                  <Input
+                    label="Effective date"
+                    value={syncDate}
+                    onChange={(event) => setSyncDate(event.target.value)}
+                    type="date"
+                  />
+
+                  <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 px-3 py-3 text-sm text-primary-gray">
+                    <input
+                      type="checkbox"
+                      checked={overwriteExisting}
+                      onChange={(event) =>
+                        setOverwriteExisting(event.target.checked)
+                      }
+                      className="mt-1 h-4 w-4 rounded border-gray-300 text-primary-blue focus:ring-primary-blue"
+                    />
+                    <span>
+                      Overwrite existing rates for the same currency and date.
+                      Leave this off when manual finance-approved rates should
+                      stay untouched.
+                    </span>
+                  </label>
+
+                  <Button
+                    type="button"
+                    onClick={handleSyncToday}
+                    disabled={isSyncing}
+                    className="w-full sm:w-auto"
+                  >
+                    {isSyncing ? "Syncing..." : "Sync Rates"}
+                  </Button>
+                </div>
+              </Card>
+
+              <Card>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary-blue">
+                    Manual
+                  </p>
                   <h2 className="text-lg font-semibold text-primary-black">
                     {editingRate ? "Edit exchange rate" : "Add exchange rate"}
                   </h2>
 
                   <p className="mt-1 text-sm text-gray-600">
-                    Configure rates used to convert transaction currencies into
-                    the company base currency for approvals and reporting.
+                    Add a manual rate when finance needs a specific approved
+                    value or when the automatic provider is unavailable.
                   </p>
                 </div>
 
@@ -474,7 +585,8 @@ function ExchangeRatesPage() {
                   />
                 </div>
               </form>
-            </Card>
+              </Card>
+            </div>
           )}
           <Card>
             <div className="mb-4">

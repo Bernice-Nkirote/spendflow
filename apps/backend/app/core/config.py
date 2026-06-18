@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str | None = None
     OPENAI_MODEL: str = "gpt-5.5"
 
+    EXCHANGE_RATE_PROVIDER: str = "EXCHANGERATE_API"
+    EXCHANGE_RATE_API_KEY: str | None = None
+
     class Config:
         env_file = ".env"
 

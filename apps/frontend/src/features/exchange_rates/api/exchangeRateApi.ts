@@ -2,6 +2,8 @@ import axiosInstance from "../../../api/axiosInstance";
 import type {
   ExchangeRate,
   ExchangeRateCreatePayload,
+  ExchangeRateSyncPayload,
+  ExchangeRateSyncResponse,
   ExchangeRateUpdatePayload,
   PaginatedExchangeRatesResponse,
 } from "../types/exchangeRate.types";
@@ -65,4 +67,15 @@ export async function deleteExchangeRate(
   exchangeRateId: string,
 ): Promise<void> {
   await axiosInstance.delete(`/exchange-rates/${exchangeRateId}`);
+}
+
+export async function syncTodayExchangeRates(
+  payload: ExchangeRateSyncPayload,
+): Promise<ExchangeRateSyncResponse> {
+  const response = await axiosInstance.post<ExchangeRateSyncResponse>(
+    "/exchange-rates/sync-today",
+    payload,
+  );
+
+  return response.data;
 }

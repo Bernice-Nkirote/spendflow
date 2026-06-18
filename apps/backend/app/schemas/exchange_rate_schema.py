@@ -48,6 +48,28 @@ class ExchangeRateUpdate(BaseModel):
         return value or "MANUAL"
 
 
+class ExchangeRateSyncRequest(BaseModel):
+    from_currencies: List[str] = Field(default_factory=list, max_length=30)
+    effective_date: date | None = None
+    overwrite_existing: bool = False
+
+    @field_validator("from_currencies")
+    @classmethod
+    def normalize_from_currencies(cls, values: List[str]) -> List[str]:
+        normalized_values: list[str] = []
+
+        for value in values:
+            normalized = value.strip().upper()
+            if not normalized:
+                continue
+            if len(normalized) != 3:
+                raise ValueError("Currency codes must be 3-letter ISO codes")
+            if normalized not in normalized_values:
+                normalized_values.append(normalized)
+
+        return normalized_values
+
+
 class ExchangeRateRead(BaseModel):
     id: UUID
     company_id: UUID
@@ -60,6 +82,20 @@ class ExchangeRateRead(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ExchangeRateSyncResponse(BaseModel):
+    provider: str
+    base_currency: str
+    effective_date: date
+    created_count: int
+    updated_count: int
+    skipped_count: int
+    failed_count: int
+    synced_rates: List[ExchangeRateRead]
+    skipped_currencies: List[str]
+    failed_currencies: List[str]
+
 
 class PaginatedExchangeRateResponse(BaseModel):
     rows: List[ExchangeRateRead]
