@@ -328,7 +328,7 @@ export default function UserGuidePage() {
             to="/assistant"
             className="inline-flex items-center justify-center rounded-xl bg-primary-blue px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-blue/90"
           >
-            Ask AI Assistant
+            Ask Tenda
           </Link>
         }
       />

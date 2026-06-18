@@ -40,7 +40,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
     {
       section: "Help",
       items: [
-        { label: "AI Assistant", path: "/assistant" },
+        { label: "Tenda Assistant", path: "/assistant" },
         { label: "User Guide", path: "/user-guide" },
       ],
     },

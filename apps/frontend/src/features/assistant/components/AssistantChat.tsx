@@ -217,7 +217,7 @@ export default function AssistantChat() {
       id: "welcome",
       role: "assistant",
       content:
-        "Hi, I am your Tendaflow assistant. Tell me what you are trying to do and I will give you the exact screen, next safe step, and shortcut where possible.",
+        "Hi, I am Tenda. Tell me what you are trying to do and I will give you the exact screen, next safe step, and shortcut where possible.",
     },
   ]);
   const [error, setError] = useState<string | null>(null);
@@ -292,7 +292,7 @@ export default function AssistantChat() {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
-              Tendaflow Assistant
+              Tenda Assistant
             </p>
             <h2 className="mt-1 text-xl font-semibold">Procurement chat</h2>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-white/75">

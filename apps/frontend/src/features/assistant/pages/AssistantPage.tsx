@@ -10,8 +10,8 @@ export default function AssistantPage() {
   return (
     <PageContainer>
       <PageHeader
-        title="AI Assistant"
-        description="Ask for calm, specific guidance while you work through Tendaflow."
+        title="Tenda Assistant"
+        description="Not sure what to do next? Ask Tenda for a clear step-by-step path."
         actions={
           <>
             <Link
@@ -30,6 +30,14 @@ export default function AssistantPage() {
           </>
         }
       />
+
+      <div className="rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm leading-6 text-primary-gray">
+        <span className="font-semibold text-primary-blue">
+          AI-powered guidance:
+        </span>{" "}
+        Tenda can explain where to go, what to check, and what action to take
+        next. You stay in control of every submission, approval, and payment.
+      </div>
 
       <AssistantChat />
     </PageContainer>
