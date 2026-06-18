@@ -23,8 +23,6 @@ import {
 import { useFloatingAlert } from "../../../components/ui/useFloatingAlert";
 import { getStoredUser, userHasPermission } from "../../../utils/permissions";
 
-import { currencyOptions } from "../../../utils/currencyOptions";
-
 import {
   createExchangeRate,
   deleteExchangeRate,
@@ -33,6 +31,8 @@ import {
   updateExchangeRate,
 } from "../api/exchangeRateApi";
 import type { ExchangeRate } from "../types/exchangeRate.types";
+
+type RateEntryMode = "manual" | "sync";
 
 function getPositiveNumberFromSearchParam(
   value: string | null,
@@ -99,6 +99,7 @@ function ExchangeRatesPage() {
   const [syncCurrencies, setSyncCurrencies] = useState("USD, EUR, GBP");
   const [syncDate, setSyncDate] = useState("");
   const [overwriteExisting, setOverwriteExisting] = useState(false);
+  const [rateEntryMode, setRateEntryMode] = useState<RateEntryMode>("manual");
 
   const [initialLoading, setInitialLoading] = useState(true);
   const [recordsLoading, setRecordsLoading] = useState(true);
@@ -227,6 +228,7 @@ function ExchangeRatesPage() {
   }
 
   function startEdit(exchangeRate: ExchangeRate) {
+    setRateEntryMode("manual");
     setEditingRate(exchangeRate);
     setFromCurrency(exchangeRate.from_currency);
     setToCurrency(exchangeRate.to_currency);
@@ -414,12 +416,51 @@ function ExchangeRatesPage() {
       {!initialLoading && (
         <>
           {canManageExchangeRates && (
-            <div className="grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-              <Card>
+            <Card>
+              <div className="mb-5 space-y-3">
+                <div>
+                  <h2 className="text-lg font-semibold text-primary-black">
+                    Rate entry
+                  </h2>
+                  <p className="mt-1 text-sm leading-6 text-gray-600">
+                    Use Manual Rate for finance-approved values, or Sync Rates
+                    to pull market rates from the configured provider.
+                  </p>
+                </div>
+
+                <div className="inline-flex rounded-xl border border-gray-200 bg-gray-50 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setRateEntryMode("manual")}
+                    className={[
+                      "rounded-lg px-4 py-2 text-sm font-semibold transition",
+                      rateEntryMode === "manual"
+                        ? "bg-white text-primary-blue shadow-sm"
+                        : "text-primary-gray hover:text-primary-black",
+                    ].join(" ")}
+                  >
+                    Manual Rate
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRateEntryMode("sync")}
+                    className={[
+                      "rounded-lg px-4 py-2 text-sm font-semibold transition",
+                      rateEntryMode === "sync"
+                        ? "bg-white text-primary-blue shadow-sm"
+                        : "text-primary-gray hover:text-primary-black",
+                    ].join(" ")}
+                  >
+                    Sync Rates
+                  </button>
+                </div>
+              </div>
+
+              {rateEntryMode === "sync" ? (
                 <div className="space-y-4">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary-blue">
-                      Automatic
+                      Sync Rates
                     </p>
                     <h2 className="mt-1 text-lg font-semibold text-primary-black">
                       Sync market rates
@@ -471,13 +512,11 @@ function ExchangeRatesPage() {
                     {isSyncing ? "Syncing..." : "Sync Rates"}
                   </Button>
                 </div>
-              </Card>
-
-              <Card>
-              <form onSubmit={handleSubmit} className="space-y-5">
+              ) : (
+                <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary-blue">
-                    Manual
+                    Manual Rate
                   </p>
                   <h2 className="text-lg font-semibold text-primary-black">
                     {editingRate ? "Edit exchange rate" : "Add exchange rate"}
@@ -490,47 +529,29 @@ function ExchangeRatesPage() {
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-1">
-                    <label className="block text-sm font-medium text-primary-black">
-                      From currency
-                    </label>
+                  <Input
+                    label="From currency"
+                    value={fromCurrency}
+                    onChange={(event) =>
+                      setFromCurrency(event.target.value.toUpperCase())
+                    }
+                    placeholder="USD"
+                    maxLength={3}
+                    disabled={Boolean(editingRate)}
+                    className="uppercase"
+                  />
 
-                    <select
-                      value={fromCurrency}
-                      onChange={(event) => setFromCurrency(event.target.value)}
-                      disabled={Boolean(editingRate)}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20 disabled:cursor-not-allowed disabled:bg-gray-100"
-                    >
-                      <option value="">Select currency</option>
-
-                      {currencyOptions.map((option) => (
-                        <option key={option.code} value={option.code}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="block text-sm font-medium text-primary-black">
-                      To currency
-                    </label>
-
-                    <select
-                      value={toCurrency}
-                      onChange={(event) => setToCurrency(event.target.value)}
-                      disabled={Boolean(editingRate)}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20 disabled:cursor-not-allowed disabled:bg-gray-100"
-                    >
-                      <option value="">Select currency</option>
-
-                      {currencyOptions.map((option) => (
-                        <option key={option.code} value={option.code}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <Input
+                    label="To currency"
+                    value={toCurrency}
+                    onChange={(event) =>
+                      setToCurrency(event.target.value.toUpperCase())
+                    }
+                    placeholder="KES"
+                    maxLength={3}
+                    disabled={Boolean(editingRate)}
+                    className="uppercase"
+                  />
 
                   <Input
                     label="Rate"
@@ -586,8 +607,8 @@ function ExchangeRatesPage() {
                   </Button>
                 </div>
               </form>
-              </Card>
-            </div>
+              )}
+            </Card>
           )}
           <Card>
             <div className="mb-4">

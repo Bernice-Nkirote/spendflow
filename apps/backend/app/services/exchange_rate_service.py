@@ -495,7 +495,11 @@ class ExchangeRateService:
         if not settings.EXCHANGE_RATE_API_KEY:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Exchange rate API key is not configured.",
+                detail=(
+                    "Exchange rate API key is not configured. Add "
+                    "EXCHANGE_RATE_API_KEY to apps/backend/.env and restart "
+                    "the backend server."
+                ),
             )
 
         url = (
