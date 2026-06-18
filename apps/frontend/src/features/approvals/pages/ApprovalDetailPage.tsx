@@ -230,7 +230,7 @@ function ApprovalDetailPage() {
                 Approval Information
               </h2>
               <p className="mt-1 text-sm text-gray-600">
-                Business-readable approval details for this procurement request.
+                Review the request details before you approve or reject.
               </p>
             </div>
 
