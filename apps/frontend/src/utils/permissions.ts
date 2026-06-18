@@ -6,6 +6,7 @@ export type AppUser = {
   role_id?: string | null;
   role_name?: string | null;
   company_name?: string | null;
+  business_type?: string | null;
   is_company_owner?: boolean;
   permissions?: string[];
 };

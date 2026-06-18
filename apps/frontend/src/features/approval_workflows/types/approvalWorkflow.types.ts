@@ -118,23 +118,23 @@ export const partnerApprovalModeOptions: {
   description: string;
 }[] = [
   {
-    label: "Use workflow levels",
+    label: "Use the normal workflow",
     value: "workflow_levels",
-    description: "Keep the normal configured approval levels.",
+    description: "Use the approval levels below exactly as configured.",
   },
   {
-    label: "Any partner",
+    label: "One partner can approve",
     value: "any_partner",
-    description: "One partner approval is enough.",
+    description: "A single user in the partner role can approve this step.",
   },
   {
-    label: "All partners",
+    label: "Every partner must approve",
     value: "all_partners",
-    description: "Every user in the selected partner role should approve.",
+    description: "Every active user in the partner role should approve.",
   },
   {
-    label: "Minimum partners",
+    label: "Require a set number of partners",
     value: "minimum_partners",
-    description: "Require a configurable minimum number of partner approvals.",
+    description: "Choose how many partner approvals are needed.",
   },
 ];

@@ -10,6 +10,7 @@ class AuthMeResponse(BaseModel):
     role_id: UUID | None = None
     role_name: str | None = None
     company_name: str | None = None
+    business_type: str | None = None
     is_company_owner: bool = False
     permissions: list[str] = []
 

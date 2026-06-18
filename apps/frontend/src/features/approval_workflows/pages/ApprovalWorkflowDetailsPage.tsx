@@ -63,6 +63,8 @@ function ApprovalWorkflowDetailsPage() {
   const canAccessAdminPage =
     currentUser?.role_name === "Admin" ||
     currentUser?.is_company_owner === true;
+  const isPartnershipWorkspace =
+    currentUser?.business_type === "partnership";
 
   const [workflow, setWorkflow] = useState<ApprovalWorkflow | null>(null);
   const [editingLevel, setEditingLevel] = useState<WorkflowLevel | null>(null);
@@ -447,96 +449,112 @@ function ApprovalWorkflowDetailsPage() {
         </div>
       </Card>
 
-      <Card>
-        <form onSubmit={handleSavePartnershipConfig} className="space-y-4">
-          <div>
-            <h2 className="text-lg font-semibold text-primary-black">
-              Partnership Approval Options
-            </h2>
-            <p className="mt-1 text-sm text-gray-600">
-              Optional configuration for partnerships. Keeping Use workflow
-              levels preserves the existing approval behavior.
-            </p>
-          </div>
+      {isPartnershipWorkspace && (
+        <Card>
+          <form onSubmit={handleSavePartnershipConfig} className="space-y-5">
+            <div className="rounded-lg border border-blue-100 bg-blue-50/70 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary-blue">
+                Partnership workspace
+              </p>
+              <h2 className="mt-1 text-lg font-semibold text-primary-black">
+                Partner Approval Rules
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-gray-700">
+                Use this only when partners should approve together. If you
+                leave it as <strong>Use the normal workflow</strong>, Tendaflow
+                follows the approval levels below just like a company account.
+              </p>
+            </div>
 
-          <div className="grid gap-4 lg:grid-cols-3">
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-primary-black">
-                Partner approval mode
-              </label>
-              <select
-                value={partnerApprovalMode}
+            <div className="grid gap-4 lg:grid-cols-3">
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-primary-black">
+                  How should partners approve?
+                </label>
+                <select
+                  value={partnerApprovalMode}
+                  onChange={(event) =>
+                    setPartnerApprovalMode(
+                      event.target.value as PartnerApprovalMode,
+                    )
+                  }
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
+                >
+                  {partnerApprovalModeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs leading-5 text-primary-gray">
+                  {
+                    partnerApprovalModeOptions.find(
+                      (option) => option.value === partnerApprovalMode,
+                    )?.description
+                  }
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-primary-black">
+                  Which role counts as a partner?
+                </label>
+                <select
+                  value={partnerRoleId}
+                  onChange={(event) => setPartnerRoleId(event.target.value)}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
+                >
+                  <option value="">No partner role selected</option>
+                  {activeRoles.map((role) => (
+                    <option key={role.id} value={role.id}>
+                      {role.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs leading-5 text-primary-gray">
+                  Pick the role assigned to your partners. Example: Partner,
+                  Director, or Owner.
+                </p>
+              </div>
+
+              <Input
+                label="How many partners are needed?"
+                type="number"
+                min="1"
+                value={partnerApprovalMinCount}
                 onChange={(event) =>
-                  setPartnerApprovalMode(
-                    event.target.value as PartnerApprovalMode,
-                  )
+                  setPartnerApprovalMinCount(event.target.value)
                 }
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
-              >
-                {partnerApprovalModeOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-primary-gray">
-                {
-                  partnerApprovalModeOptions.find(
-                    (option) => option.value === partnerApprovalMode,
-                  )?.description
+                placeholder={
+                  partnerApprovalMode === "minimum_partners"
+                    ? "e.g. 2"
+                    : "Only needed for set number"
                 }
-              </p>
+                disabled={partnerApprovalMode !== "minimum_partners"}
+              />
             </div>
 
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-primary-black">
-                Partner role
-              </label>
-              <select
-                value={partnerRoleId}
-                onChange={(event) => setPartnerRoleId(event.target.value)}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
-              >
-                <option value="">No partner role selected</option>
-                {activeRoles.map((role) => (
-                  <option key={role.id} value={role.id}>
-                    {role.name}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-primary-gray">
-                Select the role that represents partners for this workflow.
-              </p>
+            <div className="rounded-lg border border-gray-100 bg-gray-50 p-4 text-sm leading-6 text-gray-700">
+              <strong className="text-primary-black">Plain English:</strong>{" "}
+              choose <strong>One partner can approve</strong> for small
+              partnerships, <strong>Every partner must approve</strong> for
+              full agreement, or{" "}
+              <strong>Require a set number of partners</strong> when only some
+              partners need to approve.
             </div>
 
-            <Input
-              label="Minimum partner approvals"
-              type="number"
-              min="1"
-              value={partnerApprovalMinCount}
-              onChange={(event) =>
-                setPartnerApprovalMinCount(event.target.value)
-              }
-              placeholder={
-                partnerApprovalMode === "minimum_partners"
-                  ? "Required"
-                  : "Only for minimum mode"
-              }
-              disabled={partnerApprovalMode !== "minimum_partners"}
-            />
-          </div>
-
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={isSavingPartnershipConfig}
-          >
-            {isSavingPartnershipConfig
-              ? "Saving..."
-              : "Save Partnership Options"}
-          </Button>
-        </form>
-      </Card>
+            <Button
+              type="submit"
+              variant="primary"
+              disabled={isSavingPartnershipConfig}
+            >
+              {isSavingPartnershipConfig
+                ? "Saving..."
+                : "Save Partner Approval Rules"}
+            </Button>
+          </form>
+        </Card>
+      )}
 
       <Card>
         <form onSubmit={handleCreateLevel} className="space-y-4">

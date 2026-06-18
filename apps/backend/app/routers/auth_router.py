@@ -220,6 +220,7 @@ def get_current_user_profile(
         role_id=current_user.role_id,
         role_name=current_user.role.name if current_user.role else None,
         company_name=current_user.company.name if current_user.company else None,
+        business_type=current_user.company.business_type if current_user.company else None,
         is_company_owner=current_user.is_company_owner,
         permissions=permissions,
     )
