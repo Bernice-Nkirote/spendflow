@@ -34,6 +34,7 @@ class AssistantService:
         "/roles": "Roles",
         "/supplier-login": "Supplier Login",
         "/suppliers": "Suppliers",
+        "/users": "Users",
         "/user-guide": "User Guide",
     }
 
@@ -237,16 +238,22 @@ class AssistantService:
             "guardrail": "Audit logs are for traceability, not editing records.",
         },
         "supplier portal": {
-            "keywords": ("supplier portal", "portal", "supplier login"),
-            "answer": "The supplier portal is the supplier-side workspace. Internal users stay in Tendaflow; suppliers use their own login.",
+            "keywords": ("supplier portal", "portal", "supplier login", "portal user", "supplier user", "create supplier portal user"),
+            "answer": "Supplier portal access starts from the supplier profile. Create the supplier first, then add a portal user from that supplier's details page so the setup email goes to the right external contact.",
             "steps": [
-                "Supplier signs in through supplier login.",
-                "Supplier views assigned purchase orders.",
-                "Supplier creates invoices from eligible POs.",
-                "Internal users review invoices in the main workspace.",
+                "Open Suppliers.",
+                "Open the supplier record that needs portal access.",
+                "Go to the Portal Users section.",
+                "Enter the supplier user's email and create the portal user.",
+                "Ask the supplier to use the emailed setup link, then sign in through Supplier Login.",
+                "After login, the supplier can view assigned POs, create eligible invoices, and track invoices or payments.",
             ],
-            "actions": [("Supplier Login", "/supplier-login")],
-            "guardrail": "Supplier users should only access their own records.",
+            "actions": [
+                ("Open Suppliers", "/suppliers"),
+                ("Supplier Login", "/supplier-login"),
+                ("User Guide", "/user-guide"),
+            ],
+            "guardrail": "You need supplier update or admin access to manage supplier portal users.",
         },
         "user guide": {
             "keywords": ("user guide", "guide", "manual", "help page", "documentation", "how to use", "faq", "common tasks"),
@@ -494,7 +501,7 @@ class AssistantService:
             return topic["answer"]
 
         return (
-            "No worries, I can help. Ask me for a specific task like create a PR, approve an invoice, add suppliers, configure workflows, or find supplier suggestions. For deeper reading, the User Guide has the full map."
+            "I can help, but I need one more detail. Tell me the record or task you are working on, for example: create a PR, make a PO from an approved PR, create a supplier portal user, approve an invoice, configure workflows, or suggest suppliers."
         )
 
     def _build_next_steps(
@@ -599,12 +606,15 @@ Voice:
 - Warm, supportive, concise, and lightly quirky.
 - Help the user feel safe when confused.
 - Be practical: tell them exactly where to click and what to review.
+- Be specific. Name the Tendaflow screen, the button or section, the required permission if relevant, and the next safe user action.
+- If the user asks a broad question, ask one short clarifying question after giving the most likely path.
 
 Boundaries:
 - You must not submit PRs, create or submit POs, approve, reject, create payments, complete payments, delete records, or change records.
 - Always tell the user to review and take the final action inside Tendaflow.
 - If approval, payment, permissions, exchange rates, audit logs, supplier portal, reports, departments, roles, suppliers, PRs, POs, or invoices are mentioned, give clear Tendaflow-specific guidance.
-- Keep answers short enough for a chat panel. Send deep learning to /user-guide.
+- Keep answers concise, but never vague. Prefer 3 to 6 concrete steps over generic advice.
+- Send deep learning to /user-guide.
 - Use only the route paths listed below for actions.
 
 Important Tendaflow route shortcuts:

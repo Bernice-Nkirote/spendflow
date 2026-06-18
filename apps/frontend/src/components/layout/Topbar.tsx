@@ -155,8 +155,8 @@ function Topbar({ onMenuClick }: TopbarProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-gray-200 bg-white/90 px-4 py-3 shadow-sm backdrop-blur-md sm:px-6">
-      <div className="flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-30 border-b border-gray-200 bg-white/90 px-3 py-3 shadow-sm backdrop-blur-md sm:px-6">
+      <div className="flex items-center justify-between gap-2 sm:gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <button
             type="button"
@@ -167,17 +167,17 @@ function Topbar({ onMenuClick }: TopbarProps) {
             ☰
           </button>
 
-          <div className="min-w-0">
+          <div className="min-w-0 max-w-[9.5rem] sm:max-w-none">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary-blue">
               Tendaflow
             </p>
 
-            <h2 className="truncate text-base font-semibold text-primary-black sm:text-lg">
+            <h2 className="truncate text-sm font-semibold text-primary-black sm:text-lg">
               Procurement Management
             </h2>
           </div>
         </div>
-        <div className="flex min-w-0 items-center gap-3">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <div className="hidden min-w-0 text-right lg:block">
             <p className="truncate text-sm font-semibold text-primary-black">
               {displayName}
@@ -191,7 +191,7 @@ function Topbar({ onMenuClick }: TopbarProps) {
           <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-blue text-sm font-bold text-white shadow-sm lg:flex">
             {initials}
           </div>
-          <div className="xl:hidden">
+          <div className="hidden sm:block xl:hidden">
             <GlobalSearch placeholder="Search Tendaflow..." variant="overlay" />
           </div>
 
@@ -229,7 +229,7 @@ function Topbar({ onMenuClick }: TopbarProps) {
             </button>
 
             {isNotificationsOpen && (
-              <div className="absolute right-0 top-14 z-50 w-80 rounded-3xl border border-gray-200 bg-white p-5 shadow-xl sm:w-96">
+              <div className="fixed left-3 right-3 top-20 z-50 rounded-3xl border border-gray-200 bg-white p-5 shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-14 sm:w-96">
                 <div className="mb-3 flex items-start justify-between gap-3">
                   <div>
                     <h3 className="text-sm font-semibold text-primary-black">
@@ -332,9 +332,14 @@ function Topbar({ onMenuClick }: TopbarProps) {
           </div>
         </div>
 
-        <Button type="button" variant="secondary" onClick={handleLogout}>
-          Logout
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          <div className="sm:hidden">
+            <GlobalSearch placeholder="Search Tendaflow..." variant="overlay" />
+          </div>
+          <Button type="button" variant="secondary" onClick={handleLogout}>
+            Logout
+          </Button>
+        </div>
       </div>
     </header>
   );

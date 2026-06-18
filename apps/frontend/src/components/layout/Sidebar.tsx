@@ -39,7 +39,10 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
     },
     {
       section: "Help",
-      items: [{ label: "User Guide", path: "/user-guide" }],
+      items: [
+        { label: "AI Assistant", path: "/assistant" },
+        { label: "User Guide", path: "/user-guide" },
+      ],
     },
     {
       section: "Administration",
@@ -64,7 +67,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 transform flex-col overflow-y-auto [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.25)_transparent]
+          fixed bottom-0 left-0 top-0 z-50 flex h-dvh w-64 shrink-0 transform flex-col overflow-hidden
            bg-[#274C77] text-white transition-transform duration-200
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
           lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 lg:shadow-[4px_0_12px_rgba(0,0,0,0.05)]
@@ -82,7 +85,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
           </p>
         </div>
 
-        <nav className="flex-1 space-y-5 px-4 py-5">
+        <nav className="flex-1 space-y-5 overflow-y-auto px-4 py-5 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.25)_transparent]">
           {groupedNavItems.map((group) => (
             <div key={group.section}>
               <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
@@ -111,7 +114,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
             </div>
           ))}
         </nav>
-        <div className="border-t border-white/10 px-5 py-4 text-xs text-white/55">
+        <div className="shrink-0 border-t border-white/10 px-5 py-4 text-xs text-white/55">
           <p className="font-semibold text-white/70">Gura Systems</p>
           <p className="mt-1">Tendaflow © {currentYear}</p>
         </div>

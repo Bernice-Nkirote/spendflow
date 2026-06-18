@@ -108,7 +108,7 @@ function MyTasksDropdown() {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-14 z-50 w-80 rounded-3xl border border-gray-200 bg-white p-5 shadow-xl sm:w-96">
+        <div className="fixed left-3 right-3 top-20 z-50 rounded-3xl border border-gray-200 bg-white p-5 shadow-xl sm:absolute sm:left-auto sm:right-0 sm:top-14 sm:w-96">
           <div className="mb-3">
             <h3 className="text-sm font-semibold text-primary-black">
               My Tasks
