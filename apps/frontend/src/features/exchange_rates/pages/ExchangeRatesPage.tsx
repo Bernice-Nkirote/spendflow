@@ -474,7 +474,7 @@ function ExchangeRatesPage() {
               </Card>
 
               <Card>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary-blue">
                     Manual
@@ -489,7 +489,7 @@ function ExchangeRatesPage() {
                   </p>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5 xl:items-end">
+                <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-1">
                     <label className="block text-sm font-medium text-primary-black">
                       From currency
@@ -549,30 +549,6 @@ function ExchangeRatesPage() {
                     type="date"
                   />
 
-                  <div className="flex gap-2">
-                    <Button
-                      type="submit"
-                      disabled={isSaving}
-                      className="min-w-[100px]"
-                    >
-                      {isSaving
-                        ? "Saving..."
-                        : editingRate
-                          ? "Update"
-                          : "Create"}
-                    </Button>
-
-                    {editingRate && (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={resetForm}
-                        disabled={isSaving}
-                      >
-                        Cancel
-                      </Button>
-                    )}
-                  </div>
                 </div>
 
                 <div className="max-w-sm">
@@ -583,6 +559,31 @@ function ExchangeRatesPage() {
                     placeholder="MANUAL"
                     className="uppercase"
                   />
+                </div>
+
+                <div className="flex flex-wrap justify-end gap-2 border-t border-gray-100 pt-4">
+                  {editingRate && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={resetForm}
+                      disabled={isSaving}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+
+                  <Button
+                    type="submit"
+                    disabled={isSaving}
+                    className="min-w-[120px]"
+                  >
+                    {isSaving
+                      ? "Saving..."
+                      : editingRate
+                        ? "Update Rate"
+                        : "Create Rate"}
+                  </Button>
                 </div>
               </form>
               </Card>
