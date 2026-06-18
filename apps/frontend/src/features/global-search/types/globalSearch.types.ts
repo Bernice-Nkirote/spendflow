@@ -16,7 +16,11 @@ export type GlobalSearchResponse = {
   payments: GlobalSearchItem[];
   suppliers: GlobalSearchItem[];
   users: GlobalSearchItem[];
+  roles: GlobalSearchItem[];
+  departments: GlobalSearchItem[];
   permissions: GlobalSearchItem[];
   audit_logs: GlobalSearchItem[];
+  exchange_rates: GlobalSearchItem[];
+  reports: GlobalSearchItem[];
   help: GlobalSearchItem[];
 };

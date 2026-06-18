@@ -1,4 +1,4 @@
-from uuid import UUID
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from app.models.role import Role
 from app.models.user import User
@@ -7,6 +7,52 @@ from app.repositories.role_repository import RoleRepository
 from app.schemas.global_search_schema import GlobalSearchItem, GlobalSearchResponse
 from app.services.permission_service import PermissionService
 from app.utils.value_helper.enum_utils import enum_value
+
+
+REPORT_SEARCH_DEFINITIONS = [
+    {
+        "label": "PR Report",
+        "value": "purchase-requisitions",
+        "permission": "reports.pr.view",
+        "description": "Purchase requisition reporting and exports.",
+    },
+    {
+        "label": "PO Report",
+        "value": "purchase-orders",
+        "permission": "reports.po.view",
+        "description": "Purchase order reporting and exports.",
+    },
+    {
+        "label": "Invoice Report",
+        "value": "invoices",
+        "permission": "reports.invoices.view",
+        "description": "Invoice reporting and exports.",
+    },
+    {
+        "label": "Outstanding Invoice",
+        "value": "outstanding-invoices",
+        "permission": "reports.outstanding_invoices.view",
+        "description": "Outstanding invoice balances and follow-up.",
+    },
+    {
+        "label": "Payment Report",
+        "value": "payments",
+        "permission": "reports.payments.view",
+        "description": "Payment reporting and exports.",
+    },
+    {
+        "label": "Supplier Spend",
+        "value": "supplier-spend",
+        "permission": "reports.supplier_spend.view",
+        "description": "Supplier spend by supplier, category, and period.",
+    },
+    {
+        "label": "Supplier Lead Time",
+        "value": "supplier-lead-time",
+        "permission": "reports.supplier_lead_time.view",
+        "description": "Supplier delivery and lead-time performance.",
+    },
+]
 
 
 class GlobalSearchService:
@@ -45,6 +91,18 @@ class GlobalSearchService:
 
         return bool(role and role.name.strip().lower() == "admin")
 
+    def _static_entity_id(self, key: str) -> UUID:
+        return uuid5(NAMESPACE_URL, f"tendaflow:global-search:{key}")
+
+    def _query_matches(self, query: str, *values: str | None) -> bool:
+        normalized_query = query.strip().lower()
+
+        return any(
+            normalized_query in value.strip().lower()
+            for value in values
+            if value
+        )
+
     def search(
         self,
         current_user: User,
@@ -61,8 +119,12 @@ class GlobalSearchService:
                 payments=[],
                 suppliers=[],
                 users=[],
+                roles=[],
+                departments=[],
                 permissions=[],
                 audit_logs=[],
+                exchange_rates=[],
+                reports=[],
             )
 
         company_id = current_user.company_id
@@ -73,8 +135,12 @@ class GlobalSearchService:
         payments: list[GlobalSearchItem] = []
         suppliers: list[GlobalSearchItem] = []
         users: list[GlobalSearchItem] = []
+        roles: list[GlobalSearchItem] = []
+        departments: list[GlobalSearchItem] = []
         permissions: list[GlobalSearchItem] = []
         audit_logs: list[GlobalSearchItem] = []
+        exchange_rates: list[GlobalSearchItem] = []
+        reports: list[GlobalSearchItem] = []
 
         if self._has_permission(current_user, "pr.view"):
             purchase_requisitions = [
@@ -175,6 +241,48 @@ class GlobalSearchService:
                 )
             ]
 
+        if self._has_permission(current_user, "exchange_rates.view"):
+            exchange_rates = [
+                GlobalSearchItem(
+                    entity_type="exchange_rate",
+                    entity_id=item.id,
+                    title=f"{item.from_currency} to {item.to_currency}",
+                    subtitle=f"Rate {item.rate} effective {item.effective_date}",
+                    reference=f"{item.from_currency}/{item.to_currency}",
+                    status=item.source,
+                    route="/exchange-rates",
+                    created_at=item.created_at,
+                )
+                for item in self.repo.search_exchange_rates(
+                    company_id=company_id,
+                    query=normalized_query,
+                    limit=limit,
+                )
+            ]
+
+        reports = [
+            GlobalSearchItem(
+                entity_type="report",
+                entity_id=self._static_entity_id(f"report:{report['value']}"),
+                title=report["label"],
+                subtitle=report["description"],
+                reference=report["value"],
+                status="Report",
+                route=f"/reports?report={report['value']}",
+                created_at=None,
+            )
+            for report in REPORT_SEARCH_DEFINITIONS
+            if self._has_permission(current_user, report["permission"])
+            and self._query_matches(
+                normalized_query,
+                report["label"],
+                report["value"],
+                report["description"],
+                "report",
+                "reports",
+            )
+        ][:limit]
+
         if self._is_admin_user(current_user):
             users = [
                 GlobalSearchItem(
@@ -188,6 +296,42 @@ class GlobalSearchService:
                     created_at=item.created_at,
                 )
                 for item in self.repo.search_users(
+                    company_id=company_id,
+                    query=normalized_query,
+                    limit=limit,
+                )
+            ]
+
+            roles = [
+                GlobalSearchItem(
+                    entity_type="role",
+                    entity_id=item.id,
+                    title=item.name,
+                    subtitle=item.description,
+                    reference=item.name,
+                    status="ACTIVE" if item.is_active else "INACTIVE",
+                    route="/roles",
+                    created_at=item.created_at,
+                )
+                for item in self.repo.search_roles(
+                    company_id=company_id,
+                    query=normalized_query,
+                    limit=limit,
+                )
+            ]
+
+            departments = [
+                GlobalSearchItem(
+                    entity_type="department",
+                    entity_id=item.id,
+                    title=item.name,
+                    subtitle="Department",
+                    reference=item.name,
+                    status="ACTIVE" if item.is_active else "INACTIVE",
+                    route="/departments",
+                    created_at=item.created_at,
+                )
+                for item in self.repo.search_departments(
                     company_id=company_id,
                     query=normalized_query,
                     limit=limit,
@@ -212,6 +356,7 @@ class GlobalSearchService:
                 )
             ]
 
+        if self._has_permission(current_user, "audit_logs.view"):
             audit_logs = [
                 GlobalSearchItem(
                     entity_type="audit_log",
@@ -237,6 +382,10 @@ class GlobalSearchService:
             payments=payments,
             suppliers=suppliers,
             users=users,
+            roles=roles,
+            departments=departments,
             permissions=permissions,
             audit_logs=audit_logs,
+            exchange_rates=exchange_rates,
+            reports=reports,
         )

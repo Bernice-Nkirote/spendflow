@@ -115,7 +115,6 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
           ))}
         </nav>
         <div className="shrink-0 border-t border-white/10 px-5 py-4 text-xs text-white/55">
-          <p className="font-semibold text-white/70">Gura Systems</p>
           <p className="mt-1">Tendaflow © {currentYear}</p>
         </div>
       </aside>

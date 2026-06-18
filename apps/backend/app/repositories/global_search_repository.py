@@ -5,10 +5,13 @@ from sqlalchemy.orm import Session, joinedload
 
 from app.models.invoice import Invoice
 from app.models.audit_logs import AuditLog
+from app.models.department import Department
+from app.models.exchange_rate import ExchangeRate
 from app.models.payments import Payment
 from app.models.permission import Permission
 from app.models.purchase_order import PurchaseOrder
 from app.models.purchase_requisition import PurchaseRequisition
+from app.models.role import Role
 from app.models.supplier import Supplier
 from app.models.user import User
 
@@ -177,6 +180,47 @@ class GlobalSearchRepository:
             .all()
         )
 
+    def search_roles(
+        self,
+        company_id: UUID,
+        query: str,
+        limit: int,
+    ) -> list[Role]:
+        pattern = f"%{query}%"
+
+        return (
+            self.db.query(Role)
+            .filter(
+                Role.company_id == company_id,
+                or_(
+                    Role.name.ilike(pattern),
+                    Role.description.ilike(pattern),
+                ),
+            )
+            .order_by(Role.name.asc())
+            .limit(limit)
+            .all()
+        )
+
+    def search_departments(
+        self,
+        company_id: UUID,
+        query: str,
+        limit: int,
+    ) -> list[Department]:
+        pattern = f"%{query}%"
+
+        return (
+            self.db.query(Department)
+            .filter(
+                Department.company_id == company_id,
+                Department.name.ilike(pattern),
+            )
+            .order_by(Department.name.asc())
+            .limit(limit)
+            .all()
+        )
+
     def search_permissions(
         self,
         company_id: UUID,
@@ -218,6 +262,29 @@ class GlobalSearchRepository:
                 ),
             )
             .order_by(AuditLog.created_at.desc())
+            .limit(limit)
+            .all()
+        )
+
+    def search_exchange_rates(
+        self,
+        company_id: UUID,
+        query: str,
+        limit: int,
+    ) -> list[ExchangeRate]:
+        pattern = f"%{query}%"
+
+        return (
+            self.db.query(ExchangeRate)
+            .filter(
+                ExchangeRate.company_id == company_id,
+                or_(
+                    ExchangeRate.from_currency.ilike(pattern),
+                    ExchangeRate.to_currency.ilike(pattern),
+                    ExchangeRate.source.ilike(pattern),
+                ),
+            )
+            .order_by(ExchangeRate.effective_date.desc())
             .limit(limit)
             .all()
         )

@@ -19,8 +19,12 @@ const emptySearchResults: GlobalSearchResponse = {
   payments: [],
   suppliers: [],
   users: [],
+  roles: [],
+  departments: [],
   permissions: [],
   audit_logs: [],
+  exchange_rates: [],
+  reports: [],
   help: [],
 };
 
@@ -34,8 +38,12 @@ const searchGroups: {
   { key: "payments", label: "Payments" },
   { key: "suppliers", label: "Suppliers" },
   { key: "users", label: "Users" },
+  { key: "roles", label: "Roles" },
+  { key: "departments", label: "Departments" },
   { key: "permissions", label: "Permissions" },
   { key: "audit_logs", label: "Audit Logs" },
+  { key: "exchange_rates", label: "Exchange Rates" },
+  { key: "reports", label: "Reports" },
   { key: "help", label: "Help & Guidance" },
 ];
 
@@ -274,7 +282,7 @@ function GlobalSearch({
     if (!hasSearchResults(searchResults)) {
       return (
         <p className="rounded-xl bg-gray-50 px-3 py-3 text-sm text-primary-gray">
-          No matching results found.
+          No matching results found in areas you can access.
         </p>
       );
     }
