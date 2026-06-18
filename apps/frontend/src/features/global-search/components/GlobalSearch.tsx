@@ -19,6 +19,9 @@ const emptySearchResults: GlobalSearchResponse = {
   payments: [],
   suppliers: [],
   users: [],
+  permissions: [],
+  audit_logs: [],
+  help: [],
 };
 
 const searchGroups: {
@@ -31,6 +34,52 @@ const searchGroups: {
   { key: "payments", label: "Payments" },
   { key: "suppliers", label: "Suppliers" },
   { key: "users", label: "Users" },
+  { key: "permissions", label: "Permissions" },
+  { key: "audit_logs", label: "Audit Logs" },
+  { key: "help", label: "Help & Guidance" },
+];
+
+const helpSearchItems: GlobalSearchItem[] = [
+  {
+    entity_type: "help",
+    entity_id: "assistant",
+    title: "Ask Tenda Assistant",
+    subtitle: "Get a clear next step when you are stuck or unsure what to do.",
+    status: "Help",
+    route: "/assistant",
+  },
+  {
+    entity_type: "help",
+    entity_id: "user-guide",
+    title: "Open the User Guide",
+    subtitle: "Read detailed guidance for setup, suppliers, PRs, POs, invoices, payments, approvals, reports, and the supplier portal.",
+    status: "Guide",
+    route: "/user-guide",
+  },
+  {
+    entity_type: "help",
+    entity_id: "approval-workflows-guide",
+    title: "Approval workflow help",
+    subtitle: "Learn how approval levels, roles, partner approvals, tasks, and notifications fit together.",
+    status: "Guide",
+    route: "/user-guide",
+  },
+  {
+    entity_type: "help",
+    entity_id: "supplier-portal-guide",
+    title: "Supplier portal help",
+    subtitle: "Find guidance on creating supplier portal users and supplier access.",
+    status: "Guide",
+    route: "/user-guide",
+  },
+  {
+    entity_type: "help",
+    entity_id: "roles-permissions-guide",
+    title: "Roles and permissions help",
+    subtitle: "Understand roles, permission assigning, departments, and who can create or approve records.",
+    status: "Guide",
+    route: "/user-guide",
+  },
 ];
 
 function SearchIcon() {
@@ -71,6 +120,55 @@ function CloseIcon() {
 
 function hasSearchResults(results: GlobalSearchResponse) {
   return searchGroups.some((group) => results[group.key].length > 0);
+}
+
+function getHelpSearchResults(query: string) {
+  const normalizedQuery = query.trim().toLowerCase();
+
+  if (normalizedQuery.length < 2) return [];
+
+  const helpWords = [
+    "help",
+    "guide",
+    "confused",
+    "stuck",
+    "lost",
+    "how",
+    "what",
+    "where",
+    "start",
+    "assistant",
+    "tenda",
+    "approval",
+    "workflow",
+    "task",
+    "notification",
+    "supplier portal",
+    "roles",
+    "permissions",
+    "department",
+    "setup",
+  ];
+
+  const shouldShowPrimaryHelp = helpWords.some((word) =>
+    normalizedQuery.includes(word),
+  );
+
+  return helpSearchItems.filter((item, index) => {
+    const searchableText = [
+      item.title,
+      item.subtitle,
+      item.status,
+      item.entity_id,
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    return (
+      searchableText.includes(normalizedQuery) ||
+      (shouldShowPrimaryHelp && index < 2)
+    );
+  });
 }
 
 function GlobalSearch({
@@ -123,14 +221,18 @@ function GlobalSearch({
         setSearchLoading(true);
 
         const results = await searchGlobal(normalizedQuery, 5);
+        const help = getHelpSearchResults(normalizedQuery);
 
         if (isActive) {
-          setSearchResults(results);
+          setSearchResults({ ...results, help });
           setIsSearchOpen(true);
         }
       } catch {
         if (isActive) {
-          setSearchResults(emptySearchResults);
+          setSearchResults({
+            ...emptySearchResults,
+            help: getHelpSearchResults(normalizedQuery),
+          });
         }
       } finally {
         if (isActive) {

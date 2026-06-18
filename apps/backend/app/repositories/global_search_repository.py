@@ -4,7 +4,9 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.invoice import Invoice
+from app.models.audit_logs import AuditLog
 from app.models.payments import Payment
+from app.models.permission import Permission
 from app.models.purchase_order import PurchaseOrder
 from app.models.purchase_requisition import PurchaseRequisition
 from app.models.supplier import Supplier
@@ -171,6 +173,51 @@ class GlobalSearchRepository:
                 ),
             )
             .order_by(User.created_at.desc())
+            .limit(limit)
+            .all()
+        )
+
+    def search_permissions(
+        self,
+        company_id: UUID,
+        query: str,
+        limit: int,
+    ) -> list[Permission]:
+        pattern = f"%{query}%"
+
+        return (
+            self.db.query(Permission)
+            .filter(
+                Permission.company_id == company_id,
+                or_(
+                    Permission.name.ilike(pattern),
+                    Permission.description.ilike(pattern),
+                ),
+            )
+            .order_by(Permission.name.asc())
+            .limit(limit)
+            .all()
+        )
+
+    def search_audit_logs(
+        self,
+        company_id: UUID,
+        query: str,
+        limit: int,
+    ) -> list[AuditLog]:
+        pattern = f"%{query}%"
+
+        return (
+            self.db.query(AuditLog)
+            .filter(
+                AuditLog.company_id == company_id,
+                or_(
+                    AuditLog.action.ilike(pattern),
+                    AuditLog.entity_type.ilike(pattern),
+                    AuditLog.description.ilike(pattern),
+                ),
+            )
+            .order_by(AuditLog.created_at.desc())
             .limit(limit)
             .all()
         )

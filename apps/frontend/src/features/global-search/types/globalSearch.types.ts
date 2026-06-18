@@ -16,4 +16,7 @@ export type GlobalSearchResponse = {
   payments: GlobalSearchItem[];
   suppliers: GlobalSearchItem[];
   users: GlobalSearchItem[];
+  permissions: GlobalSearchItem[];
+  audit_logs: GlobalSearchItem[];
+  help: GlobalSearchItem[];
 };

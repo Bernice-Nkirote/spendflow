@@ -25,3 +25,5 @@ class GlobalSearchResponse(BaseModel):
     payments: list[GlobalSearchItem]
     suppliers: list[GlobalSearchItem]
     users: list[GlobalSearchItem]
+    permissions: list[GlobalSearchItem]
+    audit_logs: list[GlobalSearchItem]

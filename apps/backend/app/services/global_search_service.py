@@ -61,6 +61,8 @@ class GlobalSearchService:
                 payments=[],
                 suppliers=[],
                 users=[],
+                permissions=[],
+                audit_logs=[],
             )
 
         company_id = current_user.company_id
@@ -71,6 +73,8 @@ class GlobalSearchService:
         payments: list[GlobalSearchItem] = []
         suppliers: list[GlobalSearchItem] = []
         users: list[GlobalSearchItem] = []
+        permissions: list[GlobalSearchItem] = []
+        audit_logs: list[GlobalSearchItem] = []
 
         if self._has_permission(current_user, "pr.view"):
             purchase_requisitions = [
@@ -190,6 +194,42 @@ class GlobalSearchService:
                 )
             ]
 
+            permissions = [
+                GlobalSearchItem(
+                    entity_type="permission",
+                    entity_id=item.id,
+                    title=item.name,
+                    subtitle=item.description,
+                    reference=item.name,
+                    status="ACTIVE" if item.is_active else "INACTIVE",
+                    route="/permissions",
+                    created_at=item.created_at,
+                )
+                for item in self.repo.search_permissions(
+                    company_id=company_id,
+                    query=normalized_query,
+                    limit=limit,
+                )
+            ]
+
+            audit_logs = [
+                GlobalSearchItem(
+                    entity_type="audit_log",
+                    entity_id=item.id,
+                    title=item.description or item.action,
+                    subtitle=f"{item.entity_type} - {item.action}",
+                    reference=str(item.entity_id),
+                    status=item.action,
+                    route="/audit-logs",
+                    created_at=item.created_at,
+                )
+                for item in self.repo.search_audit_logs(
+                    company_id=company_id,
+                    query=normalized_query,
+                    limit=limit,
+                )
+            ]
+
         return GlobalSearchResponse(
             purchase_requisitions=purchase_requisitions,
             purchase_orders=purchase_orders,
@@ -197,4 +237,6 @@ class GlobalSearchService:
             payments=payments,
             suppliers=suppliers,
             users=users,
+            permissions=permissions,
+            audit_logs=audit_logs,
         )
