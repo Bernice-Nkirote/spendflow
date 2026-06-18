@@ -27,6 +27,7 @@ export type AssistantChatRequest = {
 
 export type AssistantChatResponse = {
   answer: string;
+  response_mode: "ai" | "fallback";
   cautions: string[];
   suggested_next_steps: string[];
   actions: {

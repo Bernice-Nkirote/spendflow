@@ -375,6 +375,7 @@ class AssistantService:
 
         return AssistantChatResponse(
             answer=self._build_guidance(topic),
+            response_mode="fallback",
             cautions=[self._build_guardrail(topic, supplier_suggestions)],
             suggested_next_steps=self._build_next_steps(topic, supplier_suggestions),
             actions=self._build_actions(topic, supplier_suggestions),
@@ -610,6 +611,7 @@ class AssistantService:
             return AssistantChatResponse(
                 answer=str(payload.get("answer", "")).strip()
                 or self._build_guidance(topic),
+                response_mode="ai",
                 cautions=self._normalise_text_list(
                     payload.get("cautions", []),
                     fallback=[self._build_guardrail(topic, supplier_suggestions)],
@@ -638,6 +640,9 @@ Voice:
 - Help the user feel safe when confused.
 - Be practical: tell them exactly where to click and what to review.
 - Be specific. Name the Tendaflow screen, the button or section, the required permission if relevant, and the next safe user action.
+- Answer the user's exact question first. Do not replace it with a broad topic summary.
+- Use the topic hint only as supporting context, not as the answer.
+- If the question contains record details, numbers, currencies, suppliers, roles, or workflow status, address those exact details.
 - If the user asks a broad question, ask one short clarifying question after giving the most likely path.
 
 Boundaries:
@@ -652,7 +657,7 @@ Important Tendaflow route shortcuts:
 {action_catalog}
 
 Current page: {request.context or "unknown"}
-Known guidance hint: {topic_hint}
+Supporting topic hint, only if relevant: {topic_hint}
 """.strip()
 
         messages = [{"role": "system", "content": system_prompt}]

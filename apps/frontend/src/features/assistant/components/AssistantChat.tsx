@@ -145,6 +145,19 @@ function AssistantReply({ message }: { message: ChatMessage }) {
 
         {response && (
           <div className="mt-4 space-y-4">
+            <span
+              className={[
+                "inline-flex rounded-full px-2.5 py-1 text-xs font-semibold",
+                response.response_mode === "ai"
+                  ? "bg-blue-50 text-primary-blue"
+                  : "bg-amber-50 text-amber-800",
+              ].join(" ")}
+            >
+              {response.response_mode === "ai"
+                ? "AI-powered answer"
+                : "Built-in guidance"}
+            </span>
+
             {response.actions.length > 0 && (
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary-gray">

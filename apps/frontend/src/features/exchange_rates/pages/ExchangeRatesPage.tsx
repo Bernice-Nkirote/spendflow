@@ -34,6 +34,8 @@ import type { ExchangeRate } from "../types/exchangeRate.types";
 
 type RateEntryMode = "manual" | "sync";
 
+const commonSyncCurrencies = ["USD", "EUR", "GBP", "UGX", "TZS", "RWF", "ZAR"];
+
 function getPositiveNumberFromSearchParam(
   value: string | null,
   fallback: number,
@@ -212,6 +214,17 @@ function ExchangeRatesPage() {
     } finally {
       setIsSyncing(false);
     }
+  }
+
+  function addSyncCurrency(currency: string) {
+    const currentCurrencies = syncCurrencies
+      .split(/[,\s]+/)
+      .map((item) => item.trim().toUpperCase())
+      .filter(Boolean);
+
+    if (currentCurrencies.includes(currency)) return;
+
+    setSyncCurrencies([...currentCurrencies, currency].join(", "));
   }
 
   useEffect(() => {
@@ -479,6 +492,24 @@ function ExchangeRatesPage() {
                     onChange={(event) => setSyncCurrencies(event.target.value)}
                     placeholder="USD, EUR, GBP"
                   />
+
+                  <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-primary-gray">
+                      Common currencies
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {commonSyncCurrencies.map((currency) => (
+                        <button
+                          key={currency}
+                          type="button"
+                          onClick={() => addSyncCurrency(currency)}
+                          className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-primary-gray transition hover:border-primary-blue/30 hover:bg-blue-50 hover:text-primary-blue"
+                        >
+                          {currency}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
                   <Input
                     label="Effective date"

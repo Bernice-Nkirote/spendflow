@@ -40,6 +40,7 @@ class AssistantActionLink(BaseModel):
 
 class AssistantChatResponse(BaseModel):
     answer: str
+    response_mode: Literal["ai", "fallback"] = "fallback"
     cautions: list[str]
     suggested_next_steps: list[str]
     actions: list[AssistantActionLink]
