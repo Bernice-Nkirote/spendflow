@@ -16,12 +16,46 @@ export async function getDashboardData(): Promise<DashboardData> {
       totalSpend: Number(data.summary.total_spend),
     },
 
+    actionCenter: {
+      pendingPrApprovals: data.action_center.pending_pr_approvals,
+      pendingPoApprovals: data.action_center.pending_po_approvals,
+      pendingInvoiceApprovals: data.action_center.pending_invoice_approvals,
+      pendingPaymentApprovals: data.action_center.pending_payment_approvals,
+      approvedPrsAwaitingPo: data.action_center.approved_prs_awaiting_po,
+      approvedInvoicesAwaitingPayment:
+        data.action_center.approved_invoices_awaiting_payment,
+    },
+
     workflow: {
       purchaseRequisitions: data.workflow.purchase_requisitions,
       purchaseOrders: data.workflow.purchase_orders,
       invoices: data.workflow.invoices,
       payments: data.workflow.payments,
     },
+
+    spendSnapshot: {
+      monthToDateSpend: Number(data.spend_snapshot.month_to_date_spend),
+      averagePoValue: Number(data.spend_snapshot.average_po_value),
+      activeSupplierCount: data.spend_snapshot.active_supplier_count,
+      topCategory: data.spend_snapshot.top_category,
+    },
+
+    supplierScorecards: data.supplier_scorecards.map((supplier: any) => ({
+      supplierId: supplier.supplier_id,
+      supplierName: supplier.supplier_name,
+      category: supplier.category,
+      subCategory: supplier.sub_category,
+      contactPerson: supplier.contact_person,
+      email: supplier.email,
+      totalOrders: supplier.total_orders,
+      receivedOrders: supplier.received_orders,
+      invoiceCount: supplier.invoice_count,
+      paidInvoiceCount: supplier.paid_invoice_count,
+      totalSpend: Number(supplier.total_spend),
+      performanceScore: supplier.performance_score,
+      performanceLabel: supplier.performance_label,
+      lastOrderDate: supplier.last_order_date,
+    })),
 
     approvalQueue: data.approval_queue.map((item: any) => ({
       id: item.id,

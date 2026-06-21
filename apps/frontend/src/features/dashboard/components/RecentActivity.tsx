@@ -52,7 +52,7 @@ export default function RecentActivity({ items }: RecentActivityProps) {
                     <p className="mt-1 truncate text-xs text-primary-gray">
                       {activity.entityType}
                       {activity.entityReference
-                        ? ` • ${activity.entityReference}`
+                        ? ` / ${activity.entityReference}`
                         : ""}
                     </p>
                   </div>
