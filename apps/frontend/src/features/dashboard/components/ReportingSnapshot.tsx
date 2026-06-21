@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import type { ReportingSnapshot as ReportingSnapshotType } from "../types/dashboard.types";
 import EmptyState from "../../../components/ui/EmptyState";
 
@@ -18,14 +19,23 @@ function formatDateTime(value: string) {
 export default function ReportingSnapshot({ data }: ReportingSnapshotProps) {
   return (
     <div>
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold text-primary-black">
-          Reporting Snapshot
-        </h2>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-primary-black">
+            Reporting Snapshot
+          </h2>
 
-        <p className="mt-1 text-sm leading-5 text-primary-gray">
-          Quick view of report activity and available export formats.
-        </p>
+          <p className="mt-1 text-sm leading-5 text-primary-gray">
+            Quick view of report activity and available export formats.
+          </p>
+        </div>
+
+        <Link
+          to="/reports"
+          className="inline-flex items-center justify-center rounded-full border border-primary-blue/20 bg-white/80 px-4 py-2 text-sm font-semibold text-primary-blue shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:bg-primary-blue hover:text-white hover:shadow-md"
+        >
+          View reports
+        </Link>
       </div>
 
       {!data ? (
@@ -33,7 +43,7 @@ export default function ReportingSnapshot({ data }: ReportingSnapshotProps) {
       ) : (
         <div className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
+            <div className="rounded-2xl border border-white/70 bg-white/75 p-4 shadow-sm backdrop-blur">
               <p className="text-sm font-medium text-primary-gray">
                 Reports Generated
               </p>
@@ -43,7 +53,7 @@ export default function ReportingSnapshot({ data }: ReportingSnapshotProps) {
               </p>
             </div>
 
-            <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
+            <div className="rounded-2xl border border-white/70 bg-white/75 p-4 shadow-sm backdrop-blur">
               <p className="text-sm font-medium text-primary-gray">
                 Last Generated
               </p>
@@ -56,7 +66,7 @@ export default function ReportingSnapshot({ data }: ReportingSnapshotProps) {
             </div>
           </div>
 
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
+          <div className="rounded-2xl border border-white/70 bg-white/75 p-4 shadow-sm backdrop-blur">
             <p className="text-sm font-medium text-primary-gray">
               Export Formats
             </p>

@@ -43,7 +43,7 @@ export default function WorkflowOverview({ data }: WorkflowOverviewProps) {
         {workflowItems.map((item) => (
           <div
             key={item.label}
-            className="rounded-xl border border-gray-200 bg-gray-50/60 p-4"
+            className="rounded-2xl border border-white/70 bg-white/75 p-4 shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:bg-white hover:shadow-md"
           >
             <p className="text-sm font-medium text-primary-gray">
               {item.shortLabel}

@@ -12,6 +12,8 @@ import ReportingSnapshot from "../components/ReportingSnapshot";
 import ActionCenter from "../components/ActionCenter";
 import SpendSnapshot from "../components/SpendSnapshot";
 import SupplierPerformance from "../components/SupplierPerformance";
+import DashboardAnalytics from "../components/DashboardAnalytics";
+import DashboardAssistantCard from "../components/DashboardAssistantCard";
 import { formatCurrency } from "../../../utils/formatCurrency";
 
 export default function DashboardPage() {
@@ -39,7 +41,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+      <section className="overflow-hidden rounded-2xl border border-white/70 bg-white/80 shadow-sm backdrop-blur">
         <div className="grid gap-6 p-5 sm:p-6 lg:grid-cols-[1.6fr_1fr] lg:items-center">
           <div className="max-w-3xl">
             <p className="text-sm font-semibold text-primary-blue">
@@ -56,18 +58,7 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-primary-blue">
-              Today's focus
-            </p>
-            <p className="mt-2 text-3xl font-bold text-primary-black">
-              {data?.summary.pendingApprovals ?? 0}
-            </p>
-            <p className="mt-1 text-sm leading-5 text-primary-gray">
-              items need your approval or review. Start with the Action Center
-              below.
-            </p>
-          </div>
+          <DashboardAssistantCard />
         </div>
       </section>
 
@@ -110,42 +101,47 @@ export default function DashboardPage() {
             />
           </section>
 
-          <Card className="shadow-md">
+          <Card className="bg-white/80 shadow-md backdrop-blur">
             <ActionCenter data={data?.actionCenter} />
           </Card>
 
-          <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-            <Card className="shadow-md">
-              <WorkflowOverview data={data?.workflow} />
-            </Card>
+          <Card className="bg-white/80 shadow-md backdrop-blur">
+            <DashboardAnalytics
+              actionCenter={data?.actionCenter}
+              supplierScorecards={data?.supplierScorecards}
+            />
+          </Card>
 
-            <Card className="shadow-md">
-              <SpendSnapshot
-                data={data?.spendSnapshot}
-                currency={data?.currency}
-              />
-            </Card>
-          </section>
+          <Card className="bg-white/80 shadow-md backdrop-blur">
+            <SpendSnapshot
+              data={data?.spendSnapshot}
+              currency={data?.currency}
+            />
+          </Card>
 
-          <Card className="shadow-md">
+          <Card className="bg-white/80 shadow-md backdrop-blur">
             <SupplierPerformance
               items={data?.supplierScorecards}
               currency={data?.currency}
             />
           </Card>
 
-          <section className="grid items-start gap-6 xl:grid-cols-[1fr_1fr]">
-            <Card className="shadow-md">
-              <ApprovalQueue items={data?.approvalQueue} />
+          <section className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+            <Card className="bg-white/80 shadow-md backdrop-blur">
+              <WorkflowOverview data={data?.workflow} />
             </Card>
 
-            <Card className="shadow-md">
-              <RecentActivity items={data?.recentActivity} />
+            <Card className="bg-white/80 shadow-md backdrop-blur">
+              <ApprovalQueue items={data?.approvalQueue} />
             </Card>
           </section>
 
-          <section>
-            <Card className="shadow-md">
+          <section className="grid items-start gap-6 xl:grid-cols-[1fr_1fr]">
+            <Card className="bg-white/80 shadow-md backdrop-blur">
+              <RecentActivity items={data?.recentActivity} />
+            </Card>
+
+            <Card className="bg-white/80 shadow-md backdrop-blur">
               <ReportingSnapshot data={data?.reportingSnapshot} />
             </Card>
           </section>

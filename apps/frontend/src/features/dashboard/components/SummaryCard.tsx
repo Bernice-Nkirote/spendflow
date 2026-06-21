@@ -6,11 +6,11 @@ type SummaryCardProps = {
 };
 
 const accentColorClasses: Record<SummaryCardProps["accentColor"], string> = {
-  blue: "border-l-primary-blue bg-blue-50/50",
-  purple: "border-l-purple-700 bg-purple-50/40",
-  red: "border-l-red-700 bg-red-50/40",
-  yellow: "border-l-yellow-500 bg-yellow-50/40",
-  green: "border-l-green-600 bg-green-50/40",
+  blue: "border-l-primary-blue",
+  purple: "border-l-purple-700",
+  red: "border-l-red-700",
+  yellow: "border-l-yellow-500",
+  green: "border-l-green-600",
 };
 
 export default function SummaryCard({
@@ -21,7 +21,7 @@ export default function SummaryCard({
 }: SummaryCardProps) {
   return (
     <div
-      className={`rounded-2xl border border-gray-200 border-l-4 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${accentColorClasses[accentColor]}`}
+      className={`rounded-2xl border border-white/70 border-l-4 bg-white/75 p-5 shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:bg-white hover:shadow-md ${accentColorClasses[accentColor]}`}
     >
       <p className="text-sm font-medium text-primary-gray">{title}</p>
 

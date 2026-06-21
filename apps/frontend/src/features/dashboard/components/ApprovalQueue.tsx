@@ -40,7 +40,7 @@ export default function ApprovalQueue({ items }: ApprovalQueueProps) {
               key={item.id}
               to={`/approvals/${item.id}`}
               state={{ from: "dashboard" }}
-              className="block rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-primary-blue/30 hover:bg-gray-50 hover:shadow-md"
+              className="block rounded-2xl border border-white/70 bg-white/75 p-4 shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:border-primary-blue/30 hover:bg-white hover:shadow-md"
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">

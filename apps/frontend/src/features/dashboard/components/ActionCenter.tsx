@@ -80,7 +80,7 @@ export default function ActionCenter({ data }: ActionCenterProps) {
 
         <Link
           to="/approvals"
-          className="text-sm font-semibold text-primary-blue transition hover:text-primary-black"
+          className="inline-flex items-center justify-center rounded-full border border-primary-blue/20 bg-white/80 px-4 py-2 text-sm font-semibold text-primary-blue shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:bg-primary-blue hover:text-white hover:shadow-md"
         >
           View approvals
         </Link>
@@ -91,7 +91,7 @@ export default function ActionCenter({ data }: ActionCenterProps) {
           <Link
             key={item.label}
             to={item.to}
-            className="group rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary-blue/30 hover:shadow-md"
+            className="group rounded-2xl border border-white/70 bg-white/75 p-4 shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:border-primary-blue/30 hover:bg-white hover:shadow-md"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
