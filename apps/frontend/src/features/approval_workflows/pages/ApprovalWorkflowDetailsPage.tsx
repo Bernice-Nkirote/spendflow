@@ -80,6 +80,8 @@ function ApprovalWorkflowDetailsPage() {
     useState<PartnerApprovalMode>("workflow_levels");
   const [partnerApprovalMinCount, setPartnerApprovalMinCount] = useState("");
   const [partnerRoleId, setPartnerRoleId] = useState("");
+  const [isEditingPartnershipConfig, setIsEditingPartnershipConfig] =
+    useState(false);
 
   const [selectedRoleByLevel, setSelectedRoleByLevel] = useState<
     Record<string, string>
@@ -109,6 +111,28 @@ function ApprovalWorkflowDetailsPage() {
   );
 
   const partnerApprovalEnabled = partnerApprovalMode !== "workflow_levels";
+
+  const selectedPartnerRole = activeRoles.find(
+    (role) => role.id === partnerRoleId,
+  );
+
+  const partnerApprovalRuleLabel =
+    partnerApprovalModeOptions.find(
+      (option) => option.value === partnerApprovalMode,
+    )?.label ?? "Use the normal workflow";
+
+  const savedPartnerApprovalEnabled =
+    workflow?.partner_approval_mode &&
+    workflow.partner_approval_mode !== "workflow_levels";
+
+  const savedPartnerRole = activeRoles.find(
+    (role) => role.id === workflow?.partner_role_id,
+  );
+
+  const savedPartnerApprovalRuleLabel =
+    partnerApprovalModeOptions.find(
+      (option) => option.value === workflow?.partner_approval_mode,
+    )?.label ?? "Use normal approval workflow";
 
   function getEntityTypeLabel(value?: ApprovalEntityType) {
     if (!value) return "Unknown";
@@ -181,6 +205,20 @@ function ApprovalWorkflowDetailsPage() {
     setDepartmentId(level.department_id);
     setMinAmount(level.min_amount != null ? String(level.min_amount) : "");
     setMaxAmount(level.max_amount != null ? String(level.max_amount) : "");
+  }
+
+  function resetPartnershipConfigForm() {
+    if (!workflow) return;
+
+    setPartnerApprovalMode(
+      workflow.partner_approval_mode ?? "workflow_levels",
+    );
+    setPartnerApprovalMinCount(
+      workflow.partner_approval_min_count
+        ? String(workflow.partner_approval_min_count)
+        : "",
+    );
+    setPartnerRoleId(workflow.partner_role_id ?? "");
   }
 
   async function handleCreateLevel(event: React.FormEvent<HTMLFormElement>) {
@@ -345,6 +383,7 @@ function ApprovalWorkflowDetailsPage() {
 
       showAlert("success", "Partnership approval configuration saved.");
       await loadPageData();
+      setIsEditingPartnershipConfig(false);
     } catch (error) {
       setPageError(
         getApiErrorMessage(
@@ -458,7 +497,76 @@ function ApprovalWorkflowDetailsPage() {
 
       {isPartnershipWorkspace && (
         <Card>
-          <form onSubmit={handleSavePartnershipConfig} className="space-y-5">
+          {!isEditingPartnershipConfig ? (
+            <div className="space-y-5">
+              <div className="rounded-lg border border-blue-100 bg-blue-50/70 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary-blue">
+                  Partnership workspace
+                </p>
+                <div className="mt-1 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-primary-black">
+                      Partner Approval Rules
+                    </h2>
+                    <p className="mt-2 text-sm leading-6 text-gray-700">
+                      These are the saved approval rules for this workflow.
+                      Click edit if you need to change how partners approve.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setIsEditingPartnershipConfig(true)}
+                  >
+                    Edit Rules
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-3">
+                <SummaryItem
+                  label="Current rule"
+                  value={
+                    savedPartnerApprovalEnabled
+                      ? "Partner approval required"
+                      : "Normal approval workflow"
+                  }
+                />
+                <SummaryItem
+                  label="Partner role"
+                  value={
+                    savedPartnerApprovalEnabled
+                      ? savedPartnerRole?.name ?? "Not selected"
+                      : "Not required"
+                  }
+                />
+                <SummaryItem
+                  label="Approvals needed"
+                  value={
+                    savedPartnerApprovalEnabled
+                      ? savedPartnerApprovalRuleLabel
+                      : "Workflow levels decide"
+                  }
+                />
+              </div>
+
+              <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-4 text-sm leading-6 text-emerald-900">
+                <strong className="text-emerald-950">Saved rule:</strong>{" "}
+                {savedPartnerApprovalEnabled ? (
+                  <>
+                    {savedPartnerApprovalRuleLabel} from{" "}
+                    {savedPartnerRole?.name ?? "the selected partner role"}.
+                  </>
+                ) : (
+                  <>
+                    This workflow uses the normal approval levels and roles
+                    below.
+                  </>
+                )}
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleSavePartnershipConfig} className="space-y-5">
             <div className="rounded-lg border border-blue-100 bg-blue-50/70 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary-blue">
                 Partnership workspace
@@ -597,7 +705,9 @@ function ApprovalWorkflowDetailsPage() {
               {partnerApprovalEnabled ? (
                 <>
                   this workflow will wait for the selected partner approval
-                  rule. When the rule is satisfied, Tendaflow moves to the next
+                  rule: <strong>{partnerApprovalRuleLabel}</strong> from{" "}
+                  <strong>{selectedPartnerRole?.name ?? "the partner role"}</strong>.
+                  When the rule is satisfied, Tendaflow moves to the next
                   approval level or marks the record approved.
                 </>
               ) : (
@@ -608,16 +718,30 @@ function ApprovalWorkflowDetailsPage() {
               )}
             </div>
 
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={isSavingPartnershipConfig}
-            >
-              {isSavingPartnershipConfig
-                ? "Saving..."
-                : "Save Partner Approval Rules"}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={isSavingPartnershipConfig}
+              >
+                {isSavingPartnershipConfig
+                  ? "Saving..."
+                  : "Save Partner Approval Rules"}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={isSavingPartnershipConfig}
+                onClick={() => {
+                  resetPartnershipConfigForm();
+                  setIsEditingPartnershipConfig(false);
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
           </form>
+          )}
         </Card>
       )}
 
