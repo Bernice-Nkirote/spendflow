@@ -12,6 +12,7 @@ from app.repositories.po_repository import PurchaseOrderRepository
 from app.repositories.pr_repository import PurchaseRequisitionRepository
 from app.repositories.invoice_repository import InvoiceRepository
 from app.repositories.payment_repository import PaymentRepository
+from app.repositories.user_repository import UserRepository
 from app.repositories.workflow_level_repository import WorkflowLevelRepository
 from app.repositories.workflow_role_repository import WorkflowLevelRoleRepository
 from app.repositories.audit_log_repository import AuditLogRepository
@@ -35,6 +36,7 @@ def get_service(db: Session = Depends(get_db)) -> ApprovalActionService:
     po_repo=PurchaseOrderRepository(db)
     invoice_repo=InvoiceRepository(db)
     payment_repo=PaymentRepository(db)
+    user_repo=UserRepository(db)
     audit_log_service = AuditLogService(
             repo=AuditLogRepository(db),
         )
@@ -47,6 +49,7 @@ def get_service(db: Session = Depends(get_db)) -> ApprovalActionService:
         po_repo=po_repo,
         invoice_repo=invoice_repo,
         payment_repo=payment_repo,
+        user_repo=user_repo,
         audit_log_service=audit_log_service,
     )
 

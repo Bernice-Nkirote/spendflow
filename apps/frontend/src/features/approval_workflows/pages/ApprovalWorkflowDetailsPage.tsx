@@ -108,6 +108,8 @@ function ApprovalWorkflowDetailsPage() {
     [roles],
   );
 
+  const partnerApprovalEnabled = partnerApprovalMode !== "workflow_levels";
+
   function getEntityTypeLabel(value?: ApprovalEntityType) {
     if (!value) return "Unknown";
 
@@ -318,6 +320,11 @@ function ApprovalWorkflowDetailsPage() {
       ? Number(partnerApprovalMinCount)
       : null;
 
+    if (partnerApprovalEnabled && !partnerRoleId) {
+      showAlert("error", "Select the role that represents partners.");
+      return;
+    }
+
     if (
       partnerApprovalMode === "minimum_partners" &&
       (!parsedMinCount || Number.isNaN(parsedMinCount) || parsedMinCount < 1)
@@ -333,7 +340,7 @@ function ApprovalWorkflowDetailsPage() {
         partner_approval_mode: partnerApprovalMode,
         partner_approval_min_count:
           partnerApprovalMode === "minimum_partners" ? parsedMinCount : null,
-        partner_role_id: partnerRoleId || null,
+        partner_role_id: partnerApprovalEnabled ? partnerRoleId || null : null,
       });
 
       showAlert("success", "Partnership approval configuration saved.");
@@ -460,48 +467,65 @@ function ApprovalWorkflowDetailsPage() {
                 Partner Approval Rules
               </h2>
               <p className="mt-2 text-sm leading-6 text-gray-700">
-                Use this only when partners should approve together. If you
-                leave it as <strong>Use the normal workflow</strong>, Tendaflow
-                follows the approval levels below just like a company account.
+                Decide whether this workflow should use the normal approval
+                levels, or whether partners should approve it. Keep it simple:
+                choose the partner role, then choose how many partner approvals
+                are needed.
               </p>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setPartnerApprovalMode("workflow_levels");
+                  setPartnerApprovalMinCount("");
+                }}
+                className={[
+                  "rounded-xl border p-4 text-left transition",
+                  !partnerApprovalEnabled
+                    ? "border-primary-blue bg-blue-50 shadow-sm"
+                    : "border-gray-200 bg-white hover:border-primary-blue/30 hover:bg-blue-50/30",
+                ].join(" ")}
+              >
+                <span className="text-sm font-semibold text-primary-black">
+                  Use normal approval workflow
+                </span>
+                <span className="mt-1 block text-xs leading-5 text-primary-gray">
+                  Tendaflow follows the approval levels and roles below. This
+                  is best when partners do not need a special rule.
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPartnerApprovalMode("any_partner")}
+                className={[
+                  "rounded-xl border p-4 text-left transition",
+                  partnerApprovalEnabled
+                    ? "border-primary-blue bg-blue-50 shadow-sm"
+                    : "border-gray-200 bg-white hover:border-primary-blue/30 hover:bg-blue-50/30",
+                ].join(" ")}
+              >
+                <span className="text-sm font-semibold text-primary-black">
+                  Require partner approval
+                </span>
+                <span className="mt-1 block text-xs leading-5 text-primary-gray">
+                  Partners approve this workflow using the partner role you
+                  choose below.
+                </span>
+              </button>
             </div>
 
             <div className="grid gap-4 lg:grid-cols-3">
               <div className="space-y-1">
                 <label className="block text-sm font-medium text-primary-black">
-                  How should partners approve?
-                </label>
-                <select
-                  value={partnerApprovalMode}
-                  onChange={(event) =>
-                    setPartnerApprovalMode(
-                      event.target.value as PartnerApprovalMode,
-                    )
-                  }
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
-                >
-                  {partnerApprovalModeOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-xs leading-5 text-primary-gray">
-                  {
-                    partnerApprovalModeOptions.find(
-                      (option) => option.value === partnerApprovalMode,
-                    )?.description
-                  }
-                </p>
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-primary-black">
-                  Which role counts as a partner?
+                  Partner role
                 </label>
                 <select
                   value={partnerRoleId}
                   onChange={(event) => setPartnerRoleId(event.target.value)}
+                  disabled={!partnerApprovalEnabled}
                   className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
                 >
                   <option value="">No partner role selected</option>
@@ -512,13 +536,44 @@ function ApprovalWorkflowDetailsPage() {
                   ))}
                 </select>
                 <p className="text-xs leading-5 text-primary-gray">
-                  Pick the role assigned to your partners. Example: Partner,
+                  Select the role assigned to partners, such as Partner,
                   Director, or Owner.
                 </p>
               </div>
 
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-primary-black">
+                  Partner approvals needed
+                </label>
+                <select
+                  value={partnerApprovalEnabled ? partnerApprovalMode : "any_partner"}
+                  onChange={(event) =>
+                    setPartnerApprovalMode(
+                      event.target.value as PartnerApprovalMode,
+                    )
+                  }
+                  disabled={!partnerApprovalEnabled}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
+                >
+                  {partnerApprovalModeOptions
+                    .filter((option) => option.value !== "workflow_levels")
+                    .map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                </select>
+                <p className="text-xs leading-5 text-primary-gray">
+                  {partnerApprovalEnabled
+                    ? partnerApprovalModeOptions.find(
+                        (option) => option.value === partnerApprovalMode,
+                      )?.description
+                    : "Choose partner approval above to set this rule."}
+                </p>
+              </div>
+
               <Input
-                label="How many partners are needed?"
+                label="Number of partners"
                 type="number"
                 min="1"
                 value={partnerApprovalMinCount}
@@ -528,19 +583,29 @@ function ApprovalWorkflowDetailsPage() {
                 placeholder={
                   partnerApprovalMode === "minimum_partners"
                     ? "e.g. 2"
-                    : "Only needed for set number"
+                    : "Only for set number"
                 }
-                disabled={partnerApprovalMode !== "minimum_partners"}
+                disabled={
+                  !partnerApprovalEnabled ||
+                  partnerApprovalMode !== "minimum_partners"
+                }
               />
             </div>
 
             <div className="rounded-lg border border-gray-100 bg-gray-50 p-4 text-sm leading-6 text-gray-700">
               <strong className="text-primary-black">Plain English:</strong>{" "}
-              choose <strong>One partner can approve</strong> for small
-              partnerships, <strong>Every partner must approve</strong> for
-              full agreement, or{" "}
-              <strong>Require a set number of partners</strong> when only some
-              partners need to approve.
+              {partnerApprovalEnabled ? (
+                <>
+                  this workflow will wait for the selected partner approval
+                  rule. When the rule is satisfied, Tendaflow moves to the next
+                  approval level or marks the record approved.
+                </>
+              ) : (
+                <>
+                  this workflow behaves like a normal company workflow and uses
+                  the approval levels below.
+                </>
+              )}
             </div>
 
             <Button

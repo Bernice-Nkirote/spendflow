@@ -123,18 +123,18 @@ export const partnerApprovalModeOptions: {
     description: "Use the approval levels below exactly as configured.",
   },
   {
-    label: "One partner can approve",
+    label: "One partner",
     value: "any_partner",
-    description: "A single user in the partner role can approve this step.",
+    description: "One active user in the partner role can approve.",
   },
   {
-    label: "Every partner must approve",
+    label: "All partners",
     value: "all_partners",
-    description: "Every active user in the partner role should approve.",
+    description: "Every active user in the partner role must approve.",
   },
   {
-    label: "Require a set number of partners",
+    label: "A set number",
     value: "minimum_partners",
-    description: "Choose how many partner approvals are needed.",
+    description: "Choose the number of partner approvals needed.",
   },
 ];

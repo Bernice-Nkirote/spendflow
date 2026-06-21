@@ -18,6 +18,7 @@ from app.repositories.invoice_repository import InvoiceRepository
 from app.repositories.payment_repository import PaymentRepository
 from app.repositories.po_repository import PurchaseOrderRepository
 from app.repositories.pr_repository import PurchaseRequisitionRepository
+from app.repositories.user_repository import UserRepository
 from app.repositories.workflow_level_repository import WorkflowLevelRepository
 from app.repositories.workflow_role_repository import WorkflowLevelRoleRepository
 from app.schemas.approval_action_schema import ApprovalActionCreate
@@ -35,6 +36,7 @@ class ApprovalActionService:
         po_repo: PurchaseOrderRepository,
         invoice_repo: InvoiceRepository,
         payment_repo: PaymentRepository,
+        user_repo: UserRepository,
         audit_log_service: AuditLogService,
     ):
         self.action_repo = action_repo
@@ -45,6 +47,7 @@ class ApprovalActionService:
         self.po_repo = po_repo
         self.invoice_repo = invoice_repo
         self.payment_repo = payment_repo
+        self.user_repo = user_repo
         self.audit_log_service = audit_log_service
 
     def create_action(
@@ -106,13 +109,19 @@ class ApprovalActionService:
                 detail="Workflow level does not belong to this approval instance",
             )
 
+        workflow = instance.workflow
+        uses_partner_approval = self._uses_partner_approval(workflow)
+
         level_roles = self.level_role_repo.get_by_level(data.level_id, company_id)
         allowed_role_ids = {level_role.role_id for level_role in level_roles}
+
+        if uses_partner_approval and workflow.partner_role_id:
+            allowed_role_ids.add(workflow.partner_role_id)
 
         if not allowed_role_ids:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="No roles are assigned to this workflow level",
+                detail="No approver roles are assigned to this workflow",
             )
 
         if current_user.role_id is None:
@@ -127,13 +136,19 @@ class ApprovalActionService:
                 detail="User is not allowed to act on this workflow level",
             )
         
-        if current_user.department_id is None:
+        acting_as_partner = (
+            uses_partner_approval
+            and workflow.partner_role_id is not None
+            and current_user.role_id == workflow.partner_role_id
+        )
+
+        if not acting_as_partner and current_user.department_id is None:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="User must belong to the workflow level department to approve this request",
             )
 
-        if level.department_id != current_user.department_id:
+        if not acting_as_partner and level.department_id != current_user.department_id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="User is not allowed to approve requests for this department",
@@ -359,6 +374,23 @@ class ApprovalActionService:
             )
             return
 
+        workflow = instance.workflow
+        if self._uses_partner_approval(workflow):
+            if not self._partner_rule_is_satisfied(
+                workflow=workflow,
+                current_level_actions=current_level_actions,
+                company_id=company_id,
+            ):
+                return
+
+            self._approve_or_advance_instance(
+                instance=instance,
+                current_level=current_level,
+                company_id=company_id,
+                actor_user_id=actor_user_id,
+            )
+            return
+
         required_role_ids = {
             level_role.role_id
             for level_role in self.level_role_repo.get_by_level(
@@ -381,6 +413,75 @@ class ApprovalActionService:
         if not required_role_ids.issubset(approved_role_ids):
             return
 
+        self._approve_or_advance_instance(
+            instance=instance,
+            current_level=current_level,
+            company_id=company_id,
+            actor_user_id=actor_user_id,
+        )
+
+    def _uses_partner_approval(self, workflow) -> bool:
+        if not workflow:
+            return False
+
+        business_type = getattr(getattr(workflow, "company", None), "business_type", None)
+        if business_type != "partnership":
+            return False
+
+        return workflow.partner_approval_mode in {
+            "any_partner",
+            "minimum_partners",
+            "all_partners",
+        }
+
+    def _partner_required_count(self, workflow, company_id: UUID) -> int:
+        if not workflow.partner_role_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Partner approval is enabled, but no partner role is selected.",
+            )
+
+        if workflow.partner_approval_mode == "all_partners":
+            active_partner_count = self.user_repo.count_active_by_role(
+                company_id=company_id,
+                role_id=workflow.partner_role_id,
+            )
+            if active_partner_count < 1:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Partner approval is enabled, but no active users have the selected partner role.",
+                )
+            return active_partner_count
+
+        if workflow.partner_approval_mode == "minimum_partners":
+            return workflow.partner_approval_min_count or 1
+
+        return 1
+
+    def _partner_rule_is_satisfied(
+        self,
+        workflow,
+        current_level_actions: list[ApprovalAction],
+        company_id: UUID,
+    ) -> bool:
+        required_count = self._partner_required_count(workflow, company_id)
+
+        approved_partner_user_ids = {
+            action.user_id
+            for action in current_level_actions
+            if action.action == ActionType.APPROVED
+            and getattr(action.user, "role_id", None) == workflow.partner_role_id
+        }
+
+        return len(approved_partner_user_ids) >= required_count
+
+    def _approve_or_advance_instance(
+        self,
+        instance,
+        current_level,
+        company_id: UUID,
+        actor_user_id: UUID,
+    ) -> None:
         approval_amount = self._get_entity_approval_amount(
             instance=instance,
             company_id=company_id,

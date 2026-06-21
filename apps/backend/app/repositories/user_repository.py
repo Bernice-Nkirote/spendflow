@@ -51,6 +51,21 @@ class UserRepository:
             .count()
         )
 
+    def count_active_by_role(
+        self,
+        company_id: UUID,
+        role_id: UUID,
+    ) -> int:
+        return (
+            self.db.query(User)
+            .filter(
+                User.company_id == company_id,
+                User.role_id == role_id,
+                User.is_active.is_(True),
+            )
+            .count()
+        )
+
     def get_by_email(self, email: str, company_id: UUID) -> Optional[User]:
         return (
             self.db.query(User)
