@@ -30,7 +30,7 @@ class ApprovalInstanceRepository:
             .options(
                 joinedload(ApprovalInstance.workflow),
                 joinedload(ApprovalInstance.current_level),
-                joinedload(ApprovalInstance.actions),
+                joinedload(ApprovalInstance.actions).joinedload(ApprovalAction.user),
             )
             .filter(
                 ApprovalInstance.id == instance_id,
@@ -50,7 +50,7 @@ class ApprovalInstanceRepository:
             .options(
                 joinedload(ApprovalInstance.workflow),
                 joinedload(ApprovalInstance.current_level),
-                joinedload(ApprovalInstance.actions),
+                joinedload(ApprovalInstance.actions).joinedload(ApprovalAction.user),
             )
             .filter(ApprovalInstance.company_id == company_id)
             .order_by(ApprovalInstance.created_at.desc())
@@ -90,7 +90,7 @@ class ApprovalInstanceRepository:
             .options(
                 joinedload(ApprovalInstance.workflow),
                 joinedload(ApprovalInstance.current_level),
-                joinedload(ApprovalInstance.actions),
+                joinedload(ApprovalInstance.actions).joinedload(ApprovalAction.user),
             )
             .filter(ApprovalInstance.company_id == company_id)
         )

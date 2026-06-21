@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import axios from "axios";
 
 import BackButton from "../../../components/ui/BackButton";
 import Button from "../../../components/ui/Button";
@@ -30,6 +31,18 @@ function formatDate(value: string | null | undefined) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function getApiErrorMessage(error: unknown, fallback: string) {
+  if (axios.isAxiosError(error)) {
+    const detail = error.response?.data?.detail;
+
+    if (typeof detail === "string") {
+      return detail;
+    }
+  }
+
+  return fallback;
 }
 
 function formatRate(value: string | number | null | undefined) {
@@ -90,7 +103,7 @@ function ApprovalDetailPage() {
         setActions(actionsData);
       } catch (err) {
         console.error(err);
-        setError("Failed to load approval details.");
+        setError(getApiErrorMessage(err, "Failed to load approval details."));
       } finally {
         setIsLoading(false);
       }
