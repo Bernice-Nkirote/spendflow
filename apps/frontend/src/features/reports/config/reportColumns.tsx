@@ -18,6 +18,7 @@ import {
   formatMoney,
   formatQuantity,
 } from "../utils/reportFormatter";
+import { formatLeadTime } from "../utils/formatLeadTime";
 
 function TruncatedText({
   value,
@@ -617,7 +618,7 @@ export const supplierLeadTimeColumns: ReportTableColumn<SupplierLeadTimeReportIt
           value={
             value === null || value === undefined
               ? "-"
-              : `${Number(value).toFixed(1)} days`
+              : formatLeadTime(value as number | string)
           }
         />
       ),

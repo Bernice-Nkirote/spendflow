@@ -2,6 +2,7 @@ import Card from "../../../components/ui/Card";
 import { formatCurrency } from "../../../utils/formatCurrency";
 
 import type { ReportSummaryCardConfig } from "../types/report.types";
+import { formatLeadTime } from "../utils/formatLeadTime";
 
 type Props<T> = {
   data: T[];
@@ -26,7 +27,7 @@ function formatValue(
   }
 
   if (format === "days") {
-    return `${value.toFixed(1)} days`;
+    return formatLeadTime(value);
   }
 
   return new Intl.NumberFormat("en-KE").format(value);

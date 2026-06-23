@@ -32,7 +32,7 @@ export default function ReportingSnapshot({ data }: ReportingSnapshotProps) {
 
         <Link
           to="/reports"
-          className="inline-flex items-center justify-center rounded-full border border-primary-blue/20 bg-white/80 px-4 py-2 text-sm font-semibold text-primary-blue shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:bg-primary-blue hover:text-white hover:shadow-md"
+          className="inline-flex w-fit shrink-0 items-center justify-center rounded-full border border-primary-blue/20 bg-white/80 px-4 py-2 text-sm font-semibold text-primary-blue shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:bg-primary-blue hover:text-white hover:shadow-md"
         >
           View reports
         </Link>

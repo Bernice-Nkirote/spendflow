@@ -321,6 +321,95 @@ class EmailService:
             html_body=html_body,
         )
 
+    def send_company_signup_confirmation_email(
+        self,
+        to_email: str,
+        admin_name: str,
+        company_name: str,
+        business_type: str,
+        login_link: str,
+    ) -> None:
+        greeting_name = admin_name.strip() if admin_name and admin_name.strip() else "there"
+        company_display_name = (
+            company_name.strip() if company_name and company_name.strip() else "your company"
+        )
+        readable_business_type = business_type.replace("_", " ").title()
+
+        subject = "Welcome to Tendaflow"
+
+        body = (
+            f"Dear {greeting_name},\n\n"
+            f"Your Tendaflow workspace for {company_display_name} has been created successfully.\n\n"
+            f"Business type: {readable_business_type}\n"
+            f"Admin email: {to_email}\n\n"
+            "You can now sign in and continue setup by reviewing departments, users, roles, permissions, approval workflows, suppliers, and exchange rates.\n\n"
+            f"Sign in here: {login_link}\n\n"
+            "Best regards,\n"
+            "Tendaflow Team"
+        )
+
+        html_body = f"""
+        <html>
+          <body style="margin:0; padding:0; background-color:#f4f7fb; font-family:Arial, sans-serif; color:#141414;">
+            <div style="max-width:640px; margin:32px auto; background:#ffffff; border:1px solid #dbe3ee; border-radius:14px; overflow:hidden;">
+              <div style="background:#274C77; padding:24px 28px;">
+                <h1 style="margin:0; color:#ffffff; font-size:28px; font-weight:700;">Tendaflow</h1>
+              </div>
+
+              <div style="padding:28px;">
+                <p style="font-size:16px; margin:0 0 18px;">Dear {greeting_name},</p>
+
+                <p style="font-size:16px; line-height:1.6; margin:0 0 18px;">
+                  Your Tendaflow workspace for <strong>{company_display_name}</strong> has been created successfully.
+                </p>
+
+                <div style="border:1px solid #bfd7f5; background:#f1f7ff; border-radius:12px; padding:18px 20px; margin:24px 0;">
+                  <p style="margin:0 0 8px; font-size:15px; font-weight:700; color:#274C77;">
+                    Workspace details
+                  </p>
+                  <p style="margin:0 0 6px; font-size:14px; color:#4b5563;">
+                    <strong>Business type:</strong> {readable_business_type}
+                  </p>
+                  <p style="margin:0; font-size:14px; color:#4b5563;">
+                    <strong>Admin email:</strong> {to_email}
+                  </p>
+                </div>
+
+                <p style="font-size:16px; line-height:1.6; margin:0 0 24px;">
+                  You can now sign in and continue setup by reviewing departments, users, roles, permissions,
+                  approval workflows, suppliers, and exchange rates.
+                </p>
+
+                <div style="text-align:center; margin:30px 0;">
+                  <a href="{login_link}"
+                     style="display:inline-block; background:#274C77; color:#ffffff; text-decoration:none; padding:14px 30px; border-radius:8px; font-size:16px; font-weight:700;">
+                    Sign in to Tendaflow
+                  </a>
+                </div>
+
+                <p style="font-size:16px; line-height:1.6; margin:0;">
+                  Best regards,<br />
+                  <strong>Tendaflow Team</strong>
+                </p>
+
+                <hr style="border:none; border-top:1px solid #e5e7eb; margin:28px 0 18px;" />
+
+                <p style="font-size:12px; color:#6b7280; text-align:center; margin:0;">
+                  This is an automated email confirming the email address used during signup.
+                </p>
+              </div>
+            </div>
+          </body>
+        </html>
+        """
+
+        self.send_email(
+            to_email=to_email,
+            subject=subject,
+            body=body,
+            html_body=html_body,
+        )
+
         # PASSWORD RESET INTERNAL USER
     def send_password_reset_email(
         self,

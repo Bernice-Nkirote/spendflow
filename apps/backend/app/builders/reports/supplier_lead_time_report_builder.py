@@ -4,6 +4,12 @@ from app.schemas.reports.supplier_lead_time_report_schema import (
 
 
 class SupplierLeadTimeReportBuilder:
+    def _normalise_lead_time_days(self, value) -> float | None:
+        if value is None:
+            return None
+
+        return round(max(float(value), 0), 2)
+
     def build_rows(self, raw_rows) -> list[SupplierLeadTimeReportRow]:
         return [
             SupplierLeadTimeReportRow(
@@ -15,9 +21,7 @@ class SupplierLeadTimeReportBuilder:
                 invoice_number=row.invoice_number,
                 issued_at=row.issued_at,
                 invoice_created_at=row.invoice_created_at,
-                lead_time_days=round(float(row.lead_time_days), 2)
-                if row.lead_time_days is not None
-                else None,
+                lead_time_days=self._normalise_lead_time_days(row.lead_time_days),
             )
             for row in raw_rows
         ]

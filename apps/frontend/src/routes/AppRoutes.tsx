@@ -52,6 +52,8 @@ import SupplierPortalLayout from "../features/supplier_portal/components/Supplie
 import SupplierInvoicesPage from "../features/supplier_portal/pages/SupplierInvoicesPage";
 import SupplierInvoiceDetailsPage from "../features/supplier_portal/pages/SupplierInvoiceDetailsPage";
 import SupplierPaymentsPage from "../features/supplier_portal/pages/SupplierPaymentsPage";
+import SupplierPortalGuidePage from "../features/supplier_portal/pages/SupplierPortalGuidePage";
+import SupplierPortalAssistantPage from "../features/supplier_portal/pages/SupplierPortalAssistantPage";
 import PermissionsPage from "../features/permission/pages/PermissionPage";
 import AuditLogsPage from "../features/audit_logs/pages/AuditLogsPage";
 import UserGuidePage from "../features/user_guide/pages/UserGuidePage";
@@ -417,6 +419,8 @@ function AppRoutes() {
           <Route path="invoices" element={<SupplierInvoicesPage />} />
           <Route path="invoices/:id" element={<SupplierInvoiceDetailsPage />} />
           <Route path="payments" element={<SupplierPaymentsPage />} />
+          <Route path="guide" element={<SupplierPortalGuidePage />} />
+          <Route path="assistant" element={<SupplierPortalAssistantPage />} />
         </Route>
       </Route>
     </Routes>

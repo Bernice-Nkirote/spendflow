@@ -877,7 +877,11 @@ class ReportService:
                 detail="Supplier lead time detail not found",
             )
 
-        return SupplierLeadTimeDetailResponse.model_validate(row)
+        response = SupplierLeadTimeDetailResponse.model_validate(row)
+        if response.lead_time_days is not None:
+            response.lead_time_days = round(max(float(response.lead_time_days), 0), 2)
+
+        return response
 
     def export_supplier_lead_time_report_csv(
         self,

@@ -57,6 +57,14 @@ function SupplierPortalLayout() {
               Payments
             </NavLink>
 
+            <NavLink to="/supplier-portal/guide" className={navLinkClass}>
+              Guide
+            </NavLink>
+
+            <NavLink to="/supplier-portal/assistant" className={navLinkClass}>
+              Assistant
+            </NavLink>
+
             <Button
               type="button"
               variant="secondary"

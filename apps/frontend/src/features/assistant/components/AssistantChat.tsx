@@ -11,8 +11,11 @@ const starterPrompts = [
   "How do I create and submit a PR?",
   "How do I create a PO from an approved PR?",
   "How do I create a supplier portal user?",
+  "How do I create users for approvals?",
   "How do I add suppliers and categories?",
   "How do I create departments, roles, and permissions?",
+  "Can I create new permissions?",
+  "How do I send a PO to supplier before invoicing?",
   "Suggest suppliers for laptops and networking equipment",
   "How do approval workflows work?",
   "How do payments and invoice approvals work?",
@@ -60,8 +63,12 @@ function highlightActionText(text: string) {
     "Import Excel",
     "Common Tasks",
     "User Guide",
+    "Users",
     "supplier portal user",
     "Supplier Login",
+    "Create Draft PR",
+    "Send to Supplier",
+    "Mark as Shared",
   ];
 
   const matchedPhrase = phrases.find((phrase) => text.includes(phrase));

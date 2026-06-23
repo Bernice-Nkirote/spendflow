@@ -17,6 +17,7 @@ from app.repositories.department_repository import DepartmentRepository
 from app.repositories.role_repository import RoleRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.company_signup_schema import CompanySignupRequest
+from app.services.notifications.email_service import EmailService
 
 
 DEFAULT_ROLE_NAMES = [
@@ -44,12 +45,16 @@ class CompanySignupService:
         role_repo: RoleRepository,
         department_repo: DepartmentRepository,
         user_repo: UserRepository,
+        email_service: EmailService | None = None,
+        frontend_base_url: str | None = None,
     ):
         self.db = db
         self.company_repo = company_repo
         self.role_repo = role_repo
         self.department_repo = department_repo
         self.user_repo = user_repo
+        self.email_service = email_service
+        self.frontend_base_url = frontend_base_url
 
     def signup_company(self, data: CompanySignupRequest):
         company_name = data.company_name.strip()
@@ -196,6 +201,26 @@ class CompanySignupService:
             self.db.commit()
             self.db.refresh(company)
             self.db.refresh(admin_user)
+
+            if self.email_service:
+                try:
+                    login_link = (
+                        f"{self.frontend_base_url.rstrip('/')}/login"
+                        if self.frontend_base_url
+                        else "/login"
+                    )
+                    self.email_service.send_company_signup_confirmation_email(
+                        to_email=admin_email,
+                        admin_name=admin_name,
+                        company_name=company_name,
+                        business_type=business_type,
+                        login_link=login_link,
+                    )
+                except Exception as email_error:
+                    print(
+                        "SIGNUP CONFIRMATION EMAIL FAILED:",
+                        repr(email_error),
+                    )
 
             return {
                 "company": company,

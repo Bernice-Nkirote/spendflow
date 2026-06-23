@@ -11,6 +11,7 @@ import PageHeader from "../../../components/ui/PageHeader";
 import { getSupplierLeadTimeDetail } from "../api/supplierLeadTimeApi";
 import ReportStatusBadge from "../../reports/components/ReportStatusBadge";
 import type { SupplierLeadTimeDetail } from "../types/supplierLeadTimeDetail.types";
+import { formatLeadTime } from "../../reports/utils/formatLeadTime";
 
 function formatDate(value?: string | null) {
   if (!value) return "-";
@@ -19,12 +20,6 @@ function formatDate(value?: string | null) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
-}
-
-function formatLeadTime(value?: number | null) {
-  if (value === null || value === undefined) return "-";
-
-  return `${value.toFixed(1)} days`;
 }
 
 export default function SupplierLeadTimeDetailsPage() {
