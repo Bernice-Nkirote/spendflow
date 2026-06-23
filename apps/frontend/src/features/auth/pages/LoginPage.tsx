@@ -1,6 +1,6 @@
 import axios from "axios";
 import axiosInstance from "../../../api/axiosInstance";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { login } from "../api/authApi";
 import Button from "../../../components/ui/Button";
@@ -30,6 +30,25 @@ function LoginPage() {
 
   const [loading, setLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [showSignupSuccess, setShowSignupSuccess] = useState(
+    Boolean(signupState?.signupSuccess),
+  );
+
+  useEffect(() => {
+    if (!showSignupSuccess) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setShowSignupSuccess(false);
+    }, 15000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [showSignupSuccess]);
+
+  function hideSignupSuccessOnInput() {
+    if (showSignupSuccess) {
+      setShowSignupSuccess(false);
+    }
+  }
 
   const validateForm = (): boolean => {
     let isValid = true;
@@ -187,15 +206,15 @@ function LoginPage() {
           </p>
         </div>
 
-        {signupState?.signupSuccess && (
-          <div className="mb-5 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm leading-6 text-emerald-900">
-            <p className="font-semibold text-emerald-800">
+        {showSignupSuccess && (
+          <div className="mb-5 rounded-2xl border border-emerald-200/70 bg-emerald-50/70 px-4 py-3 text-sm leading-6 text-emerald-900 shadow-sm backdrop-blur">
+            <p className="font-semibold text-emerald-700">
               Company account created successfully.
             </p>
             <p className="mt-1">
               We sent a confirmation email to{" "}
               <span className="font-semibold">
-                {signupState.adminEmail ?? "your admin email"}
+                {signupState?.adminEmail ?? "your admin email"}
               </span>
               . You can sign in below using the company name, admin email, and
               password you just created.
@@ -209,7 +228,10 @@ function LoginPage() {
             name="companyName"
             type="text"
             value={companyName}
-            onChange={(e) => setCompanyName(e.target.value)}
+            onChange={(e) => {
+              hideSignupSuccessOnInput();
+              setCompanyName(e.target.value);
+            }}
             placeholder="Enter company name"
             error={companyNameError}
           />
@@ -219,7 +241,10 @@ function LoginPage() {
             name="email"
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              hideSignupSuccessOnInput();
+              setEmail(e.target.value);
+            }}
             placeholder="you@company.com"
             error={emailError}
           />
@@ -228,7 +253,10 @@ function LoginPage() {
             label="Password"
             name="password"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              hideSignupSuccessOnInput();
+              setPassword(e.target.value);
+            }}
             placeholder="Enter your password"
             error={passwordError}
           />
