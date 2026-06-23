@@ -1,7 +1,7 @@
 import axios from "axios";
 import axiosInstance from "../../../api/axiosInstance";
 import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { login } from "../api/authApi";
 import Button from "../../../components/ui/Button";
 import Card from "../../../components/ui/Card";
@@ -11,9 +11,17 @@ import { updateLastActivity } from "../utils/authSession";
 
 function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const signupState = location.state as
+    | {
+        signupSuccess?: boolean;
+        companyName?: string;
+        adminEmail?: string;
+      }
+    | null;
 
-  const [companyName, setCompanyName] = useState("");
-  const [email, setEmail] = useState("");
+  const [companyName, setCompanyName] = useState(signupState?.companyName ?? "");
+  const [email, setEmail] = useState(signupState?.adminEmail ?? "");
   const [password, setPassword] = useState("");
 
   const [companyNameError, setCompanyNameError] = useState("");
@@ -178,6 +186,22 @@ function LoginPage() {
             Sign in to manage procurement workflows
           </p>
         </div>
+
+        {signupState?.signupSuccess && (
+          <div className="mb-5 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm leading-6 text-emerald-900">
+            <p className="font-semibold text-emerald-800">
+              Company account created successfully.
+            </p>
+            <p className="mt-1">
+              We sent a confirmation email to{" "}
+              <span className="font-semibold">
+                {signupState.adminEmail ?? "your admin email"}
+              </span>
+              . You can sign in below using the company name, admin email, and
+              password you just created.
+            </p>
+          </div>
+        )}
 
         <form onSubmit={handleLogin} className="space-y-4" noValidate>
           <Input

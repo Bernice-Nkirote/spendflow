@@ -110,7 +110,7 @@ function CompanySignupPage() {
     setLoading(true);
 
     try {
-      await axiosInstance.post("/company-signup/", {
+      const response = await axiosInstance.post("/company-signup/", {
         company_name: companyName.trim(),
         business_type: businessType,
         admin_name: adminName.trim(),
@@ -121,7 +121,14 @@ function CompanySignupPage() {
         }),
       });
 
-      navigate("/login");
+      navigate("/login", {
+        state: {
+          signupSuccess: true,
+          companyName: response.data?.company?.name ?? companyName.trim(),
+          adminEmail: response.data?.admin_user?.email ?? adminEmail.trim(),
+        },
+        replace: true,
+      });
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
         const status = err.response?.status;
