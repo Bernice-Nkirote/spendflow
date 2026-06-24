@@ -3,18 +3,19 @@ import PageHeader from "../../../components/ui/PageHeader";
 
 const guideSections = [
   {
-    title: "Getting Started",
+    title: "Portal Overview",
     summary:
       "Use the supplier portal to review purchase orders, create invoices from eligible POs, and track invoice or payment progress.",
     steps: [
-      "Open the setup email sent by Tendaflow.",
-      "Create your password using the secure setup link.",
-      "Sign in from Supplier Login.",
-      "Review the Purchase Orders page first to see what has been shared with you.",
+      "Open Purchase Orders to see what the buyer has shared with you.",
+      "Open a PO to review item descriptions, quantities, prices, notes, and status.",
+      "Create an invoice only from an eligible PO.",
+      "Use Invoices to track submitted invoice status.",
+      "Use Payments to review payment records made by the buyer.",
     ],
     watchFor: [
-      "If your setup link expires, contact the buyer or procurement team to resend it.",
-      "Use the email address that received the setup invitation.",
+      "If a PO is missing, contact the buyer because they control what is shared to the supplier portal.",
+      "The supplier portal is for supplier tasks only. Internal approvals, roles, permissions, and payments are handled by the buyer.",
     ],
   },
   {
@@ -68,9 +69,9 @@ const guideSections = [
     summary:
       "Use the Supplier Assistant for quick help, or contact the buyer when a record needs correction.",
     steps: [
-      "Open Supplier Assistant for quick steps.",
+      "Open Supplier Assistant for quick supplier-only steps and links.",
       "Use this guide for the full supplier portal workflow.",
-      "Contact the buyer for missing POs, expired setup links, rejected invoices, or payment questions.",
+      "Contact the buyer for missing POs, rejected invoices, unclear invoice status, or payment questions.",
     ],
     watchFor: [
       "The supplier assistant only guides supplier portal actions.",

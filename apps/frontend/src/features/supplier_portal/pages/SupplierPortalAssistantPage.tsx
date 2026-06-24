@@ -1,142 +1,178 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-import Card from "../../../components/ui/Card";
-import PageHeader from "../../../components/ui/PageHeader";
+type SupplierAction = {
+  label: string;
+  path: string;
+};
 
 type SupplierTopic = {
   label: string;
   keywords: string[];
   answer: string;
   steps: string[];
+  actions: SupplierAction[];
+  checkpoint: string;
 };
 
 const supplierTopics: SupplierTopic[] = [
   {
-    label: "Getting started",
-    keywords: ["start", "login", "setup", "password", "invite", "email"],
-    answer:
-      "Start from the setup email. Create your password, sign in through Supplier Login, then review Purchase Orders first.",
-    steps: [
-      "Open the Tendaflow setup email.",
-      "Create your password before the setup link expires.",
-      "Sign in through Supplier Login.",
-      "Open Purchase Orders to see what the buyer has shared with you.",
-    ],
-  },
-  {
     label: "Purchase orders",
-    keywords: ["po", "purchase order", "order", "missing po", "shared"],
+    keywords: ["po", "purchase order", "order", "missing po", "shared", "sent"],
     answer:
-      "Purchase Orders show what the buyer has shared with you. If a PO is missing, ask the buyer to confirm it was sent or marked as shared.",
+      "Purchase Orders show what the buyer has shared with you. If a PO is missing, the buyer may not have sent or shared it yet.",
     steps: [
       "Open Purchase Orders.",
-      "Click the PO you want to review.",
+      "Select the PO you want to review.",
       "Check item descriptions, quantities, prices, notes, and status.",
-      "Create an invoice only when the PO is eligible.",
+      "Create an invoice only when the PO is eligible and the details are correct.",
     ],
+    actions: [
+      { label: "Open POs", path: "/supplier-portal/purchase-orders" },
+      { label: "Supplier Guide", path: "/supplier-portal/guide" },
+    ],
+    checkpoint:
+      "Do not invoice a PO if quantities, prices, or items look wrong. Contact the buyer first.",
   },
   {
-    label: "Invoices",
+    label: "Create invoice",
     keywords: ["invoice", "create invoice", "bill", "submit invoice", "rejected"],
     answer:
-      "Create invoices from eligible POs. The buyer's internal team reviews and approves invoices in their Tendaflow workspace.",
+      "Create invoices from eligible POs. The buyer reviews and approves the invoice inside their Tendaflow workspace.",
     steps: [
+      "Open Purchase Orders.",
       "Open the eligible PO.",
       "Click Create Invoice.",
-      "Enter invoice number, items, quantities, prices, and totals.",
-      "Submit the invoice for review.",
-      "Track status from Invoices.",
+      "Enter invoice number, line items, quantities, prices, and totals.",
+      "Submit the invoice for buyer review, then track it under Invoices.",
     ],
+    actions: [
+      { label: "Open POs", path: "/supplier-portal/purchase-orders" },
+      { label: "View Invoices", path: "/supplier-portal/invoices" },
+    ],
+    checkpoint:
+      "I can guide you, but I cannot submit the invoice for you. Review it before you click the final submit button.",
+  },
+  {
+    label: "Invoice status",
+    keywords: ["invoice status", "track invoice", "pending invoice", "approved invoice", "rejected invoice", "status"],
+    answer:
+      "Invoice status tells you where the buyer is in their review process. Open Invoices to check whether an invoice is submitted, approved, rejected, paid, or still in progress.",
+    steps: [
+      "Open Invoices.",
+      "Find the invoice number.",
+      "Open the invoice details.",
+      "Review the status and any rejection reason if it was rejected.",
+      "Contact the buyer if the status looks unclear or has not changed for a long time.",
+    ],
+    actions: [
+      { label: "View Invoices", path: "/supplier-portal/invoices" },
+      { label: "Supplier Guide", path: "/supplier-portal/guide" },
+    ],
+    checkpoint:
+      "Only the buyer's internal team can approve or reject invoices.",
   },
   {
     label: "Payments",
-    keywords: ["payment", "paid", "reference", "money", "status"],
+    keywords: ["payment", "paid", "reference", "money", "amount", "method"],
     answer:
-      "Payments show what the buyer has recorded against approved invoices. Suppliers can review payment information, but cannot create or approve payments.",
+      "Payments show what the buyer has recorded against approved invoices. You can review payment details, but suppliers cannot create or approve payments.",
     steps: [
       "Open Payments.",
-      "Review amount, method, reference, and status.",
-      "Compare the payment record with your invoice and financial records.",
-      "Contact the buyer's finance team if something looks wrong.",
+      "Review payment amount, method, reference, and status.",
+      "Compare the payment record with your invoice and finance records.",
+      "Contact the buyer's finance team if a payment is missing or unclear.",
     ],
+    actions: [
+      { label: "View Payments", path: "/supplier-portal/payments" },
+      { label: "View Invoices", path: "/supplier-portal/invoices" },
+    ],
+    checkpoint:
+      "Tendaflow shows payment records here; it does not move money from the supplier portal.",
   },
   {
-    label: "Need help",
-    keywords: ["help", "confused", "support", "contact", "guide"],
+    label: "Portal help",
+    keywords: ["help", "confused", "support", "guide", "where", "start"],
     answer:
-      "You are okay. For portal steps, use the Supplier Guide. For missing records or corrections, contact the buyer because they control shared POs, approvals, and payments.",
+      "Start with Purchase Orders. From there you can review shared POs, create eligible invoices, and then track invoices and payments.",
     steps: [
-      "Open Supplier Guide for detailed portal steps.",
-      "Ask the buyer about missing POs, expired setup links, rejected invoices, or payment questions.",
-      "Do not submit an invoice if PO details look incorrect.",
+      "Open Purchase Orders to see what the buyer has shared.",
+      "Open Invoices to track invoices you submitted.",
+      "Open Payments to review payment records.",
+      "Use Supplier Guide when you want the fuller explanation.",
     ],
+    actions: [
+      { label: "Open POs", path: "/supplier-portal/purchase-orders" },
+      { label: "Supplier Guide", path: "/supplier-portal/guide" },
+    ],
+    checkpoint:
+      "For missing POs, rejected invoices, or payment questions, contact the buyer because they control those records.",
   },
 ];
 
 const starterPrompts = [
-  "How do I get started?",
+  "What should I do first?",
   "Why can't I see a purchase order?",
   "How do I create an invoice?",
   "Where do I track invoice status?",
   "Where do I see payments?",
 ];
 
-function findTopic(message: string) {
+function findTopic(message: string): SupplierTopic | null {
   const lowerMessage = message.toLowerCase();
 
   return (
     supplierTopics.find((topic) =>
       topic.keywords.some((keyword) => lowerMessage.includes(keyword)),
-    ) ?? supplierTopics[4]
+    ) ?? null
   );
 }
 
 export default function SupplierPortalAssistantPage() {
   const [message, setMessage] = useState("");
-  const [activePrompt, setActivePrompt] = useState(starterPrompts[0]);
+  const [activeQuestion, setActiveQuestion] = useState(starterPrompts[0]);
 
-  const topic = useMemo(() => findTopic(activePrompt), [activePrompt]);
+  const topic = useMemo(() => findTopic(activeQuestion), [activeQuestion]);
+  const response = topic ?? supplierTopics[4];
+  const isFallback = topic === null;
 
   function submitMessage(nextMessage = message) {
     const trimmed = nextMessage.trim();
     if (!trimmed) return;
-    setActivePrompt(trimmed);
+    setActiveQuestion(trimmed);
     setMessage("");
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        title="Supplier Assistant"
-        description="Quick, supplier-only guidance for POs, invoices, payments, and portal access."
-        actions={
+    <div className="space-y-5">
+      <section className="rounded-2xl border border-primary-blue/10 bg-white/85 p-5 shadow-sm backdrop-blur">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary-blue">
+              Supplier Assistant
+            </p>
+            <h1 className="mt-2 text-2xl font-semibold text-primary-black">
+              Quick help for supplier portal tasks.
+            </h1>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-primary-gray">
+              Ask about purchase orders, creating invoices, invoice status, and
+              payments. I only guide supplier duties.
+            </p>
+          </div>
+
           <Link
             to="/supplier-portal/guide"
-            className="inline-flex items-center justify-center rounded-xl border border-primary-blue/20 bg-blue-50 px-4 py-2 text-sm font-semibold text-primary-blue transition hover:bg-blue-100"
+            className="inline-flex w-fit items-center justify-center rounded-full border border-primary-blue/20 bg-blue-50 px-4 py-2 text-sm font-semibold text-primary-blue shadow-sm transition hover:bg-blue-100"
           >
             Supplier Guide
           </Link>
-        }
-      />
+        </div>
+      </section>
 
-      <Card className="border-primary-blue/10 bg-primary-blue text-white">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
-          Supplier-only helper
-        </p>
-        <h2 className="mt-2 text-2xl font-semibold">
-          Ask about your portal workflow.
-        </h2>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-white/80">
-          I can guide you, but you stay in control. I cannot submit invoices,
-          change POs, approve records, or record payments.
-        </p>
-      </Card>
-
-      <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <Card>
+      <section className="grid gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <aside className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
           <p className="text-sm font-semibold text-primary-black">
-            Common supplier questions
+            Common questions
           </p>
           <div className="mt-4 space-y-2">
             {starterPrompts.map((prompt) => (
@@ -150,48 +186,105 @@ export default function SupplierPortalAssistantPage() {
               </button>
             ))}
           </div>
-        </Card>
+        </aside>
 
-        <Card>
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
-            <textarea
-              value={message}
-              onChange={(event) => setMessage(event.target.value)}
-              placeholder="Ask about POs, invoices, payments, login, or missing records..."
-              className="min-h-24 w-full resize-none bg-transparent px-3 py-2 text-sm text-primary-black outline-none"
-            />
-            <div className="flex justify-end border-t border-gray-200 pt-3">
-              <button
-                type="button"
-                onClick={() => submitMessage()}
-                disabled={!message.trim()}
-                className="rounded-full bg-primary-blue px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-blue/90 disabled:cursor-not-allowed disabled:bg-gray-300"
-              >
-                Ask
-              </button>
+        <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div className="border-b border-gray-200 bg-primary-blue px-4 py-4 text-white sm:px-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
+              Ask Supplier Assistant
+            </p>
+            <p className="mt-1 text-sm leading-6 text-white/80">
+              I give steps and links. You review and take the final action.
+            </p>
+          </div>
+
+          <div className="space-y-4 bg-gray-50/80 p-4 sm:p-5">
+            <div className="flex justify-end">
+              <div className="max-w-[85%] rounded-2xl rounded-tr-md bg-primary-blue px-4 py-3 text-sm leading-6 text-white shadow-sm">
+                {activeQuestion}
+              </div>
+            </div>
+
+            <div className="max-w-[92%] rounded-2xl rounded-tl-md border border-gray-200 bg-white p-4 text-sm text-primary-gray shadow-sm">
+              <span className="inline-flex rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-primary-blue">
+                {response.label}
+              </span>
+
+              <p className="mt-3 leading-6">{response.answer}</p>
+
+              {isFallback && (
+                <p className="mt-3 rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
+                  I may not have matched that exactly. I can answer supplier
+                  portal questions about POs, invoices, invoice status, and
+                  payments. For record corrections, contact the buyer.
+                </p>
+              )}
+
+              <div className="mt-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary-gray">
+                  Next steps
+                </p>
+                <ol className="mt-2 space-y-2">
+                  {response.steps.map((step, index) => (
+                    <li key={step} className="flex gap-3 leading-6">
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-primary-blue">
+                        {index + 1}
+                      </span>
+                      <span>{step}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+
+              <div className="mt-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary-gray">
+                  Shortcuts
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {response.actions.map((action) => (
+                    <Link
+                      key={action.path}
+                      to={action.path}
+                      className="rounded-full bg-primary-blue px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-primary-blue/90"
+                    >
+                      {action.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-xl border border-amber-100 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                <p className="font-semibold">Checkpoint</p>
+                <p className="mt-1">{response.checkpoint}</p>
+              </div>
             </div>
           </div>
 
-          <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary-blue">
-              {topic.label}
-            </p>
-            <p className="mt-2 text-sm leading-6 text-primary-gray">
-              {topic.answer}
-            </p>
-            <ol className="mt-4 space-y-2">
-              {topic.steps.map((step, index) => (
-                <li key={step} className="flex gap-3 text-sm text-primary-gray">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-semibold text-primary-blue">
-                    {index + 1}
-                  </span>
-                  <span className="leading-6">{step}</span>
-                </li>
-              ))}
-            </ol>
+          <div className="border-t border-gray-200 bg-white p-4 sm:p-5">
+            <div className="rounded-2xl border border-gray-200 bg-gray-50 p-2 shadow-sm focus-within:border-primary-blue focus-within:ring-2 focus-within:ring-primary-blue/20">
+              <textarea
+                value={message}
+                onChange={(event) => setMessage(event.target.value)}
+                placeholder="Ask about POs, invoices, invoice status, or payments..."
+                className="min-h-20 max-h-40 w-full resize-none bg-transparent px-3 py-2 text-sm text-primary-black outline-none"
+              />
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-gray-200 px-2 pt-2">
+                <p className="text-xs text-primary-gray">
+                  Supplier-only guidance. No internal admin actions here.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => submitMessage()}
+                  disabled={!message.trim()}
+                  className="inline-flex items-center justify-center rounded-full bg-primary-blue px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-blue/90 disabled:cursor-not-allowed disabled:bg-gray-300"
+                >
+                  Ask
+                </button>
+              </div>
+            </div>
           </div>
-        </Card>
-      </div>
+        </div>
+      </section>
     </div>
   );
 }
