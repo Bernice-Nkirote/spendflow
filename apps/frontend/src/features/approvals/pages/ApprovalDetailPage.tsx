@@ -153,6 +153,7 @@ function ApprovalDetailPage() {
       setSelectedAction(null);
 
       window.dispatchEvent(new Event("approval-notifications:refresh"));
+      window.dispatchEvent(new Event("tasks:refresh"));
 
       if (selectedAction === "REJECTED") {
         setSuccessMessage(

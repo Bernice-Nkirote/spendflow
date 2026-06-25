@@ -57,11 +57,30 @@ function MyTasksDropdown() {
   useEffect(() => {
     loadTasks();
 
+    function handleTasksRefresh() {
+      loadTasks();
+    }
+
+    function handleVisibilityChange() {
+      if (!document.hidden) {
+        loadTasks();
+      }
+    }
+
+    window.addEventListener("tasks:refresh", handleTasksRefresh);
+    window.addEventListener("focus", handleTasksRefresh);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     const intervalId = window.setInterval(() => {
       loadTasks();
     }, 60_000);
 
-    return () => window.clearInterval(intervalId);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("tasks:refresh", handleTasksRefresh);
+      window.removeEventListener("focus", handleTasksRefresh);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   useEffect(() => {
