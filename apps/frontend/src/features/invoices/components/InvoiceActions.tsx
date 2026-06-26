@@ -1,4 +1,4 @@
-import axios from "axios";
+﻿import axios from "axios";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -9,6 +9,7 @@ import { deleteInvoice, submitInvoice } from "../api/invoiceApi";
 import type { InvoiceDetails } from "../types/invoice.types";
 
 import { userHasPermission } from "../../../utils/permissions";
+import { refreshWorkQueues } from "../../../utils/refreshWorkQueues";
 
 type Props = {
   invoice: InvoiceDetails;
@@ -67,6 +68,7 @@ export default function InvoiceActions({
 
       const updatedInvoice = await submitInvoice(invoice.id);
       onUpdated(updatedInvoice);
+      refreshWorkQueues();
     } catch (error) {
       if (axios.isAxiosError(error)) {
         onError(

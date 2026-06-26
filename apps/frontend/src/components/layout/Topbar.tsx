@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import Button from "../ui/Button";
@@ -77,7 +77,7 @@ function Topbar({ onMenuClick }: TopbarProps) {
   const displayName = user?.name || "User";
   const displaySubtitle =
     user?.company_name && user?.role_name
-      ? `${user.company_name} • ${user.role_name}`
+      ? `${user.company_name} â€¢ ${user.role_name}`
       : user?.email || "Company Workspace";
 
   const initials = getInitials(user?.name, user?.email);
@@ -114,14 +114,22 @@ function Topbar({ onMenuClick }: TopbarProps) {
       loadNotifications();
     }
 
+    function handleVisibilityChange() {
+      if (!document.hidden) {
+        loadNotifications();
+      }
+    }
+
     window.addEventListener(
       "approval-notifications:refresh",
       handleApprovalNotificationsRefresh,
     );
+    window.addEventListener("focus", handleApprovalNotificationsRefresh);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     const intervalId = window.setInterval(() => {
       loadNotifications();
-    }, 60_000);
+    }, 30_000);
 
     return () => {
       window.clearInterval(intervalId);
@@ -129,6 +137,8 @@ function Topbar({ onMenuClick }: TopbarProps) {
         "approval-notifications:refresh",
         handleApprovalNotificationsRefresh,
       );
+      window.removeEventListener("focus", handleApprovalNotificationsRefresh);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 
@@ -164,7 +174,7 @@ function Topbar({ onMenuClick }: TopbarProps) {
             className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 shadow-sm transition hover:bg-gray-50 lg:hidden"
             aria-label="Open navigation menu"
           >
-            ☰
+            â˜°
           </button>
 
           <div className="min-w-0 max-w-[9.5rem] sm:max-w-none">
@@ -242,7 +252,7 @@ function Topbar({ onMenuClick }: TopbarProps) {
 
                   {urgentCount > 0 && (
                     <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-red-100 bg-red-50 px-3 py-1 text-xs font-semibold text-red-600 shadow-sm">
-                      🚩 {urgentCount} urgent
+                      ðŸš© {urgentCount} urgent
                     </span>
                   )}
                 </div>
@@ -270,7 +280,7 @@ function Topbar({ onMenuClick }: TopbarProps) {
                               {item.entity_reference ?? "Approval request"}
                             </p>
                             <p className="mt-1 text-xs text-primary-gray">
-                              {item.entity_type} •{" "}
+                              {item.entity_type} â€¢{" "}
                               {item.current_level_name ?? "Current level"}
                             </p>
                           </div>

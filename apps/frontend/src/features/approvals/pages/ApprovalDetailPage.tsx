@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import axios from "axios";
 
@@ -12,6 +12,7 @@ import LoadingState from "../../../components/ui/LoadingState";
 import PageContainer from "../../../components/ui/PageContainer";
 import PageHeader from "../../../components/ui/PageHeader";
 import { formatCurrency } from "../../../utils/formatCurrency";
+import { refreshWorkQueues } from "../../../utils/refreshWorkQueues";
 import {
   createApprovalAction,
   getApprovalActionsByInstance,
@@ -152,8 +153,7 @@ function ApprovalDetailPage() {
       setComment("");
       setSelectedAction(null);
 
-      window.dispatchEvent(new Event("approval-notifications:refresh"));
-      window.dispatchEvent(new Event("tasks:refresh"));
+      refreshWorkQueues();
 
       if (selectedAction === "REJECTED") {
         setSuccessMessage(
@@ -291,7 +291,7 @@ function ApprovalDetailPage() {
                 label="Exchange Rate"
                 value={formatRate(instance.exchange_rate)}
                 helper={`${instance.currency ?? "-"}${
-                  instance.base_currency ? ` → ${instance.base_currency}` : ""
+                  instance.base_currency ? ` â†’ ${instance.base_currency}` : ""
                 }`}
               />
               <InfoItem

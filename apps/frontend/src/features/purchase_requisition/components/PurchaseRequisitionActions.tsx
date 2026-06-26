@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 
 import Button from "../../../components/ui/Button";
 
@@ -9,6 +9,7 @@ import {
 
 import type { PurchaseRequisitionDetails } from "../types/purchaseRequisition.types";
 import { userHasPermission } from "../../../utils/permissions";
+import { refreshWorkQueues } from "../../../utils/refreshWorkQueues";
 
 type Props = {
   purchaseRequisition: PurchaseRequisitionDetails;
@@ -58,6 +59,7 @@ export default function PurchaseRequisitionActions({
       );
 
       onUpdated(updatedPurchaseRequisition);
+      refreshWorkQueues();
     } catch (error) {
       onError(getErrorMessage(error));
     } finally {

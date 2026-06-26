@@ -1,8 +1,9 @@
-import axios from "axios";
+﻿import axios from "axios";
 import { type ChangeEvent, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { userHasPermission } from "../../../utils/permissions";
+import { refreshWorkQueues } from "../../../utils/refreshWorkQueues";
 
 import Button from "../../../components/ui/Button";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
@@ -54,6 +55,7 @@ export default function PurchaseOrderActions({
 
       const updatedPurchaseOrder = await submitPurchaseOrder(purchaseOrder.id);
       onUpdated(updatedPurchaseOrder);
+      refreshWorkQueues();
     } catch (error) {
       onError(
         getApiErrorMessage(

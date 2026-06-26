@@ -1,4 +1,4 @@
-import axios from "axios";
+﻿import axios from "axios";
 import { useState } from "react";
 
 import Button from "../../../components/ui/Button";
@@ -7,6 +7,7 @@ import StatusBadge from "../../../components/ui/StatusBadge";
 import { deletePayment, submitPayment } from "../api/paymentApi";
 import type { PaymentDetails } from "../types/payment.types";
 import { userHasPermission } from "../../../utils/permissions";
+import { refreshWorkQueues } from "../../../utils/refreshWorkQueues";
 
 type PaymentActionsProps = {
   payment: PaymentDetails;
@@ -57,6 +58,7 @@ export default function PaymentActions({
 
       const updatedPayment = await submitPayment(payment.id);
       onUpdated(updatedPayment);
+      refreshWorkQueues();
     } catch (error) {
       onError(
         getApiErrorMessage(error, "Failed to submit payment for approval."),
