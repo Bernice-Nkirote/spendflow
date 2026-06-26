@@ -1,4 +1,4 @@
-import { NavLink, Outlet } from "react-router-dom";
+﻿import { NavLink, Outlet } from "react-router-dom";
 import { useSupplierInactivityLogout } from "../../supplier_auth/hooks/useSupplierInactivityLogout";
 
 import Button from "../../../components/ui/Button";
@@ -36,9 +36,16 @@ function SupplierPortalLayout() {
       />
       <header className="sticky top-0 z-40 border-b bg-white/95 shadow-sm backdrop-blur">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-primary-blue">Tendaflow</h1>
-            <p className="text-sm text-primary-gray">Supplier Portal</p>
+          <div className="flex items-center gap-3">
+            <img
+              src="/tendaflow-app-icon.svg"
+              alt="Tendaflow"
+              className="h-10 w-10 rounded-xl object-contain shadow-sm"
+            />
+            <div>
+              <h1 className="text-xl font-bold text-primary-blue">Tendaflow</h1>
+              <p className="text-sm text-primary-gray">Supplier Portal</p>
+            </div>
           </div>
 
           <nav className="flex flex-wrap items-center gap-2">

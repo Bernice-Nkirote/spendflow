@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+﻿import { NavLink } from "react-router-dom";
 
 type SidebarProps = {
   isOpen: boolean;
@@ -75,13 +75,13 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
       >
         <div className="border-b border-white/20 px-5 py-5">
           <img
-            src="/tendaflow-sidebar-logo-primary-polished.svg"
+            src="/tendaflow-logo-lockup-light.svg"
             alt="Tendaflow"
-            className="h-auto w-full max-w-[190px] rounded-2xl object-contain shadow-[0_8px_20px_rgba(0,0,0,0.18)]"
+            className="h-auto w-full max-w-[190px] object-contain"
           />
 
           <p className="mt-3 text-sm font-medium text-white/70">
-            Procurement System
+            Flowing procurement. Smarter decisions.
           </p>
         </div>
 
@@ -115,7 +115,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
           ))}
         </nav>
         <div className="shrink-0 border-t border-white/10 px-5 py-4 text-xs text-white/55">
-          <p className="mt-1">Tendaflow © {currentYear}</p>
+          <p className="mt-1">Tendaflow Â© {currentYear}</p>
         </div>
       </aside>
     </>

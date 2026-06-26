@@ -1,16 +1,16 @@
-export default function AppLoader() {
+﻿export default function AppLoader() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-[#EEF4FF] via-[#DCE7F5] to-[#C9DBF5] px-6 text-center">
       <div className="mb-4 flex items-center justify-center">
         <img
-          src="/tendaflow-logo-final-transparent.svg"
+          src="/tendaflow-logo-lockup.svg"
           alt="Tendaflow logo"
-          className="w-full max-w-[18rem] sm:max-w-[22rem] md:max-w-[24rem] rounded-[2rem] object-contain drop-shadow-[0_20px_45px_rgba(3,37,91,0.32)]"
+          className="w-full max-w-[15rem] object-contain sm:max-w-[18rem] md:max-w-[20rem]"
         />
       </div>
 
       <p className="text-[1.15rem] font-medium tracking-[0.08em] text-[#274C77]">
-        Smart Procurement Management
+        Flowing procurement. Smarter decisions.
       </p>
 
       <div className="mt-5 flex justify-center gap-3">
