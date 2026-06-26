@@ -77,7 +77,7 @@ function Topbar({ onMenuClick }: TopbarProps) {
   const displayName = user?.name || "User";
   const displaySubtitle =
     user?.company_name && user?.role_name
-      ? `${user.company_name} ${user.role_name}`
+      ? `${user.company_name} . ${user.role_name}`
       : user?.email || "Company Workspace";
 
   const initials = getInitials(user?.name, user?.email);
