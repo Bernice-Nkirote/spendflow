@@ -1,34 +1,31 @@
 ﻿<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
   <title id="title">Tendaflow app icon</title>
-  <desc id="desc">Dark rounded square with Tendaflow's layered F-like ribbon mark.</desc>
+  <desc id="desc">Dark rounded square with Tendaflow's approved layered F ribbon mark.</desc>
   <defs>
-    <linearGradient id="icon-bg" x1="12" y1="8" x2="86" y2="88" gradientUnits="userSpaceOnUse">
+    <linearGradient id="icon-bg" x1="10" y1="8" x2="88" y2="90" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#011C40"/>
       <stop offset="1" stop-color="#032B63"/>
     </linearGradient>
-    <linearGradient id="top-ribbon" x1="18" y1="31" x2="74" y2="31" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#1B6C9E"/>
-      <stop offset="0.58" stop-color="#2798B4"/>
+    <linearGradient id="tf-top" x1="20" y1="31" x2="76" y2="31" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#17699C"/>
+      <stop offset="0.52" stop-color="#2387A7"/>
       <stop offset="1" stop-color="#54ACBF"/>
     </linearGradient>
-    <linearGradient id="lower-ribbon" x1="30" y1="44" x2="63" y2="65" gradientUnits="userSpaceOnUse">
+    <linearGradient id="tf-mid" x1="30" y1="47" x2="62" y2="58" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#A7EBF2"/>
-      <stop offset="0.5" stop-color="#54ACBF"/>
+      <stop offset="0.52" stop-color="#54ACBF"/>
       <stop offset="1" stop-color="#2387A7"/>
     </linearGradient>
-    <linearGradient id="tail-ribbon" x1="28" y1="58" x2="45" y2="78" gradientUnits="userSpaceOnUse">
+    <linearGradient id="tf-tail" x1="29" y1="58" x2="45" y2="79" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#54ACBF"/>
       <stop offset="1" stop-color="#A7EBF2"/>
     </linearGradient>
-    <filter id="soft-shadow" x="-24%" y="-24%" width="148%" height="148%">
-      <feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#011C40" flood-opacity="0.22"/>
-    </filter>
   </defs>
-  <rect x="9" y="9" width="78" height="78" rx="17" fill="url(#icon-bg)" filter="url(#soft-shadow)"/>
-  <path d="M22 33C22 28.6 25.6 25 30 25H74V28C74 34.6 68.6 40 62 40H22V33Z" fill="url(#top-ribbon)"/>
-  <path d="M22 40C25.6 36.9 30.8 35.3 37.6 35.3H62C68.6 35.3 74 30 74 23.4V28C74 34.6 68.6 40 62 40H22Z" fill="#A7EBF2" opacity="0.18"/>
-  <path d="M31 45H62V48C62 54.1 57.1 59 51 59H31V45Z" fill="url(#lower-ribbon)"/>
-  <path d="M31 59H51C46.4 60.9 42.1 64.3 38.3 69.1L31 78V59Z" fill="url(#tail-ribbon)"/>
-  <path d="M31 45H51C42.8 46.4 36.1 51 31 59V45Z" fill="#011C40" opacity="0.22"/>
-  <path d="M31 59H39C35.6 61.8 32.9 65.9 31 71.3V59Z" fill="#011C40" opacity="0.12"/>
+  <rect x="9" y="9" width="78" height="78" rx="17" fill="url(#icon-bg)"/>
+  <path d="M21 34C21 29.6 24.6 26 29 26H75V29.4C75 36 69.6 41.4 63 41.4H21V34Z" fill="url(#tf-top)"/>
+  <path d="M21 41.4C25.2 37.6 31.4 35.8 39.4 35.8H63C69.6 35.8 75 30.4 75 23.8V29.4C75 36 69.6 41.4 63 41.4H21Z" fill="#A7EBF2" opacity="0.16"/>
+  <path d="M30 47H63V49.5C63 56.1 57.6 61.5 51 61.5H30V47Z" fill="url(#tf-mid)"/>
+  <path d="M30 61.5H51C46 63.2 41.8 66.3 38.3 70.8L30 81V61.5Z" fill="url(#tf-tail)"/>
+  <path d="M30 47H51C42.1 48.6 35.2 53.4 30 61.5V47Z" fill="#011C40" opacity="0.22"/>
+  <path d="M30 61.5H38.5C34.9 64.3 32.1 68.4 30 73.8V61.5Z" fill="#011C40" opacity="0.12"/>
 </svg>
