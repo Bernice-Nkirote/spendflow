@@ -1,30 +1,31 @@
-﻿<svg xmlns="http://www.w3.org/2000/svg" width="350" height="92" viewBox="0 0 350 92" role="img" aria-labelledby="title desc">
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="340" height="84" viewBox="0 0 340 84" role="img" aria-labelledby="title desc">
   <title id="title">Tendaflow logo</title>
-  <desc id="desc">Tendaflow horizontal logo lockup with approved F ribbon mark and wordmark.</desc>
+  <desc id="desc">Approved Tendaflow horizontal logo lockup with flowing F ribbon mark.</desc>
   <defs>
-    <linearGradient id="tf-top" x1="12" y1="31" x2="74" y2="31" gradientUnits="userSpaceOnUse">
+    <linearGradient id="top" x1="12" y1="27" x2="79" y2="39" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#17699C"/>
-      <stop offset="0.52" stop-color="#2387A7"/>
+      <stop offset="0.55" stop-color="#2C94AE"/>
+      <stop offset="1" stop-color="#78DDE7"/>
+    </linearGradient>
+    <linearGradient id="middle" x1="26" y1="43" x2="70" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#A7EBF2"/>
+      <stop offset="0.48" stop-color="#69CDD8"/>
       <stop offset="1" stop-color="#54ACBF"/>
     </linearGradient>
-    <linearGradient id="tf-mid" x1="25" y1="47" x2="61" y2="58" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#A7EBF2"/>
-      <stop offset="0.52" stop-color="#54ACBF"/>
-      <stop offset="1" stop-color="#2387A7"/>
-    </linearGradient>
-    <linearGradient id="tf-tail" x1="24" y1="58" x2="42" y2="79" gradientUnits="userSpaceOnUse">
+    <linearGradient id="tail" x1="26" y1="55" x2="44" y2="79" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#54ACBF"/>
+      <stop offset="0.58" stop-color="#78DDE7"/>
       <stop offset="1" stop-color="#A7EBF2"/>
     </linearGradient>
   </defs>
   <g aria-hidden="true">
-    <path d="M12 34C12 29.6 15.6 26 20 26H74V29.4C74 36 68.6 41.4 62 41.4H12V34Z" fill="url(#tf-top)"/>
-    <path d="M12 41.4C16.8 37.6 23.7 35.8 32.8 35.8H62C68.6 35.8 74 30.4 74 23.8V29.4C74 36 68.6 41.4 62 41.4H12Z" fill="#A7EBF2" opacity="0.16"/>
-    <path d="M25 47H62V49.5C62 56.1 56.6 61.5 50 61.5H25V47Z" fill="url(#tf-mid)"/>
-    <path d="M25 61.5H50C44.2 63.2 39.3 66.4 35.2 70.9L25 82V61.5Z" fill="url(#tf-tail)"/>
-    <path d="M25 47H50C39.7 48.6 31.5 53.4 25 61.5V47Z" fill="#011C40" opacity="0.2"/>
-    <path d="M25 61.5H35.3C30.9 64.5 27.5 68.9 25 74.8V61.5Z" fill="#011C40" opacity="0.1"/>
-    <path d="M101 24V70" stroke="#26658C" stroke-width="2.2" stroke-linecap="round" opacity="0.8"/>
+    <path d="M12 35.8C12 26.9 18.4 23 26.4 23H78.2C78.2 30.4 72.9 37.2 62.2 38.1H24.6C19 38.1 14.9 39.5 12 43V35.8Z" fill="url(#top)"/>
+    <path d="M12 43C15.6 37.8 20.8 35.4 28.8 35.4H62.2C71.6 34.9 76.8 30.4 78.2 23V30.8C78.2 38.6 72.2 44.9 62.1 45.3H27.4C19.8 45.3 14.9 48.1 12 53.1V43Z" fill="#011C40" opacity="0.14"/>
+    <path d="M26.2 46.2C29 43.1 33.3 41.5 39.3 41.5H68C68 49.4 62.6 55.8 53.2 56.5H26.2V46.2Z" fill="url(#middle)"/>
+    <path d="M26.2 56.5H53.2C46.7 57.7 41.4 60.8 37.4 65.9L26.2 78V56.5Z" fill="url(#tail)"/>
+    <path d="M26.2 56.5H40.1C34.3 59 29.8 63.4 26.2 69.8V56.5Z" fill="#011C40" opacity="0.11"/>
+    <path d="M26.2 46.2H53.2C42.1 47.3 33.1 50.8 26.2 56.5V46.2Z" fill="#011C40" opacity="0.12"/>
+    <path d="M101 18V66" stroke="#26658C" stroke-width="2" stroke-linecap="round" opacity="0.82"/>
   </g>
-  <text x="122" y="59" fill="#011C40" font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="37" font-weight="700" letter-spacing="-0.45">Tendaflow</text>
+  <text x="122" y="54" fill="#011C40" font-family="Inter, Avenir Next, Nunito Sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="35" font-weight="700" letter-spacing="-0.25">Tendaflow</text>
 </svg>
