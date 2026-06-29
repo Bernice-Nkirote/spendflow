@@ -97,25 +97,25 @@ const cardStyles: Record<
 > = {
   blue: {
     gradient: "kpi-gradient-procurement",
-    glow: "bg-[#007CBE]/12",
+    glow: "bg-[#007CBE]/18",
     icon: <DocumentIcon className="h-5 w-5" />,
     iconText: "text-[#007CBE]",
   },
   purple: {
     gradient: "kpi-gradient-orders",
-    glow: "bg-[#02C3BD]/12",
+    glow: "bg-[#02C3BD]/18",
     icon: <OrderIcon className="h-5 w-5" />,
     iconText: "text-[#26658C]",
   },
   yellow: {
     gradient: "kpi-gradient-approvals",
-    glow: "bg-[#E57A44]/12",
+    glow: "bg-[#E57A44]/18",
     icon: <ApprovalIcon className="h-5 w-5" />,
     iconText: "text-[#E57A44]",
   },
   green: {
     gradient: "kpi-gradient-spend",
-    glow: "bg-[#B0DB43]/16",
+    glow: "bg-[#B0DB43]/20",
     icon: <SpendIcon className="h-5 w-5" />,
     iconText: "text-[#414288]",
   },
@@ -136,29 +136,29 @@ export default function SummaryCard({
   const styles = cardStyles[accentColor];
 
   return (
-    <div className="group relative min-h-[172px] overflow-hidden rounded-3xl border border-white/75 bg-white/80 p-5 shadow-[0_18px_45px_rgba(1,28,64,0.08)] backdrop-blur-xl transition duration-200 hover:-translate-y-1 hover:bg-white/90 hover:shadow-[0_24px_60px_rgba(1,28,64,0.12)] sm:p-6">
-      <div className={`absolute inset-x-0 top-0 h-1.5 ${styles.gradient}`} />
+    <div className="group relative min-h-[145px] overflow-hidden rounded-2xl border border-white/75 bg-white/80 p-4 shadow-[0_14px_34px_rgba(1,28,64,0.08)] backdrop-blur-xl transition duration-200 hover:-translate-y-0.5 hover:bg-white/90 hover:shadow-[0_20px_45px_rgba(1,28,64,0.11)] sm:p-5">
+      <div className={`absolute inset-x-0 top-0 h-2 ${styles.gradient}`} />
       <div
-        className={`absolute -right-10 -top-10 h-32 w-32 rounded-full blur-3xl ${styles.glow}`}
+        className={`absolute -right-8 -top-10 h-28 w-28 rounded-full blur-2xl ${styles.glow}`}
       />
 
-      <div className="relative flex h-full flex-col justify-between gap-5">
+      <div className="relative flex h-full flex-col justify-between gap-4">
         <div className="flex items-start justify-between gap-4">
-          <p className="max-w-[10rem] text-sm font-semibold leading-5 text-primary-gray">
+          <p className="max-w-[10rem] text-sm font-semibold leading-5 text-[#26658C]">
             {title}
           </p>
           <div
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/75 bg-white/70 shadow-sm backdrop-blur ${styles.iconText}`}
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/75 ${styles.gradient} text-white shadow-sm`}
           >
             {styles.icon}
           </div>
         </div>
 
         <div>
-          <p className="text-3xl font-bold tracking-tight text-[#011C40] sm:text-4xl">
+          <p className="text-2xl font-bold tracking-tight text-[#011C40] sm:text-3xl">
             {value}
           </p>
-          <p className="mt-2 text-sm leading-5 text-primary-gray">
+          <p className="mt-1.5 text-sm leading-5 text-primary-gray">
             {description}
           </p>
         </div>

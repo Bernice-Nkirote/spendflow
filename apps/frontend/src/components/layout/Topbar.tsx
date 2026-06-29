@@ -170,9 +170,20 @@ function Topbar({ onMenuClick }: TopbarProps) {
             onClick={onMenuClick}
             className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 shadow-sm transition hover:bg-gray-50 lg:hidden"
             aria-label="Open navigation menu"
-          >
-            â˜°
-          </button>
+          ><svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M4 7h16" />
+              <path d="M4 12h16" />
+              <path d="M4 17h16" />
+            </svg></button>
 
           <div className="min-w-0 max-w-[9.5rem] sm:max-w-none">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary-blue">
@@ -243,13 +254,13 @@ function Topbar({ onMenuClick }: TopbarProps) {
                       Notifications
                     </h3>
                     <p className="mt-1 text-xs text-primary-gray">
-                      Approvals requering your attention.
+                      Approvals requiring your attention.
                     </p>
                   </div>
 
                   {urgentCount > 0 && (
                     <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-red-100 bg-red-50 px-3 py-1 text-xs font-semibold text-red-600 shadow-sm">
-                      ðŸš© {urgentCount} urgent
+{urgentCount} urgent
                     </span>
                   )}
                 </div>
@@ -277,7 +288,7 @@ function Topbar({ onMenuClick }: TopbarProps) {
                               {item.entity_reference ?? "Approval request"}
                             </p>
                             <p className="mt-1 text-xs text-primary-gray">
-                              {item.entity_type} â€¢{" "}
+                              {item.entity_type} /{" "}
                               {item.current_level_name ?? "Current level"}
                             </p>
                           </div>
