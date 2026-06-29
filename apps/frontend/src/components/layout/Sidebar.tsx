@@ -75,7 +75,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
       <aside
         className={`
           fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 transform flex-col overflow-hidden
-           bg-[#274C77] text-white transition-transform duration-200
+           bg-[linear-gradient(160deg,#011C40_0%,#274C77_38%,#26658C_72%,#54ACBF_100%)] text-white transition-transform duration-200
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
           lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 lg:shadow-[4px_0_12px_rgba(0,0,0,0.05)]
         `}
@@ -88,7 +88,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
           />
 
           <p className="mt-3 text-sm font-medium text-white/70">
-            Take Action.Make Smarter Procurement Decisions
+            Take Action. Make Smarter Procurement Decisions
           </p>
           <div className="mt-4 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-3 py-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white">
