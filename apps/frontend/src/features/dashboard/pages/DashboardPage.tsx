@@ -14,7 +14,6 @@ import SpendSnapshot from "../components/SpendSnapshot";
 import SupplierPerformance from "../components/SupplierPerformance";
 import DashboardAnalytics from "../components/DashboardAnalytics";
 import DashboardAssistantCard from "../components/DashboardAssistantCard";
-import { formatCurrency } from "../../../utils/formatCurrency";
 
 type DashboardSectionHeaderProps = {
   eyebrow?: string;
@@ -22,6 +21,24 @@ type DashboardSectionHeaderProps = {
   description: string;
 };
 
+function formatCompactCurrency(value: number, currency = "KES") {
+  const absValue = Math.abs(value);
+  const units = [
+    { suffix: "B", amount: 1_000_000_000 },
+    { suffix: "M", amount: 1_000_000 },
+    { suffix: "K", amount: 1_000 },
+  ];
+  const unit = units.find((item) => absValue >= item.amount);
+
+  if (!unit) {
+    return `${currency} ${value.toLocaleString("en-KE")}`;
+  }
+
+  const compactValue = value / unit.amount;
+  const decimals = Math.abs(compactValue) < 10 && compactValue % 1 !== 0 ? 1 : 0;
+
+  return `${currency} ${compactValue.toFixed(decimals)}${unit.suffix}`;
+}
 function DashboardSectionHeader({
   eyebrow,
   title,
@@ -98,7 +115,7 @@ export default function DashboardPage() {
               title="Your procurement snapshot"
               description="Current requisitions, orders, approval load, and approved spend in one clear view."
             />
-            <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
+            <div className="grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <SummaryCard
                 title="Purchase requisitions"
                 value={data?.summary.totalPurchaseRequisitions ?? 0}
@@ -122,7 +139,7 @@ export default function DashboardPage() {
 
               <SummaryCard
                 title="Total approved spend"
-                value={formatCurrency(
+                value={formatCompactCurrency(
                   data?.summary.totalSpend ?? 0,
                   data?.currency,
                 )}
