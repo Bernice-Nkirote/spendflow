@@ -75,10 +75,7 @@ function Topbar({ onMenuClick }: TopbarProps) {
   const user: StoredUser | null = storedUser ? JSON.parse(storedUser) : null;
 
   const displayName = user?.name || "User";
-  const displaySubtitle =
-    user?.company_name && user?.role_name
-      ? `${user.company_name} . ${user.role_name}`
-      : user?.email || "Company Workspace";
+  const displaySubtitle = user?.role_name || user?.email || "Signed in user";
 
   const initials = getInitials(user?.name, user?.email);
 

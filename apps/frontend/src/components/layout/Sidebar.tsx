@@ -5,8 +5,15 @@ type SidebarProps = {
   onClose: () => void;
 };
 
+type StoredUser = {
+  company_name?: string;
+};
+
 function Sidebar({ isOpen, onClose }: SidebarProps) {
   const currentYear = new Date().getFullYear();
+  const storedUser = localStorage.getItem("user");
+  const user: StoredUser | null = storedUser ? JSON.parse(storedUser) : null;
+  const companyName = user?.company_name || "Company workspace";
 
   const groupedNavItems = [
     {
@@ -81,8 +88,38 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
           />
 
           <p className="mt-3 text-sm font-medium text-white/70">
-            Flowing procurement. Smarter decisions.
+            Take Action.Make Smarter Procurement Decisions
           </p>
+          <div className="mt-4 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-3 py-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white">
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M3 21h18" />
+                <path d="M5 21V7l8-4v18" />
+                <path d="M19 21V11l-6-4" />
+                <path d="M9 9h1" />
+                <path d="M9 13h1" />
+                <path d="M9 17h1" />
+              </svg>
+            </div>
+
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-white/45">
+                Workspace
+              </p>
+              <p className="truncate text-sm font-semibold text-white">
+                {companyName}
+              </p>
+            </div>
+          </div>
         </div>
 
         <nav className="flex-1 space-y-5 overflow-y-auto px-4 py-5 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.25)_transparent]">
