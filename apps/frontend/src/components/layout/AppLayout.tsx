@@ -12,7 +12,7 @@ function AppLayout() {
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   return (
-    <div className="min-h-screen bg-primary-white">
+    <div className="app-shell-bg min-h-screen">
       <ConfirmDialog
         isOpen={isSessionWarningOpen}
         title="Session expiring soon"

@@ -14,19 +14,56 @@
   .brand-gradient-soft {
     background-image: linear-gradient(135deg, rgba(1, 28, 64, 0.96) 0%, rgba(39, 76, 119, 0.94) 48%, rgba(84, 172, 191, 0.88) 100%);
   }
+
+  .app-shell-bg {
+    background:
+      radial-gradient(circle at 18% 10%, rgba(167, 235, 242, 0.55) 0, rgba(167, 235, 242, 0) 28%),
+      radial-gradient(circle at 84% 14%, rgba(84, 172, 191, 0.18) 0, rgba(84, 172, 191, 0) 30%),
+      linear-gradient(135deg, #f8fcfd 0%, #edf8fb 42%, #eef5fb 100%);
+  }
+
+  .glass-panel {
+    border-color: rgba(167, 235, 242, 0.42);
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: 0 18px 45px rgba(1, 28, 64, 0.08);
+    backdrop-filter: blur(18px);
+  }
+
+  .glass-panel-strong {
+    border-color: rgba(255, 255, 255, 0.78);
+    background: rgba(255, 255, 255, 0.86);
+    box-shadow: 0 20px 55px rgba(1, 28, 64, 0.1);
+    backdrop-filter: blur(20px);
+  }
+
+  .kpi-gradient-procurement {
+    background-image: linear-gradient(90deg, #007cbe 0%, #54acbf 48%, #fff7ae 100%);
+  }
+
+  .kpi-gradient-orders {
+    background-image: linear-gradient(90deg, #02c3bd 0%, #26658c 48%, #4e148c 100%);
+  }
+
+  .kpi-gradient-approvals {
+    background-image: linear-gradient(90deg, #e57a44 0%, #26658c 45%, #251351 100%);
+  }
+
+  .kpi-gradient-spend {
+    background-image: linear-gradient(90deg, #414288 0%, #54acbf 48%, #b0db43 100%);
+  }
 }
 
 :root {
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   color: #141414;
-  background-color: #e7ecef;
+  background-color: #f8fcfd;
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background-color: #e7ecef;
+  background-color: #f8fcfd;
 }
 
 * {
