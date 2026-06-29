@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import Button from "../ui/Button";
@@ -195,7 +195,7 @@ function Topbar({ onMenuClick }: TopbarProps) {
             </p>
           </div>
 
-          <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-blue text-sm font-bold text-white shadow-sm lg:flex">
+          <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-full brand-gradient-accent text-sm font-bold text-white shadow-sm lg:flex">
             {initials}
           </div>
           <div className="hidden sm:block xl:hidden">
@@ -325,7 +325,7 @@ function Topbar({ onMenuClick }: TopbarProps) {
 
       <div className="mt-3 flex items-center justify-between gap-3 border-t border-gray-100 pt-3 lg:hidden">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary-blue text-sm font-bold text-white shadow-sm">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full brand-gradient-accent text-sm font-bold text-white shadow-sm">
             {initials}
           </div>
 

@@ -308,7 +308,7 @@ export default function AssistantChat() {
 
   return (
     <section className="flex min-h-[680px] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-      <div className="border-b border-gray-200 bg-primary-blue px-4 py-4 text-white sm:px-6">
+      <div className="border-b border-gray-200 brand-gradient-surface px-4 py-4 text-white sm:px-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
@@ -361,7 +361,7 @@ export default function AssistantChat() {
         {messages.map((chatMessage) =>
           chatMessage.role === "user" ? (
             <div key={chatMessage.id} className="flex justify-end">
-              <div className="max-w-[85%] rounded-2xl rounded-tr-md bg-primary-blue px-4 py-3 text-sm leading-6 text-white shadow-sm lg:max-w-[70%]">
+              <div className="max-w-[85%] rounded-2xl rounded-tr-md brand-gradient-accent px-4 py-3 text-sm leading-6 text-white shadow-sm lg:max-w-[70%]">
                 {chatMessage.content}
               </div>
             </div>

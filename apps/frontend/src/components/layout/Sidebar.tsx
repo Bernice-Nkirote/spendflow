@@ -1,4 +1,4 @@
-﻿import { NavLink } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
 type SidebarProps = {
   isOpen: boolean;
@@ -75,7 +75,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
       <aside
         className={`
           fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 transform flex-col overflow-hidden
-           bg-[linear-gradient(160deg,#011C40_0%,#274C77_38%,#26658C_72%,#54ACBF_100%)] text-white transition-transform duration-200
+           brand-gradient-surface text-white transition-transform duration-200
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
           lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 lg:shadow-[4px_0_12px_rgba(0,0,0,0.05)]
         `}

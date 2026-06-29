@@ -25,7 +25,7 @@ export default function DashboardAnalytics({
     {
       label: "PO",
       value: actionCenter?.pendingPoApprovals ?? 0,
-      color: "bg-primary-blue",
+      color: "brand-gradient-accent",
     },
     {
       label: "Invoice",
@@ -116,7 +116,7 @@ export default function DashboardAnalytics({
                   </div>
                   <div className="h-3 overflow-hidden rounded-full bg-gray-100">
                     <div
-                      className="h-full rounded-full bg-primary-blue"
+                      className="h-full rounded-full brand-gradient-accent"
                       style={{
                         width: `${clampPercent(supplier.performanceScore)}%`,
                       }}

@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 
 export default function DashboardAssistantCard() {
   return (
-    <div className="rounded-2xl border border-primary-blue/10 bg-primary-blue/90 p-5 text-white shadow-md">
+    <div className="rounded-2xl border border-primary-blue/10 brand-gradient-soft p-5 text-white shadow-md">
       <p className="text-xs font-semibold uppercase tracking-wide text-blue-100">
         Tenda Assistant
       </p>

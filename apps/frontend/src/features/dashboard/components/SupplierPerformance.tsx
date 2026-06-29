@@ -113,7 +113,7 @@ export default function SupplierPerformance({
                     </div>
                     <div className="h-2.5 overflow-hidden rounded-full bg-gray-100">
                       <div
-                        className="h-full rounded-full bg-primary-blue transition-all"
+                        className="h-full rounded-full brand-gradient-accent transition-all"
                         style={{ width: `${supplier.performanceScore}%` }}
                       />
                     </div>

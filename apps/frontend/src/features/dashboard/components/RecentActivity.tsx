@@ -39,7 +39,7 @@ export default function RecentActivity({ items }: RecentActivityProps) {
               className="flex items-start gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-primary-blue/20 hover:bg-gray-50"
             >
               <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50">
-                <div className="h-2.5 w-2.5 rounded-full bg-primary-blue" />
+                <div className="h-2.5 w-2.5 rounded-full brand-gradient-accent" />
               </div>
 
               <div className="min-w-0 flex-1">

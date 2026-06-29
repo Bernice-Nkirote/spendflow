@@ -189,7 +189,7 @@ export default function SupplierPortalAssistantPage() {
         </aside>
 
         <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <div className="border-b border-gray-200 bg-primary-blue px-4 py-4 text-white sm:px-5">
+          <div className="border-b border-gray-200 brand-gradient-surface px-4 py-4 text-white sm:px-5">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/70">
               Ask Supplier Assistant
             </p>
@@ -200,7 +200,7 @@ export default function SupplierPortalAssistantPage() {
 
           <div className="space-y-4 bg-gray-50/80 p-4 sm:p-5">
             <div className="flex justify-end">
-              <div className="max-w-[85%] rounded-2xl rounded-tr-md bg-primary-blue px-4 py-3 text-sm leading-6 text-white shadow-sm">
+              <div className="max-w-[85%] rounded-2xl rounded-tr-md brand-gradient-accent px-4 py-3 text-sm leading-6 text-white shadow-sm">
                 {activeQuestion}
               </div>
             </div>
