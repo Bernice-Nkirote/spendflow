@@ -18,7 +18,6 @@
   .app-shell-bg {
     position: relative;
     isolation: isolate;
-    overflow: hidden;
     background:
       linear-gradient(180deg, rgba(255, 255, 255, 0.92) 0%, rgba(244, 251, 254, 0.86) 46%, rgba(234, 247, 252, 0.88) 100%),
       linear-gradient(135deg, #fbfdff 0%, #f4fbfe 46%, #eaf7fb 100%);
@@ -71,7 +70,6 @@
   .auth-aqua-glass-bg {
     position: relative;
     isolation: isolate;
-    overflow: hidden;
     background:
       linear-gradient(135deg, rgba(255, 255, 255, 0.72) 0%, rgba(231, 249, 252, 0.68) 42%, rgba(84, 172, 191, 0.42) 100%),
       linear-gradient(180deg, #f7fdff 0%, #e9f8fb 50%, #cceff5 100%);

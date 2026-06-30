@@ -162,7 +162,7 @@ function Topbar({ onMenuClick }: TopbarProps) {
   };
 
   return (
-    <header className="relative z-30 border-b border-white/70 bg-white/78 px-3 py-3 shadow-[0_10px_30px_rgba(1,28,64,0.08)] backdrop-blur-xl sm:px-6">
+    <header className="sticky top-0 z-30 border-b border-gray-200 bg-white/90 px-3 py-3 shadow-sm backdrop-blur-md sm:px-6">
       <div className="flex items-center justify-between gap-2 sm:gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <button
@@ -170,7 +170,8 @@ function Topbar({ onMenuClick }: TopbarProps) {
             onClick={onMenuClick}
             className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-700 shadow-sm transition hover:bg-gray-50 lg:hidden"
             aria-label="Open navigation menu"
-          >`r`n            <svg
+          >
+            <svg
               aria-hidden="true"
               viewBox="0 0 24 24"
               className="h-5 w-5"
@@ -183,7 +184,8 @@ function Topbar({ onMenuClick }: TopbarProps) {
               <path d="M4 7h16" />
               <path d="M4 12h16" />
               <path d="M4 17h16" />
-            </svg>`r`n          </button>
+            </svg>
+          </button>
 
           <div className="min-w-0 max-w-[9.5rem] sm:max-w-none">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary-blue">
