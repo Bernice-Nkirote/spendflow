@@ -49,6 +49,33 @@
     z-index: 1;
   }
 
+
+  .auth-card-glass {
+    border-color: rgba(167, 235, 242, 0.72);
+    background:
+      linear-gradient(145deg, rgba(255, 255, 255, 0.88) 0%, rgba(240, 253, 255, 0.76) 48%, rgba(167, 235, 242, 0.32) 100%);
+    box-shadow:
+      0 26px 80px rgba(1, 28, 64, 0.14),
+      0 0 0 1px rgba(255, 255, 255, 0.72) inset;
+    backdrop-filter: blur(24px) saturate(1.18);
+  }
+
+  .auth-card-glass::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.68) 0%, rgba(255, 255, 255, 0) 38%),
+      linear-gradient(315deg, rgba(84, 172, 191, 0.16) 0%, rgba(84, 172, 191, 0) 42%);
+  }
+
+  .auth-card-glass > * {
+    position: relative;
+    z-index: 1;
+  }
+
   .glass-panel {
     border-color: rgba(167, 235, 242, 0.42);
     background: rgba(255, 255, 255, 0.78);
