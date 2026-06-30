@@ -21,7 +21,7 @@ function Button({
 
   const variants: Record<ButtonVariant, string> = {
     primary:
-      "border border-[#54ACBF]/40 bg-[#26658C] text-white shadow-sm shadow-[#26658C]/20 hover:-translate-y-0.5 hover:bg-[#007CBE] hover:shadow-md hover:shadow-[#54ACBF]/25",
+      "border border-[#54ACBF]/40 bg-[#26658C] text-white shadow-sm shadow-[#26658C]/20 backdrop-blur hover:-translate-y-0.5 hover:border-[#54ACBF]/80 hover:bg-white/35 hover:text-[#26658C] hover:shadow-md hover:shadow-[#54ACBF]/25",
     secondary:
       "border border-[#A7EBF2]/70 bg-white/75 text-[#26658C] shadow-sm backdrop-blur hover:-translate-y-0.5 hover:border-[#54ACBF]/70 hover:bg-white hover:text-[#007CBE] hover:shadow-md",
     success:
