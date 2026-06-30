@@ -170,8 +170,8 @@ function CompanySignupPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-primary-white px-4 py-8">
-      <Card className="w-full max-w-lg">
+    <div className="app-shell-bg flex min-h-screen items-center justify-center px-4 py-8">
+      <Card className="glass-panel-strong w-full max-w-lg border-white/80 shadow-[0_24px_70px_rgba(1,28,64,0.12)]">
         <div className="mb-6 text-center">
           <h1 className="text-3xl font-bold text-primary-blue">Tendaflow</h1>
           <p className="mt-2 text-sm text-primary-gray">
