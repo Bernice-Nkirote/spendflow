@@ -24,12 +24,32 @@
   }
 
   .auth-aqua-glass-bg {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
     background:
-      linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(244, 252, 254, 0.78) 34%, rgba(232, 248, 252, 0.72) 100%),
-      radial-gradient(circle at 18% 18%, rgba(167, 235, 242, 0.72) 0, rgba(167, 235, 242, 0) 34%),
-      radial-gradient(circle at 82% 12%, rgba(84, 172, 191, 0.28) 0, rgba(84, 172, 191, 0) 32%),
-      linear-gradient(145deg, rgba(255, 255, 255, 0) 0%, rgba(167, 235, 242, 0.26) 38%, rgba(255, 255, 255, 0) 62%);
+      radial-gradient(circle at 16% 16%, rgba(167, 235, 242, 0.62) 0, rgba(167, 235, 242, 0) 30%),
+      radial-gradient(circle at 86% 10%, rgba(84, 172, 191, 0.24) 0, rgba(84, 172, 191, 0) 28%),
+      linear-gradient(180deg, #fbfdff 0%, #f4fbfd 46%, #eaf7fb 100%);
     background-attachment: fixed;
+  }
+
+  .auth-aqua-glass-bg::before {
+    content: "";
+    position: fixed;
+    inset: -12%;
+    z-index: -1;
+    pointer-events: none;
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1400' height='900' viewBox='0 0 1400 900'%3E%3Cpath d='M-120 250 C 180 80 300 150 520 -10 S 940 -100 1520 -40' fill='none' stroke='%2354ACBF' stroke-opacity='.18' stroke-width='3'/%3E%3Cpath d='M-80 330 C 180 210 350 240 590 92 S 970 10 1500 60' fill='none' stroke='%23A7EBF2' stroke-opacity='.55' stroke-width='34'/%3E%3Cpath d='M-120 720 C 200 590 360 640 610 500 S 1030 360 1520 420' fill='none' stroke='%2326658C' stroke-opacity='.08' stroke-width='2'/%3E%3Cpath d='M720 980 C 900 760 1080 780 1510 530' fill='none' stroke='%2354ACBF' stroke-opacity='.13' stroke-width='42'/%3E%3C/svg%3E") center / cover no-repeat,
+      linear-gradient(135deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.72) 38%, rgba(167, 235, 242, 0.22) 44%, rgba(255, 255, 255, 0) 55%),
+      linear-gradient(152deg, rgba(255, 255, 255, 0) 0%, rgba(84, 172, 191, 0.11) 36%, rgba(255, 255, 255, 0.62) 48%, rgba(255, 255, 255, 0) 62%);
+    opacity: 0.95;
+  }
+
+  .auth-aqua-glass-bg > * {
+    position: relative;
+    z-index: 1;
   }
 
   .glass-panel {
