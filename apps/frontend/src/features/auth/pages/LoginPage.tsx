@@ -197,7 +197,7 @@ function LoginPage() {
   };
 
   return (
-    <div className="app-shell-bg flex min-h-screen items-center justify-center px-4 py-8">
+    <div className="auth-aqua-glass-bg flex min-h-screen items-center justify-center px-4 py-8">
       <Card className="glass-panel-strong w-full max-w-md border-white/80 shadow-[0_24px_70px_rgba(1,28,64,0.12)]">
         <div className="mb-6 text-center">
           <h1 className="text-3xl font-bold text-primary-blue">Tendaflow</h1>
