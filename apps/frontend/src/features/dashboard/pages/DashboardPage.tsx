@@ -149,12 +149,19 @@ export default function DashboardPage() {
                 type="button"
                 aria-pressed={isActive}
                 onClick={() => setActiveView(view.key)}
-                className={`rounded-2xl border px-4 py-3 text-left transition-all duration-200 ${
+                className={`group relative overflow-hidden rounded-xl border px-4 py-3 text-left transition-all duration-200 ${
                   isActive
-                    ? "border-[#54ACBF]/70 bg-white/80 shadow-[0_16px_35px_rgba(1,28,64,0.12)]"
-                    : "border-white/60 bg-white/45 hover:-translate-y-0.5 hover:border-[#A7EBF2] hover:bg-white/70 hover:shadow-md"
+                    ? "border-[#54ACBF]/55 bg-white/82 shadow-[0_14px_32px_rgba(1,28,64,0.12)]"
+                    : "border-white/60 bg-white/50 hover:-translate-y-0.5 hover:border-[#A7EBF2]/80 hover:bg-white/75 hover:shadow-md"
                 }`}
               >
+                <span
+                  className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${
+                    isActive
+                      ? "from-[#011C40] via-[#26658C] to-[#54ACBF]"
+                      : "from-[#A7EBF2]/70 via-[#54ACBF]/45 to-white/40"
+                  }`}
+                />
                 <span
                   className={`block text-sm font-semibold ${
                     isActive ? "text-[#011C40]" : "text-[#26658C]"

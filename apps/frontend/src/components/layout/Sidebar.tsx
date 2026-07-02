@@ -1,4 +1,4 @@
-﻿import { NavLink } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 
 type SidebarProps = {
   isOpen: boolean;
@@ -84,7 +84,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
           <img
             src="/tendaflow-sidebar-auth-logo.svg"
             alt="Tendaflow"
-            className="mx-auto h-auto w-[232px] max-w-none -translate-x-2 object-contain"
+            className="h-auto w-[232px] max-w-none object-contain"
           />
 
           <p className="mt-3 text-sm font-medium text-white/70">
