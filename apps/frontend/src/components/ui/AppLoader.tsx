@@ -3,7 +3,7 @@ export default function AppLoader() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-[#EEF4FF] via-[#DCE7F5] to-[#C9DBF5] px-6 text-center">
       <div className="mb-4 flex items-center justify-center">
         <img
-          src="/tendaflow-logo-lockup.svg"
+          src="/tendaflow-loading-logo.svg"
           alt="Tendaflow logo"
           className="w-full max-w-[15rem] object-contain sm:max-w-[18rem] md:max-w-[20rem]"
         />
