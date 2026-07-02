@@ -1,19 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="677" height="179" viewBox="0 0 677 179" role="img" aria-labelledby="title desc">
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="164" viewBox="0 0 500 164" role="img" aria-labelledby="title desc">
   <title id="title">Tendaflow logo</title>
-  <desc id="desc">Tendaflow logo with a white TF mark and gradient wordmark for the sidebar.</desc>
+  <desc id="desc">Tendaflow sidebar logo with a TF mark and wordmark.</desc>
   <defs>
-    <linearGradient id="wordmarkGradient" x1="306" y1="90" x2="548" y2="90" gradientUnits="userSpaceOnUse">
+    <linearGradient id="sidebarWordmark" x1="250" x2="405" y1="82" y2="82" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#FFFFFF"/>
-      <stop offset="0.5" stop-color="#FFFFFF"/>
-      <stop offset="0.75" stop-color="#A7EBF2"/>
+      <stop offset="0.62" stop-color="#FFFFFF"/>
+      <stop offset="0.82" stop-color="#A7EBF2"/>
       <stop offset="1" stop-color="#54ACBF"/>
     </linearGradient>
   </defs>
-  <g fill="none" stroke="#FFFFFF" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M151 70 H202"/>
-    <path d="M177 70 V111 C177 124 187 130 202 130 C217 130 227 124 227 111 V70"/>
-    <path d="M227 70 H260"/>
-    <path d="M227 96 H255"/>
+  <g fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M112 55 H148"/>
+    <path d="M130 55 V91 C130 104 141 110 155 110 C169 110 179 104 179 91"/>
+    <path d="M179 55 V110"/>
+    <path d="M179 55 H208"/>
+    <path d="M179 82 H203"/>
   </g>
-  <text x="306" y="114" fill="url(#wordmarkGradient)" font-family="Inter, Avenir Next, Nunito Sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="50" font-weight="700" letter-spacing="-1">Tendaflow</text>
+  <text x="250" y="97" fill="url(#sidebarWordmark)" font-family="Inter, Avenir Next, Nunito Sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="43" font-weight="700" letter-spacing="-1.1">Tendaflow</text>
 </svg>

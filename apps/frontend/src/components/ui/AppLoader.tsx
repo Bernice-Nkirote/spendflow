@@ -1,27 +1,19 @@
 export default function AppLoader() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-[#EEF4FF] via-[#DCE7F5] to-[#C9DBF5] px-6 text-center">
-      <div className="mb-4 flex items-center justify-center">
+    <div className="loader-glass-bg flex min-h-screen flex-col items-center justify-center px-6 text-center">
+      <div className="loader-logo-card flex flex-col items-center px-8 py-7">
         <img
           src="/tendaflow-loading-logo.svg"
           alt="Tendaflow logo"
-          className="w-full max-w-[15rem] object-contain sm:max-w-[18rem] md:max-w-[20rem]"
+          className="w-full max-w-[18rem] object-contain sm:max-w-[21rem] md:max-w-[24rem]"
         />
+
+        <p className="mt-2 text-sm font-semibold uppercase tracking-[0.24em] text-[#26658C]">
+          Preparing your workspace
+        </p>
+
+        <div className="loader-progress mt-5" aria-hidden="true" />
       </div>
-
-      <p className="text-[1.15rem] font-medium tracking-[0.08em] text-[#274C77]">
-        Flowing procurement. Smarter decisions.
-      </p>
-
-      <div className="mt-5 flex justify-center gap-3">
-        <span className="h-3 w-3 animate-bounce rounded-full brand-gradient-accent" />
-        <span className="h-3 w-3 animate-bounce rounded-full brand-gradient-accent [animation-delay:150ms]" />
-        <span className="h-3 w-3 animate-bounce rounded-full brand-gradient-accent [animation-delay:300ms]" />
-      </div>
-
-      <p className="mt-5 text-sm font-semibold uppercase tracking-[0.25em] text-[#274C77]">
-        Preparing your workspace...
-      </p>
     </div>
   );
 }
