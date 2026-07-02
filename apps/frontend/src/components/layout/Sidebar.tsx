@@ -82,7 +82,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
       >
         <div className="border-b border-white/20 px-5 py-5">
           <img
-            src="/tendaflow-logo-lockup-light.svg"
+            src="/tendaflow-sidebar-auth-logo.svg"
             alt="Tendaflow"
             className="h-auto w-full max-w-[190px] object-contain"
           />
