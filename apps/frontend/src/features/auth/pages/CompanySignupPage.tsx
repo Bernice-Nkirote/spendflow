@@ -179,7 +179,7 @@ function CompanySignupPage() {
               alt="Tendaflow logo"
               className="h-14 w-auto"
             />
-            <h1 className="text-3xl font-bold text-primary-blue">Tendaflow</h1>
+            <h1 className="bg-gradient-to-r from-[#011C40] via-[#26658C] to-[#54ACBF] bg-clip-text text-3xl font-bold text-transparent">Tendaflow</h1>
           </div>
           <p className="mt-2 text-sm text-primary-gray">
             Register your company and create the first admin account
