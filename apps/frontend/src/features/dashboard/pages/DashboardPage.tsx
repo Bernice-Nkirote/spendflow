@@ -31,26 +31,36 @@ const dashboardViews: Array<{
   key: DashboardView;
   label: string;
   helper: string;
+  gradient: string;
+  tint: string;
 }> = [
   {
     key: "overview",
     label: "At a Glance",
     helper: "Priorities and key totals",
+    gradient: "linear-gradient(135deg, rgba(0, 124, 190, 0.42) 0%, rgba(255, 247, 174, 0.52) 100%)",
+    tint: "linear-gradient(135deg, rgba(0, 124, 190, 0.07) 0%, rgba(255, 247, 174, 0.12) 100%)",
   },
   {
     key: "spendSuppliers",
     label: "Spend & Suppliers",
     helper: "Spend patterns and supplier health",
+    gradient: "linear-gradient(135deg, rgba(98, 148, 96, 0.42) 0%, rgba(244, 211, 94, 0.5) 100%)",
+    tint: "linear-gradient(135deg, rgba(98, 148, 96, 0.08) 0%, rgba(244, 211, 94, 0.12) 100%)",
   },
   {
     key: "operations",
     label: "Operational Details",
     helper: "Workflow and approval movement",
+    gradient: "linear-gradient(135deg, rgba(2, 195, 189, 0.42) 0%, rgba(78, 20, 140, 0.36) 100%)",
+    tint: "linear-gradient(135deg, rgba(2, 195, 189, 0.08) 0%, rgba(78, 20, 140, 0.07) 100%)",
   },
   {
     key: "reportsActivity",
     label: "Reports & Activity",
     helper: "Recent records and reporting signals",
+    gradient: "linear-gradient(135deg, rgba(229, 122, 68, 0.42) 0%, rgba(37, 19, 81, 0.34) 100%)",
+    tint: "linear-gradient(135deg, rgba(229, 122, 68, 0.08) 0%, rgba(37, 19, 81, 0.07) 100%)",
   },
 ];
 
@@ -151,23 +161,24 @@ export default function DashboardPage() {
                 onClick={() => setActiveView(view.key)}
                 style={{
                   background: isActive
-                    ? "linear-gradient(rgba(255,255,255,0.86),rgba(255,255,255,0.86)) padding-box, linear-gradient(120deg,#011C40,#26658C,#54ACBF,#A7EBF2) border-box"
-                    : "linear-gradient(rgba(255,255,255,0.58),rgba(255,255,255,0.58)) padding-box, linear-gradient(120deg,rgba(167,235,242,0.9),rgba(84,172,191,0.68),rgba(38,101,140,0.56)) border-box",
+                    ? `${view.tint} padding-box, ${view.gradient} border-box`
+                    : `linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.56)) padding-box, ${view.gradient} border-box`,
                 }}
-                className={`group relative rounded-xl border border-transparent px-4 py-3 text-left transition-all duration-200 ${
+                className={`group relative overflow-hidden rounded-xl border border-transparent px-4 py-3 text-left backdrop-blur-xl transition-all duration-200 ${
                   isActive
-                    ? "shadow-[0_14px_32px_rgba(1,28,64,0.12)]"
-                    : "hover:-translate-y-0.5 hover:shadow-md"
+                    ? "shadow-[0_16px_36px_rgba(1,28,64,0.13)]"
+                    : "opacity-90 hover:-translate-y-0.5 hover:opacity-100 hover:shadow-md"
                 }`}
               >
+                <span className="absolute inset-0 rounded-xl bg-white/45" />
                 <span
-                  className={`block text-sm font-semibold ${
+                  className={`relative block text-sm font-semibold ${
                     isActive ? "text-[#011C40]" : "text-[#26658C]"
                   }`}
                 >
                   {view.label}
                 </span>
-                <span className="mt-1 block text-xs leading-5 text-primary-gray">
+                <span className="relative mt-1 block text-xs leading-5 text-primary-gray">
                   {view.helper}
                 </span>
               </button>
