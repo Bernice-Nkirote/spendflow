@@ -84,7 +84,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
           <img
             src="/tendaflow-sidebar-auth-logo.svg"
             alt="Tendaflow"
-            className="h-auto w-full max-w-[190px] object-contain"
+            className="h-auto w-full max-w-[220px] object-contain"
           />
 
           <p className="mt-3 text-sm font-medium text-white/70">
