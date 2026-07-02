@@ -173,7 +173,14 @@ function CompanySignupPage() {
     <div className="auth-aqua-glass-bg flex min-h-screen items-center justify-center px-4 py-8">
       <Card className="auth-card-glass relative w-full max-w-lg overflow-hidden">
         <div className="mb-6 text-center">
-          <h1 className="text-3xl font-bold text-primary-blue">Tendaflow</h1>
+          <div className="flex flex-col items-center gap-2">
+            <img
+              src="/tendaflow-auth-logo.svg"
+              alt="Tendaflow logo"
+              className="h-14 w-auto"
+            />
+            <h1 className="text-3xl font-bold text-primary-blue">Tendaflow</h1>
+          </div>
           <p className="mt-2 text-sm text-primary-gray">
             Register your company and create the first admin account
           </p>

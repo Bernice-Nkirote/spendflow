@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="72" viewBox="0 0 96 72" role="img" aria-labelledby="title desc">
+  <title id="title">Tendaflow logo mark</title>
+  <desc id="desc">Tendaflow connected T and F logo mark.</desc>
+  <defs>
+    <linearGradient id="markGradient" x1="18" x2="82" y1="12" y2="62" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#011C40"/>
+      <stop offset="0.45" stop-color="#26658C"/>
+      <stop offset="1" stop-color="#A7EBF2"/>
+    </linearGradient>
+    <linearGradient id="accentGradient" x1="54" x2="86" y1="16" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#54ACBF"/>
+      <stop offset="1" stop-color="#A7EBF2"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 18H52 M35 18V48C35 58 43 64 54 64" stroke="url(#markGradient)" stroke-width="5"/>
+    <path d="M52 18H78 M52 18V64 M52 40H72" stroke="url(#accentGradient)" stroke-width="5"/>
+  </g>
+</svg>
