@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+﻿import { NavLink } from "react-router-dom";
 
 type SidebarProps = {
   isOpen: boolean;
@@ -88,7 +88,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
           />
 
           <p className="mt-3 text-sm font-medium text-white/70">
-            Take Action. Make Smarter Procurement Decisions
+            Take Action. Procure Smarter.
           </p>
           <div className="mt-4 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/10 px-3 py-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15 text-white">
