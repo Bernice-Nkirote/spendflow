@@ -162,7 +162,7 @@ function Topbar({ onMenuClick }: TopbarProps) {
   };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-gray-200 bg-white/90 px-3 py-3 shadow-sm backdrop-blur-md sm:px-6">
+    <header className="sticky top-0 z-30 border-b border-white/65 bg-white/72 px-3 py-3 shadow-[0_16px_42px_rgba(1,28,64,0.10)] backdrop-blur-xl sm:px-6">
       <div className="flex items-center justify-between gap-2 sm:gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <button
