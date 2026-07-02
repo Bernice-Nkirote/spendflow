@@ -80,11 +80,11 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
           lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 lg:shadow-[4px_0_12px_rgba(0,0,0,0.05)]
         `}
       >
-        <div className="border-b border-white/20 px-5 py-5">
+        <div className="border-b border-white/20 px-5 py-5 text-center">
           <img
             src="/tendaflow-sidebar-auth-logo.svg"
             alt="Tendaflow"
-            className="h-auto w-full max-w-[220px] object-contain"
+            className="mx-auto h-auto w-full max-w-[235px] object-contain"
           />
 
           <p className="mt-3 text-sm font-medium text-white/70">
