@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import EmptyState from "../../../components/ui/EmptyState";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import type { ApprovalQueueItem } from "../types/dashboard.types";
+import DashboardIcon from "./DashboardIcon";
 
 type ApprovalQueueProps = {
   items: ApprovalQueueItem[] | undefined;
@@ -21,13 +22,16 @@ export default function ApprovalQueue({ items }: ApprovalQueueProps) {
   return (
     <div>
       <div className="mb-4">
-        <div>
-          <h2 className="text-lg font-semibold text-primary-black">
-            Approval Queue
-          </h2>
-          <p className="mt-1 text-sm leading-5 text-primary-gray">
-            Documents currently requiring approval action.
-          </p>
+        <div className="flex items-start gap-3">
+          <DashboardIcon name="approval" />
+          <div>
+            <h2 className="text-lg font-semibold text-primary-black">
+              Approval Queue
+            </h2>
+            <p className="mt-1 text-sm leading-5 text-primary-gray">
+              Documents currently requiring approval action.
+            </p>
+          </div>
         </div>
       </div>
 
@@ -40,7 +44,7 @@ export default function ApprovalQueue({ items }: ApprovalQueueProps) {
               key={item.id}
               to={`/approvals/${item.id}`}
               state={{ from: "dashboard" }}
-              className="block rounded-2xl border border-white/70 bg-white/75 p-4 shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:border-primary-blue/30 hover:bg-white hover:shadow-md"
+              className="dashboard-glass-card block rounded-2xl border p-4 transition hover:-translate-y-0.5"
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">

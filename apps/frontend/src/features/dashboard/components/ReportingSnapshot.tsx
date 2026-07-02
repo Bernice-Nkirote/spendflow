@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import type { ReportingSnapshot as ReportingSnapshotType } from "../types/dashboard.types";
 import EmptyState from "../../../components/ui/EmptyState";
+import DashboardIcon from "./DashboardIcon";
 
 type ReportingSnapshotProps = {
   data: ReportingSnapshotType | undefined;
@@ -20,14 +21,17 @@ export default function ReportingSnapshot({ data }: ReportingSnapshotProps) {
   return (
     <div>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-primary-black">
-            Reporting Snapshot
-          </h2>
+        <div className="flex items-start gap-3">
+          <DashboardIcon name="reports" />
+          <div>
+            <h2 className="text-lg font-semibold text-primary-black">
+              Reporting Snapshot
+            </h2>
 
-          <p className="mt-1 text-sm leading-5 text-primary-gray">
-            Quick view of report activity and available export formats.
-          </p>
+            <p className="mt-1 text-sm leading-5 text-primary-gray">
+              Quick view of report activity and available export formats.
+            </p>
+          </div>
         </div>
 
         <Link
@@ -43,7 +47,7 @@ export default function ReportingSnapshot({ data }: ReportingSnapshotProps) {
       ) : (
         <div className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-2xl border border-white/70 bg-white/75 p-4 shadow-sm backdrop-blur">
+            <div className="dashboard-glass-card rounded-2xl border p-4">
               <p className="text-sm font-medium text-primary-gray">
                 Reports Generated
               </p>
@@ -53,7 +57,7 @@ export default function ReportingSnapshot({ data }: ReportingSnapshotProps) {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-white/70 bg-white/75 p-4 shadow-sm backdrop-blur">
+            <div className="dashboard-glass-card rounded-2xl border p-4">
               <p className="text-sm font-medium text-primary-gray">
                 Last Generated
               </p>
@@ -66,7 +70,7 @@ export default function ReportingSnapshot({ data }: ReportingSnapshotProps) {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/70 bg-white/75 p-4 shadow-sm backdrop-blur">
+          <div className="dashboard-glass-card rounded-2xl border p-4">
             <p className="text-sm font-medium text-primary-gray">
               Export Formats
             </p>

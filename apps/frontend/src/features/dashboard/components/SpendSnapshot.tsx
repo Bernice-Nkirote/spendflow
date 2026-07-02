@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { formatCurrency } from "../../../utils/formatCurrency";
 import type { SpendSnapshot as SpendSnapshotData } from "../types/dashboard.types";
+import DashboardIcon from "./DashboardIcon";
 
 type SpendSnapshotProps = {
   data: SpendSnapshotData | undefined;
@@ -38,14 +39,17 @@ export default function SpendSnapshot({ data, currency }: SpendSnapshotProps) {
   return (
     <div>
       <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-primary-black">
-            Spend Snapshot
-          </h2>
-          <p className="mt-1 text-sm leading-5 text-primary-gray">
-            A quick view of current spend, supplier coverage, and procurement
-            concentration.
-          </p>
+        <div className="flex items-start gap-3">
+          <DashboardIcon name="spend" />
+          <div>
+            <h2 className="text-lg font-semibold text-primary-black">
+              Spend Snapshot
+            </h2>
+            <p className="mt-1 text-sm leading-5 text-primary-gray">
+              A quick view of current spend, supplier coverage, and procurement
+              concentration.
+            </p>
+          </div>
         </div>
 
         <Link
@@ -60,7 +64,7 @@ export default function SpendSnapshot({ data, currency }: SpendSnapshotProps) {
         {metrics.map((metric) => (
           <div
             key={metric.label}
-            className={`rounded-2xl border border-white/70 bg-white/75 p-5 shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:shadow-md ${
+            className={`dashboard-glass-card rounded-2xl border p-5 transition hover:-translate-y-0.5 ${
               metric.featured ? "lg:col-span-2" : ""
             }`}
           >

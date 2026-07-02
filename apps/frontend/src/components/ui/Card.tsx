@@ -9,7 +9,7 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
     return (
       <div
         ref={ref}
-        className={`glass-panel rounded-2xl border p-5 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg ${className}`}
+        className={`glass-panel rounded-2xl border p-5 transition duration-200 hover:-translate-y-0.5 ${className}`}
         {...props}
       >
         {children}

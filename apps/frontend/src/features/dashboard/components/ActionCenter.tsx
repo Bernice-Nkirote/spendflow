@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import type { DashboardActionCenter } from "../types/dashboard.types";
+import DashboardIcon from "./DashboardIcon";
 
 type ActionCenterProps = {
   data: DashboardActionCenter | undefined;
@@ -68,14 +69,17 @@ export default function ActionCenter({ data }: ActionCenterProps) {
   return (
     <div>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-primary-black">
-            Action Center
-          </h2>
-          <p className="mt-1 text-sm leading-5 text-primary-gray">
-            The work that needs attention across approvals, POs, invoices, and
-            payments.
-          </p>
+        <div className="flex items-start gap-3">
+          <DashboardIcon name="action" />
+          <div>
+            <h2 className="text-lg font-semibold text-primary-black">
+              Action Center
+            </h2>
+            <p className="mt-1 text-sm leading-5 text-primary-gray">
+              The work that needs attention across approvals, POs, invoices, and
+              payments.
+            </p>
+          </div>
         </div>
 
         <Link
@@ -91,7 +95,7 @@ export default function ActionCenter({ data }: ActionCenterProps) {
           <Link
             key={item.label}
             to={item.to}
-            className="group rounded-2xl border border-white/70 bg-white/75 p-4 shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:border-primary-blue/30 hover:bg-white hover:shadow-md"
+            className="dashboard-glass-card group rounded-2xl border p-4 transition hover:-translate-y-0.5"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">

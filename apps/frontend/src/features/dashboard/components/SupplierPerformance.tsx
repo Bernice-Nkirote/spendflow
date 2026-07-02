@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import EmptyState from "../../../components/ui/EmptyState";
 import { formatCurrency } from "../../../utils/formatCurrency";
 import type { SupplierScorecardItem } from "../types/dashboard.types";
+import DashboardIcon from "./DashboardIcon";
 
 type SupplierPerformanceProps = {
   items: SupplierScorecardItem[] | undefined;
@@ -34,19 +35,22 @@ export default function SupplierPerformance({
   return (
     <div>
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-lg font-semibold text-primary-black">
-              Supplier Scorecard
-            </h2>
-            <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-primary-blue ring-1 ring-blue-100">
-              Top 5
-            </span>
+        <div className="flex items-start gap-3">
+          <DashboardIcon name="supplier" />
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-lg font-semibold text-primary-black">
+                Supplier Scorecard
+              </h2>
+              <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-primary-blue ring-1 ring-blue-100">
+                Top 5
+              </span>
+            </div>
+            <p className="mt-1 text-sm leading-5 text-primary-gray">
+              Performance is estimated from orders received, invoice progress, and
+              supplier activity already recorded in Tendaflow.
+            </p>
           </div>
-          <p className="mt-1 text-sm leading-5 text-primary-gray">
-            Performance is estimated from orders received, invoice progress, and
-            supplier activity already recorded in Tendaflow.
-          </p>
         </div>
 
         <Link
@@ -79,7 +83,7 @@ export default function SupplierPerformance({
               <Link
                 key={supplier.supplierId}
                 to={`/suppliers/${supplier.supplierId}`}
-                className="block rounded-2xl border border-white/70 bg-white/75 p-4 shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:border-primary-blue/30 hover:bg-white hover:shadow-md"
+                className="dashboard-glass-card block rounded-2xl border p-4 transition hover:-translate-y-0.5"
               >
                 <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr_0.7fr] lg:items-center">
                   <div className="min-w-0">
@@ -124,7 +128,7 @@ export default function SupplierPerformance({
                     </div>
                   </div>
 
-                  <div className="rounded-xl bg-blue-50/70 p-3 text-xs text-primary-gray ring-1 ring-blue-100/70">
+                  <div className="rounded-xl border border-white/60 bg-white/45 p-3 text-xs text-primary-gray shadow-inner backdrop-blur">
                     <p className="font-semibold text-primary-black">
                       {formatCurrency(supplier.totalSpend, currency ?? "KES")}
                     </p>

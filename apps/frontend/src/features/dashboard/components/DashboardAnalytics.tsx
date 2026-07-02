@@ -2,6 +2,7 @@ import type {
   DashboardActionCenter,
   SupplierScorecardItem,
 } from "../types/dashboard.types";
+import DashboardIcon from "./DashboardIcon";
 
 type DashboardAnalyticsProps = {
   actionCenter: DashboardActionCenter | undefined;
@@ -45,18 +46,21 @@ export default function DashboardAnalytics({
   return (
     <div>
       <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-primary-black">
-            Procurement Analytics
-          </h2>
-          <p className="mt-1 text-sm leading-5 text-primary-gray">
-            Visual signals for approval pressure and supplier performance.
-          </p>
+        <div className="flex items-start gap-3">
+          <DashboardIcon name="analytics" />
+          <div>
+            <h2 className="text-lg font-semibold text-primary-black">
+              Procurement Analytics
+            </h2>
+            <p className="mt-1 text-sm leading-5 text-primary-gray">
+              Visual signals for approval pressure and supplier performance.
+            </p>
+          </div>
         </div>
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">
-        <div className="rounded-2xl border border-white/70 bg-white/75 p-5 shadow-sm backdrop-blur">
+        <div className="dashboard-glass-card rounded-2xl border p-5">
           <p className="text-sm font-semibold text-primary-black">
             Approval load
           </p>
@@ -90,7 +94,7 @@ export default function DashboardAnalytics({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/70 bg-white/75 p-5 shadow-sm backdrop-blur">
+        <div className="dashboard-glass-card rounded-2xl border p-5">
           <p className="text-sm font-semibold text-primary-black">
             Top supplier performance
           </p>
@@ -100,7 +104,7 @@ export default function DashboardAnalytics({
 
           <div className="mt-5 space-y-4">
             {topSuppliers.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-gray-200 bg-gray-50/80 p-4 text-sm text-primary-gray">
+              <p className="rounded-xl border border-dashed border-primary-blue/20 bg-white/45 p-4 text-sm text-primary-gray backdrop-blur">
                 Supplier analytics will appear after suppliers receive POs.
               </p>
             ) : (

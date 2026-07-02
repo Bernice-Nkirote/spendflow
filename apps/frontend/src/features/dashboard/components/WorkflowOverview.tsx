@@ -1,4 +1,5 @@
 import type { ProcurementWorkflowSummary } from "../types/dashboard.types";
+import DashboardIcon from "./DashboardIcon";
 
 type WorkflowOverviewProps = {
   data: ProcurementWorkflowSummary | undefined;
@@ -30,20 +31,23 @@ export default function WorkflowOverview({ data }: WorkflowOverviewProps) {
 
   return (
     <div>
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold text-primary-black">
-          Procurement Workflow Overview
-        </h2>
-        <p className="mt-1 text-sm leading-5 text-primary-gray">
-          High-level view of documents moving through the procurement lifecycle.
-        </p>
+      <div className="mb-4 flex items-start gap-3">
+        <DashboardIcon name="workflow" />
+        <div>
+          <h2 className="text-lg font-semibold text-primary-black">
+            Procurement Workflow Overview
+          </h2>
+          <p className="mt-1 text-sm leading-5 text-primary-gray">
+            High-level view of documents moving through the procurement lifecycle.
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {workflowItems.map((item) => (
           <div
             key={item.label}
-            className="rounded-2xl border border-white/70 bg-white/75 p-4 shadow-sm backdrop-blur transition hover:-translate-y-0.5 hover:bg-white hover:shadow-md"
+            className="dashboard-glass-card rounded-2xl border p-4 transition hover:-translate-y-0.5"
           >
             <p className="text-sm font-medium text-primary-gray">
               {item.shortLabel}
