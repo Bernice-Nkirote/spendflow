@@ -149,19 +149,17 @@ export default function DashboardPage() {
                 type="button"
                 aria-pressed={isActive}
                 onClick={() => setActiveView(view.key)}
-                className={`group relative overflow-hidden rounded-xl border px-4 py-3 text-left transition-all duration-200 ${
+                style={{
+                  background: isActive
+                    ? "linear-gradient(rgba(255,255,255,0.86),rgba(255,255,255,0.86)) padding-box, linear-gradient(120deg,#011C40,#26658C,#54ACBF,#A7EBF2) border-box"
+                    : "linear-gradient(rgba(255,255,255,0.58),rgba(255,255,255,0.58)) padding-box, linear-gradient(120deg,rgba(167,235,242,0.9),rgba(84,172,191,0.68),rgba(38,101,140,0.56)) border-box",
+                }}
+                className={`group relative rounded-xl border border-transparent px-4 py-3 text-left transition-all duration-200 ${
                   isActive
-                    ? "border-[#54ACBF]/55 bg-white/82 shadow-[0_14px_32px_rgba(1,28,64,0.12)]"
-                    : "border-white/60 bg-white/50 hover:-translate-y-0.5 hover:border-[#A7EBF2]/80 hover:bg-white/75 hover:shadow-md"
+                    ? "shadow-[0_14px_32px_rgba(1,28,64,0.12)]"
+                    : "hover:-translate-y-0.5 hover:shadow-md"
                 }`}
               >
-                <span
-                  className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${
-                    isActive
-                      ? "from-[#011C40] via-[#26658C] to-[#54ACBF]"
-                      : "from-[#A7EBF2]/70 via-[#54ACBF]/45 to-white/40"
-                  }`}
-                />
                 <span
                   className={`block text-sm font-semibold ${
                     isActive ? "text-[#011C40]" : "text-[#26658C]"
