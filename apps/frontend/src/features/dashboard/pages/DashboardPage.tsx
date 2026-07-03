@@ -31,36 +31,36 @@ const dashboardViews: Array<{
   key: DashboardView;
   label: string;
   helper: string;
-  gradient: string;
-  tint: string;
+  accent: string;
+  accentRgb: string;
 }> = [
   {
     key: "overview",
     label: "At a Glance",
-    helper: "Priorities and key totals",
-    gradient: "linear-gradient(135deg, rgba(0, 124, 190, 0.42) 0%, rgba(255, 247, 174, 0.52) 100%)",
-    tint: "linear-gradient(135deg, rgba(0, 124, 190, 0.07) 0%, rgba(255, 247, 174, 0.12) 100%)",
+    helper: "Key totals and next actions",
+    accent: "#26658C",
+    accentRgb: "38, 101, 140",
   },
   {
     key: "spendSuppliers",
     label: "Spend & Suppliers",
     helper: "Spend patterns and supplier health",
-    gradient: "linear-gradient(135deg, rgba(98, 148, 96, 0.42) 0%, rgba(244, 211, 94, 0.5) 100%)",
-    tint: "linear-gradient(135deg, rgba(98, 148, 96, 0.08) 0%, rgba(244, 211, 94, 0.12) 100%)",
+    accent: "#17A398",
+    accentRgb: "23, 163, 152",
   },
   {
     key: "operations",
     label: "Operational Details",
     helper: "Workflow and approval movement",
-    gradient: "linear-gradient(135deg, rgba(2, 195, 189, 0.42) 0%, rgba(78, 20, 140, 0.36) 100%)",
-    tint: "linear-gradient(135deg, rgba(2, 195, 189, 0.08) 0%, rgba(78, 20, 140, 0.07) 100%)",
+    accent: "#8EA604",
+    accentRgb: "142, 166, 4",
   },
   {
     key: "reportsActivity",
     label: "Reports & Activity",
-    helper: "Recent records and reporting signals",
-    gradient: "linear-gradient(135deg, rgba(229, 122, 68, 0.42) 0%, rgba(37, 19, 81, 0.34) 100%)",
-    tint: "linear-gradient(135deg, rgba(229, 122, 68, 0.08) 0%, rgba(37, 19, 81, 0.07) 100%)",
+    helper: "Recent records and report signals",
+    accent: "#925E78",
+    accentRgb: "146, 94, 120",
   },
 ];
 
@@ -125,6 +125,17 @@ export default function DashboardPage() {
     fetchDashboard();
   }, []);
 
+  function handleViewChange(view: DashboardView) {
+    setActiveView(view);
+
+    window.setTimeout(() => {
+      document.getElementById("dashboard-detail-section")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 50);
+  }
+
   return (
     <div className="space-y-8">
       <section className="glass-panel-strong overflow-hidden rounded-3xl border p-5 sm:p-6">
@@ -148,8 +159,8 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="glass-panel rounded-3xl border p-3 shadow-sm">
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="dashboard-glass-card rounded-2xl border px-3 py-2 shadow-sm">
+        <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 xl:grid-cols-4">
           {dashboardViews.map((view) => {
             const isActive = activeView === view.key;
 
@@ -158,27 +169,35 @@ export default function DashboardPage() {
                 key={view.key}
                 type="button"
                 aria-pressed={isActive}
-                onClick={() => setActiveView(view.key)}
+                onClick={() => handleViewChange(view.key)}
                 style={{
+                  borderColor: isActive
+                    ? `rgba(${view.accentRgb}, 0.42)`
+                    : "rgba(167, 235, 242, 0.34)",
                   background: isActive
-                    ? `${view.tint} padding-box, ${view.gradient} border-box`
-                    : `linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.56)) padding-box, ${view.gradient} border-box`,
+                    ? `linear-gradient(135deg, rgba(255,255,255,0.9), rgba(${view.accentRgb},0.14))`
+                    : "linear-gradient(145deg, rgba(255,255,255,0.78), rgba(255,255,255,0.58))",
+                  boxShadow: isActive
+                    ? `0 14px 30px rgba(${view.accentRgb}, 0.16), inset 0 1px 0 rgba(255,255,255,0.78)`
+                    : undefined,
                 }}
-                className={`group relative overflow-hidden rounded-xl border border-transparent px-4 py-3 text-left backdrop-blur-xl transition-all duration-200 ${
+                className={`group min-w-[12.5rem] rounded-xl border px-3.5 py-2.5 text-left backdrop-blur-xl transition-all duration-200 sm:min-w-0 ${
                   isActive
-                    ? "shadow-[0_16px_36px_rgba(1,28,64,0.13)]"
-                    : "opacity-90 hover:-translate-y-0.5 hover:opacity-100 hover:shadow-md"
+                    ? "text-[#011C40]"
+                    : "text-[#26658C] hover:-translate-y-0.5 hover:border-[#54ACBF]/55 hover:bg-white/80 hover:text-[#011C40] hover:shadow-md"
                 }`}
               >
-                <span className="absolute inset-0 rounded-xl bg-white/45" />
-                <span
-                  className={`relative block text-sm font-semibold ${
-                    isActive ? "text-[#011C40]" : "text-[#26658C]"
-                  }`}
-                >
-                  {view.label}
+                <span className="flex items-center gap-2.5">
+                  <span
+                    aria-hidden="true"
+                    style={{ backgroundColor: `rgba(${view.accentRgb}, 0.14)` }}
+                    className="h-2.5 w-2.5 shrink-0 rounded-full ring-4 ring-white/70"
+                  />
+                  <span className="truncate text-sm font-semibold">
+                    {view.label}
+                  </span>
                 </span>
-                <span className="relative mt-1 block text-xs leading-5 text-primary-gray">
+                <span className="mt-1 hidden truncate text-xs text-primary-gray sm:block">
                   {view.helper}
                 </span>
               </button>
@@ -233,90 +252,92 @@ export default function DashboardPage() {
             </div>
           </section>
 
-          {activeView === "overview" && (
-            <section>
-              <DashboardSectionHeader
-                eyebrow="Priority view"
-                title="What needs attention now"
-                description="A focused starting point for actions users may need to take next."
-              />
-              <div className="grid gap-6 2xl:grid-cols-[1.05fr_0.95fr]">
-                <Card className="p-5 sm:p-6">
-                  <ActionCenter data={data?.actionCenter} />
-                </Card>
+          <div id="dashboard-detail-section" className="scroll-mt-28">
+            {activeView === "overview" && (
+              <section>
+                <DashboardSectionHeader
+                  eyebrow="Priority view"
+                  title="What needs attention now"
+                  description="A focused starting point for actions users may need to take next."
+                />
+                <div className="grid gap-6 2xl:grid-cols-[1.05fr_0.95fr]">
+                  <Card className="p-5 sm:p-6">
+                    <ActionCenter data={data?.actionCenter} />
+                  </Card>
 
-                <Card className="p-5 sm:p-6">
-                  <DashboardAnalytics
-                    actionCenter={data?.actionCenter}
-                    supplierScorecards={data?.supplierScorecards}
-                  />
-                </Card>
-              </div>
-            </section>
-          )}
+                  <Card className="p-5 sm:p-6">
+                    <DashboardAnalytics
+                      actionCenter={data?.actionCenter}
+                      supplierScorecards={data?.supplierScorecards}
+                    />
+                  </Card>
+                </div>
+              </section>
+            )}
 
-          {activeView === "spendSuppliers" && (
-            <section>
-              <DashboardSectionHeader
-                eyebrow="Spend and suppliers"
-                title="Money movement and supplier health"
-                description="A focused view of spend patterns and the top suppliers users may need to review."
-              />
-              <div className="grid gap-6 2xl:grid-cols-[0.95fr_1.05fr]">
-                <Card className="p-5 sm:p-6">
-                  <SpendSnapshot
-                    data={data?.spendSnapshot}
-                    currency={data?.currency}
-                  />
-                </Card>
+            {activeView === "spendSuppliers" && (
+              <section>
+                <DashboardSectionHeader
+                  eyebrow="Spend and suppliers"
+                  title="Money movement and supplier health"
+                  description="A focused view of spend patterns and the top suppliers users may need to review."
+                />
+                <div className="grid gap-6 2xl:grid-cols-[0.95fr_1.05fr]">
+                  <Card className="p-5 sm:p-6">
+                    <SpendSnapshot
+                      data={data?.spendSnapshot}
+                      currency={data?.currency}
+                    />
+                  </Card>
 
-                <Card className="p-5 sm:p-6">
-                  <SupplierPerformance
-                    items={data?.supplierScorecards}
-                    currency={data?.currency}
-                  />
-                </Card>
-              </div>
-            </section>
-          )}
+                  <Card className="p-5 sm:p-6">
+                    <SupplierPerformance
+                      items={data?.supplierScorecards}
+                      currency={data?.currency}
+                    />
+                  </Card>
+                </div>
+              </section>
+            )}
 
-          {activeView === "operations" && (
-            <section>
-              <DashboardSectionHeader
-                eyebrow="Operational details"
-                title="Workflow and approval movement"
-                description="Workflow movement and pending approval queue for deeper operational context."
-              />
-              <div className="grid gap-6 2xl:grid-cols-[1fr_1fr]">
-                <Card className="p-5 sm:p-6">
-                  <WorkflowOverview data={data?.workflow} />
-                </Card>
+            {activeView === "operations" && (
+              <section>
+                <DashboardSectionHeader
+                  eyebrow="Operational details"
+                  title="Workflow and approval movement"
+                  description="Workflow movement and pending approval queue for deeper operational context."
+                />
+                <div className="grid gap-6 2xl:grid-cols-[1fr_1fr]">
+                  <Card className="p-5 sm:p-6">
+                    <WorkflowOverview data={data?.workflow} />
+                  </Card>
 
-                <Card className="p-5 sm:p-6">
-                  <ApprovalQueue items={data?.approvalQueue} />
-                </Card>
-              </div>
-            </section>
-          )}
+                  <Card className="p-5 sm:p-6">
+                    <ApprovalQueue items={data?.approvalQueue} />
+                  </Card>
+                </div>
+              </section>
+            )}
 
-          {activeView === "reportsActivity" && (
-            <section>
-              <DashboardSectionHeader
-                eyebrow="Reports and activity"
-                title="Recent records and reporting signals"
-                description="Recent system activity and reporting totals for users who need to review what has changed."
-              />
-              <div className="grid items-start gap-6 2xl:grid-cols-[1fr_1fr]">
-                <Card className="p-5 sm:p-6">
-                  <RecentActivity items={data?.recentActivity} />
-                </Card>
+            {activeView === "reportsActivity" && (
+              <section>
+                <DashboardSectionHeader
+                  eyebrow="Reports and activity"
+                  title="Recent records and reporting signals"
+                  description="Recent system activity and reporting totals for users who need to review what has changed."
+                />
+                <div className="grid items-start gap-6 2xl:grid-cols-[1fr_1fr]">
+                  <Card className="p-5 sm:p-6">
+                    <RecentActivity items={data?.recentActivity} />
+                  </Card>
 
-                <Card className="p-5 sm:p-6">
-                  <ReportingSnapshot data={data?.reportingSnapshot} />
-                </Card>
-              </div>
-            </section>
-          )}
+                  <Card className="p-5 sm:p-6">
+                    <ReportingSnapshot data={data?.reportingSnapshot} />
+                  </Card>
+                </div>
+              </section>
+            )}
+          </div>
         </>
       )}
     </div>
