@@ -158,7 +158,7 @@ export default function EditPurchaseOrderPage() {
   if (loading) return <LoadingState />;
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-procurement">
       <PageHeader
         title="Edit Purchase Order"
         description="Update draft purchase order details before submitting for approval."

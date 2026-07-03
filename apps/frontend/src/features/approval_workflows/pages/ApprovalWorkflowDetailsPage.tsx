@@ -398,7 +398,7 @@ function ApprovalWorkflowDetailsPage() {
 
   if (!canAccessAdminPage) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-approvals">
         <BackButton
           fallbackLabel="Back to Approval Workflows"
           fallbackTo="/approval-workflows"
@@ -416,7 +416,7 @@ function ApprovalWorkflowDetailsPage() {
 
   if (isLoading) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-approvals">
         <LoadingState message="Loading workflow details..." />
       </PageContainer>
     );
@@ -424,7 +424,7 @@ function ApprovalWorkflowDetailsPage() {
 
   if (pageError) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-approvals">
         <BackButton
           fallbackLabel="Back to Approval Workflows"
           fallbackTo="/approval-workflows"
@@ -436,7 +436,7 @@ function ApprovalWorkflowDetailsPage() {
 
   if (!workflow) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-approvals">
         <BackButton
           fallbackLabel="Back to Approval Workflows"
           fallbackTo="/approval-workflows"
@@ -454,7 +454,7 @@ function ApprovalWorkflowDetailsPage() {
   );
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-approvals">
       {alert && (
         <FloatingAlert
           type={alert.type}

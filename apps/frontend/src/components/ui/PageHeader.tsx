@@ -8,14 +8,14 @@ type PageHeaderProps = {
 
 function PageHeader({ title, description, actions }: PageHeaderProps) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <div className="page-header flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0">
-        <h1 className="text-2xl font-bold tracking-tight text-primary-black">
+        <h1 className="page-header-title text-2xl font-bold tracking-tight text-primary-black">
           {title}
         </h1>
 
         {description && (
-          <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-600">
+          <p className="page-header-description mt-1 max-w-3xl text-sm leading-6 text-gray-600">
             {description}
           </p>
         )}

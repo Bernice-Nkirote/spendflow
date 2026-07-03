@@ -277,7 +277,7 @@ function DepartmentsPage() {
 
   if (!canManageDepartments) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-admin">
         <PageHeader
           title="Departments"
           description="Create and manage departments used for procurement ownership, approvals, and user assignment."
@@ -289,7 +289,7 @@ function DepartmentsPage() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-admin">
       {alert && (
         <FloatingAlert
           type={alert.type}

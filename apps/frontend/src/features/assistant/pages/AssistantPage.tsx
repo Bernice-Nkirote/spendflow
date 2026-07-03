@@ -8,7 +8,7 @@ export default function AssistantPage() {
   const navigate = useNavigate();
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-help">
       <PageHeader
         title="Tenda Assistant"
         description="Not sure what to do next? Ask Tenda for a clear step-by-step path."

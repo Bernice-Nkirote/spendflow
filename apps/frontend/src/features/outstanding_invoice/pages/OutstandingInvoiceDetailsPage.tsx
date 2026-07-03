@@ -64,7 +64,7 @@ export default function OutstandingInvoiceDetailsPage() {
 
   if (loading) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-finance">
         <LoadingState message="Loading outstanding invoice details..." />
       </PageContainer>
     );
@@ -72,7 +72,7 @@ export default function OutstandingInvoiceDetailsPage() {
 
   if (error) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-finance">
         <BackButton fallbackLabel="Back to Reports" fallbackTo="/reports" />
         <ErrorState message={error} />
       </PageContainer>
@@ -81,7 +81,7 @@ export default function OutstandingInvoiceDetailsPage() {
 
   if (!invoice) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-finance">
         <BackButton fallbackLabel="Back to Reports" fallbackTo="/reports" />
         <ErrorState message="Outstanding invoice was not found." />
       </PageContainer>
@@ -89,7 +89,7 @@ export default function OutstandingInvoiceDetailsPage() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-finance">
       <BackButton fallbackLabel="Back to Reports" fallbackTo="/reports" />
 
       <PageHeader

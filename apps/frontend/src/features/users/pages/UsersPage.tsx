@@ -412,7 +412,7 @@ function UsersPage() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-admin">
       {alert && (
         <FloatingAlert
           type={alert.type}

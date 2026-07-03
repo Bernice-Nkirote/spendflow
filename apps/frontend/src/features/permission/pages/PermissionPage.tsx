@@ -223,7 +223,7 @@ function PermissionsPage() {
 
   if (!canAccessAdminPage) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-admin">
         <PageHeader
           title="Permissions"
           description="Manage role-based access by assigning readable permissions to company roles."
@@ -235,7 +235,7 @@ function PermissionsPage() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-admin">
       {alert && (
         <FloatingAlert
           type={alert.type}

@@ -55,7 +55,7 @@ export default function SupplierLeadTimeDetailsPage() {
 
   if (loading) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-suppliers">
         <LoadingState message="Loading supplier lead time details..." />
       </PageContainer>
     );
@@ -63,7 +63,7 @@ export default function SupplierLeadTimeDetailsPage() {
 
   if (error) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-suppliers">
         <BackButton fallbackLabel="Back to Reports" fallbackTo="/reports" />
         <ErrorState message={error} />
       </PageContainer>
@@ -72,7 +72,7 @@ export default function SupplierLeadTimeDetailsPage() {
 
   if (!data) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-suppliers">
         <BackButton fallbackLabel="Back to Reports" fallbackTo="/reports" />
         <ErrorState message="Supplier lead time detail was not found." />
       </PageContainer>
@@ -80,7 +80,7 @@ export default function SupplierLeadTimeDetailsPage() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-suppliers">
       <BackButton fallbackLabel="Back to Reports" fallbackTo="/reports" />
 
       <PageHeader

@@ -383,7 +383,7 @@ function ExchangeRatesPage() {
 
   if (!canViewExchangeRates) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-finance">
         <PageHeader
           title="Exchange Rates"
           description="Manage currency conversion rates used for approvals, reporting, and financial normalization."
@@ -395,7 +395,7 @@ function ExchangeRatesPage() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-finance">
       {alert && (
         <FloatingAlert
           type={alert.type}

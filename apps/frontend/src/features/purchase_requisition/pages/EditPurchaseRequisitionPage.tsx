@@ -114,7 +114,7 @@ export default function EditPurchaseRequisitionPage() {
   if (loading) return <LoadingState />;
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-procurement">
       <PageHeader
         title="Edit Purchase Requisition"
         description="Update draft purchase requisition information."

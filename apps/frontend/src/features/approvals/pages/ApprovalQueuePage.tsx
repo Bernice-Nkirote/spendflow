@@ -275,7 +275,7 @@ function ApprovalQueuePage() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-approvals">
       <PageHeader
         title="Approvals"
         description="Review pending procurement approvals and track completed approval decisions."

@@ -217,7 +217,7 @@ export default function CreatePurchaseOrderFromPRPage() {
 
   if (!canCreatePO) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-procurement">
         <BackButton
           fallbackLabel="Back to Purchase Orders"
           fallbackTo="/purchase-orders"
@@ -236,7 +236,7 @@ export default function CreatePurchaseOrderFromPRPage() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-procurement">
       <PageHeader
         title={`Create PO from PR ${purchaseRequisition.pr_number}`}
         description="Convert this approved purchase requisition into a draft purchase order."

@@ -388,7 +388,7 @@ function SupplierDetailsPage() {
 
   if (error && !supplier) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-suppliers">
         <BackButton fallbackLabel="Back to Suppliers" fallbackTo="/suppliers" />
         <ErrorState message={error} />
       </PageContainer>
@@ -397,7 +397,7 @@ function SupplierDetailsPage() {
 
   if (!supplier) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-suppliers">
         <BackButton fallbackLabel="Back to Suppliers" fallbackTo="/suppliers" />
         <EmptyState
           title="Supplier not found"
@@ -408,7 +408,7 @@ function SupplierDetailsPage() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-suppliers">
       {alert && (
         <FloatingAlert
           type={alert.type}

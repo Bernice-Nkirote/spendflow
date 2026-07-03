@@ -298,7 +298,7 @@ function AuditLogsPage() {
 
   if (!canAccessAuditLogs) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-admin">
         <PageHeader
           title="Audit Logs"
           description="Review traceable system activity across users, suppliers, approvals, payments, permissions, and procurement records."
@@ -310,7 +310,7 @@ function AuditLogsPage() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-admin">
       {alert && (
         <FloatingAlert
           type={alert.type}

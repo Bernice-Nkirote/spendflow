@@ -148,7 +148,7 @@ export default function PurchaseOrderDetailsPage() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-procurement">
       {returnTo ? (
         <BackButton label="Back to Approval" to={returnTo} />
       ) : (

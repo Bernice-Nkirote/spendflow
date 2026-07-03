@@ -114,7 +114,7 @@ export default function PurchaseOrdersPage() {
   }, [skip, pageSize]);
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-procurement">
       <PageHeader
         title="Purchase Orders"
         description="Manage standalone purchase orders and purchase orders created from approved requisitions."

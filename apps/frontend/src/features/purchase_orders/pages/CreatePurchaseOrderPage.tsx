@@ -168,7 +168,7 @@ export default function CreatePurchaseOrderPage() {
 
   if (!canCreatePO) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-procurement">
         <BackButton
           fallbackLabel="Back to Purchase Orders"
           fallbackTo="/purchase-orders"
@@ -179,7 +179,7 @@ export default function CreatePurchaseOrderPage() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-procurement">
       <PageHeader
         title="Create Standalone Purchase Order"
         description="Create a purchase order that is not linked to a purchase requisition."

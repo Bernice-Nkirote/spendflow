@@ -1,4 +1,4 @@
-﻿import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 import { useSupplierInactivityLogout } from "../../supplier_auth/hooks/useSupplierInactivityLogout";
 
 import Button from "../../../components/ui/Button";
@@ -18,12 +18,12 @@ function SupplierPortalLayout() {
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
     `whitespace-nowrap rounded-xl px-3 py-2 text-sm font-semibold transition ${
       isActive
-        ? "bg-primary-blue text-white shadow-sm"
-        : "text-primary-black hover:bg-gray-100"
+        ? "bg-[#629460] text-white shadow-sm"
+        : "text-primary-black hover:bg-[#DFF8E8]"
     }`;
 
   return (
-    <div className="min-h-screen bg-primary-white">
+    <div className="module-theme module-suppliers min-h-screen bg-primary-white">
       <ConfirmDialog
         isOpen={isSessionWarningOpen}
         title="Session expiring soon"

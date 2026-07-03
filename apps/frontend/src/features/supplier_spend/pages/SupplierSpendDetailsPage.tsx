@@ -69,7 +69,7 @@ export default function SupplierSpendDetailsPage() {
 
   if (loading) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-suppliers">
         <LoadingState message="Loading supplier spend details..." />
       </PageContainer>
     );
@@ -77,7 +77,7 @@ export default function SupplierSpendDetailsPage() {
 
   if (error) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-suppliers">
         <BackButton fallbackLabel="Back to Reports" fallbackTo="/reports" />
         <ErrorState message={error} />
       </PageContainer>
@@ -86,7 +86,7 @@ export default function SupplierSpendDetailsPage() {
 
   if (!supplierSpend) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-suppliers">
         <BackButton fallbackLabel="Back to Reports" fallbackTo="/reports" />
         <ErrorState message="Supplier spend details were not found." />
       </PageContainer>
@@ -94,7 +94,7 @@ export default function SupplierSpendDetailsPage() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-suppliers">
       <BackButton fallbackLabel="Back to Reports" fallbackTo="/reports" />
 
       <PageHeader

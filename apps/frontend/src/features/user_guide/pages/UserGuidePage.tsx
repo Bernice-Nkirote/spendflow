@@ -373,7 +373,7 @@ export default function UserGuidePage() {
     guideSections[0];
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-help">
       <PageHeader
         title="User Guide"
         description="A practical guide to setting up and using Tendaflow safely."

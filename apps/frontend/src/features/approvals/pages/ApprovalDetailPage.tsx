@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import axios from "axios";
 
@@ -185,7 +185,7 @@ function ApprovalDetailPage() {
 
   if (isLoading) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-approvals">
         <LoadingState message="Loading approval details..." />
       </PageContainer>
     );
@@ -193,7 +193,7 @@ function ApprovalDetailPage() {
 
   if (error && !instance) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-approvals">
         <ErrorState message={error} />
       </PageContainer>
     );
@@ -201,7 +201,7 @@ function ApprovalDetailPage() {
 
   if (!instance) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-approvals">
         <ErrorState message="Approval not found." />
       </PageContainer>
     );
@@ -211,7 +211,7 @@ function ApprovalDetailPage() {
   const entityLink = getEntityLink(instance);
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-approvals">
       {successMessage && (
         <FloatingAlert
           type="success"
@@ -291,7 +291,7 @@ function ApprovalDetailPage() {
                 label="Exchange Rate"
                 value={formatRate(instance.exchange_rate)}
                 helper={`${instance.currency ?? "-"}${
-                  instance.base_currency ? ` â†’ ${instance.base_currency}` : ""
+                  instance.base_currency ? ` → ${instance.base_currency}` : ""
                 }`}
               />
               <InfoItem

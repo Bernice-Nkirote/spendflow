@@ -134,7 +134,7 @@ export default function PaymentDetailsPage() {
     paymentApproval?.status === "PENDING";
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-finance">
       {actionSuccess && (
         <FloatingAlert
           type="success"

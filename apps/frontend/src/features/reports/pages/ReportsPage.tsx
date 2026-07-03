@@ -405,7 +405,7 @@ export default function ReportsPage() {
 
   if (!hasReportAccess) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-reports">
         <PageHeader
           title="Reports"
           description="View, filter, and export business-readable procurement reports."
@@ -418,7 +418,7 @@ export default function ReportsPage() {
 
   if (initialLoading) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-reports">
         {alert && (
           <FloatingAlert
             type={alert.type}
@@ -438,7 +438,7 @@ export default function ReportsPage() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-reports">
       {alert && (
         <FloatingAlert
           type={alert.type}

@@ -110,7 +110,7 @@ export default function InvoicesPage() {
   }, [skip, pageSize]);
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-finance">
       <PageHeader
         title="Invoices"
         description="Manage invoices created from purchase orders sent to suppliers."

@@ -110,7 +110,7 @@ export default function CreatePaymentPage() {
 
   if (!hasPaymentCreatePermission) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-finance">
         <BackButton fallbackLabel="Back to Payments" fallbackTo="/payments" />
         <ErrorState message="You do not have permission to create payments." />
       </PageContainer>
@@ -213,7 +213,7 @@ export default function CreatePaymentPage() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-finance">
       {actionError && (
         <FloatingAlert
           type="error"

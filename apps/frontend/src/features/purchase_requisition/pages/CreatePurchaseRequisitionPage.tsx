@@ -168,7 +168,7 @@ export default function CreatePurchaseRequisitionPage() {
 
   if (!canCreatePR) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-procurement">
         <BackButton
           fallbackLabel="Back to Purchase Requisitions"
           fallbackTo="/purchase-requisitions"
@@ -179,7 +179,7 @@ export default function CreatePurchaseRequisitionPage() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-procurement">
       <PageHeader
         title="Create Purchase Requisition"
         description="Create a draft purchase requisition with requested items."

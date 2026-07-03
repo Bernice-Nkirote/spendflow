@@ -186,7 +186,7 @@ function ApprovalWorkflowsPage() {
 
   if (!canAccessAdminPage) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-approvals">
         <PageHeader
           title="Approval Workflows"
           description="Create, update, activate, and configure approval workflows for procurement documents."
@@ -198,7 +198,7 @@ function ApprovalWorkflowsPage() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-approvals">
       {successMessage && (
         <FloatingAlert
           type="success"

@@ -315,7 +315,7 @@ function RolesPage() {
 
   if (!canAccessAdminPage) {
     return (
-      <PageContainer>
+      <PageContainer className="module-theme module-admin">
         <PageHeader
           title="Roles"
           description="Create and manage company roles used for permissions, user access, and procurement approval workflows."
@@ -327,7 +327,7 @@ function RolesPage() {
   }
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-admin">
       {alert && (
         <FloatingAlert
           type={alert.type}

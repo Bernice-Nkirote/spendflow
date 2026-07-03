@@ -63,7 +63,7 @@ export default function PurchaseRequisitionsPage() {
   }, [skip, pageSize]);
 
   return (
-    <PageContainer>
+    <PageContainer className="module-theme module-procurement">
       <PageHeader
         title="Purchase Requisitions"
         description="View, track, and manage internal purchase requisition requests."
