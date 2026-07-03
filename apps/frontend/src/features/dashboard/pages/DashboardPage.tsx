@@ -31,36 +31,26 @@ const dashboardViews: Array<{
   key: DashboardView;
   label: string;
   helper: string;
-  accent: string;
-  accentRgb: string;
 }> = [
   {
     key: "overview",
     label: "At a Glance",
     helper: "Key totals and next actions",
-    accent: "#26658C",
-    accentRgb: "38, 101, 140",
   },
   {
     key: "spendSuppliers",
     label: "Spend & Suppliers",
     helper: "Spend patterns and supplier health",
-    accent: "#17A398",
-    accentRgb: "23, 163, 152",
   },
   {
     key: "operations",
     label: "Operational Details",
     helper: "Workflow and approval movement",
-    accent: "#8EA604",
-    accentRgb: "142, 166, 4",
   },
   {
     key: "reportsActivity",
     label: "Reports & Activity",
     helper: "Recent records and report signals",
-    accent: "#925E78",
-    accentRgb: "146, 94, 120",
   },
 ];
 
@@ -159,8 +149,11 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="dashboard-glass-card rounded-2xl border px-3 py-2 shadow-sm">
-        <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] sm:grid sm:grid-cols-2 sm:overflow-visible sm:pb-0 xl:grid-cols-4">
+      <section className="dashboard-glass-card rounded-2xl border border-white/80 bg-white/55 px-2 py-2 shadow-sm">
+        <div
+          aria-label="Dashboard sections"
+          className="flex snap-x snap-mandatory gap-2 overflow-x-auto [scrollbar-width:none]"
+        >
           {dashboardViews.map((view) => {
             const isActive = activeView === view.key;
 
@@ -169,43 +162,26 @@ export default function DashboardPage() {
                 key={view.key}
                 type="button"
                 aria-pressed={isActive}
+                title={view.helper}
                 onClick={() => handleViewChange(view.key)}
-                style={{
-                  borderColor: isActive
-                    ? `rgba(${view.accentRgb}, 0.42)`
-                    : "rgba(167, 235, 242, 0.34)",
-                  background: isActive
-                    ? `linear-gradient(135deg, rgba(255,255,255,0.9), rgba(${view.accentRgb},0.14))`
-                    : "linear-gradient(145deg, rgba(255,255,255,0.78), rgba(255,255,255,0.58))",
-                  boxShadow: isActive
-                    ? `0 14px 30px rgba(${view.accentRgb}, 0.16), inset 0 1px 0 rgba(255,255,255,0.78)`
-                    : undefined,
-                }}
-                className={`group min-w-[12.5rem] rounded-xl border px-3.5 py-2.5 text-left backdrop-blur-xl transition-all duration-200 sm:min-w-0 ${
+                className={`group flex min-w-[10.75rem] snap-start items-center justify-center gap-2 rounded-xl border border-white/85 px-3.5 py-2 text-sm font-semibold backdrop-blur-xl transition-all duration-200 sm:min-w-[12rem] ${
                   isActive
-                    ? "text-[#011C40]"
-                    : "text-[#26658C] hover:-translate-y-0.5 hover:border-[#54ACBF]/55 hover:bg-white/80 hover:text-[#011C40] hover:shadow-md"
+                    ? "bg-gradient-to-r from-[#A7EBF2]/80 via-white/70 to-[#54ACBF]/32 text-[#011C40] shadow-[0_12px_28px_rgba(84,172,191,0.22),inset_0_1px_0_rgba(255,255,255,0.86)]"
+                    : "bg-gradient-to-r from-white/78 via-[#A7EBF2]/28 to-white/62 text-[#26658C] shadow-sm hover:-translate-y-0.5 hover:from-[#A7EBF2]/55 hover:via-white/78 hover:to-[#54ACBF]/22 hover:text-[#011C40] hover:shadow-md"
                 }`}
               >
-                <span className="flex items-center gap-2.5">
-                  <span
-                    aria-hidden="true"
-                    style={{ backgroundColor: `rgba(${view.accentRgb}, 0.14)` }}
-                    className="h-2.5 w-2.5 shrink-0 rounded-full ring-4 ring-white/70"
-                  />
-                  <span className="truncate text-sm font-semibold">
-                    {view.label}
-                  </span>
-                </span>
-                <span className="mt-1 hidden truncate text-xs text-primary-gray sm:block">
-                  {view.helper}
-                </span>
+                <span
+                  aria-hidden="true"
+                  className={`h-2 w-2 shrink-0 rounded-full ${
+                    isActive ? "bg-[#54ACBF]" : "bg-[#A7EBF2]"
+                  } ring-4 ring-white/70`}
+                />
+                <span className="truncate">{view.label}</span>
               </button>
             );
           })}
         </div>
       </section>
-
       {loading && <LoadingState message="Loading dashboard data..." />}
 
       {error && !loading && <ErrorState message={error} />}
