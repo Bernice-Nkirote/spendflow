@@ -1,5 +1,9 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+
+import Button from "../../../components/ui/Button";
+import Card from "../../../components/ui/Card";
+import PasswordInput from "../../../components/ui/PasswordInput";
 import { setupPassword } from "../api/authApi";
 
 function SetupPasswordPage() {
@@ -10,14 +14,12 @@ function SetupPasswordPage() {
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     setSuccessMessage("");
@@ -65,102 +67,72 @@ function SetupPasswordPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-10">
-      <section className="mx-auto max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-slate-900">
-            Set your Tendaflow password
-          </h1>
-          <p className="mt-2 text-sm text-slate-600">
+    <div className="auth-aqua-glass-bg flex min-h-screen items-center justify-center px-4 py-8">
+      <Card className="auth-card-glass relative w-full max-w-md overflow-hidden">
+        <div className="mb-6 text-center">
+          <div className="flex flex-col items-center gap-2">
+            <img
+              src="/tendaflow-auth-logo.svg"
+              alt="Tendaflow logo"
+              className="h-14 w-auto"
+            />
+            <h1 className="bg-gradient-to-r from-[#011C40] via-[#26658C] to-[#54ACBF] bg-clip-text text-3xl font-bold text-transparent">Tendaflow</h1>
+          </div>
+          <p className="mt-2 text-sm text-primary-gray">
             Create your password to activate your account and sign in.
           </p>
         </div>
 
         {!token && (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50/80 p-3 text-sm text-red-700 backdrop-blur">
             Setup token is missing. Please open the setup link from your email.
           </div>
         )}
 
         {error && (
-          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50/80 p-3 text-sm text-red-700 backdrop-blur">
             {error}
           </div>
         )}
 
         {successMessage && (
-          <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+          <div className="mb-4 rounded-lg border border-green-200 bg-green-50/80 p-3 text-sm text-green-700 backdrop-blur">
             {successMessage}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">
-              New password
-            </label>
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 pr-16 text-sm outline-none focus:border-primary-blue"
-                placeholder="Enter new password"
-                disabled={isSubmitting || !token}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((current) => !current)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-primary-blue"
-                disabled={isSubmitting || !token}
-              >
-                {showPassword ? "Hide" : "Show"}
-              </button>
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">
-              Confirm password
-            </label>
-
-            <div className="relative">
-              <input
-                type={showConfirmPassword ? "text" : "password"}
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 pr-16 text-sm outline-none focus:border-primary-blue"
-                placeholder="Confirm new password"
-                disabled={isSubmitting || !token}
-              />
-
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword((current) => !current)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-primary-blue"
-                disabled={isSubmitting || !token}
-              >
-                {showConfirmPassword ? "Hide" : "Show"}
-              </button>
-            </div>
-          </div>
-          <button
-            type="submit"
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+          <PasswordInput
+            label="New Password"
+            name="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder="Enter new password"
             disabled={isSubmitting || !token}
-            className="w-full rounded-lg bg-primary-blue px-4 py-2 text-sm font-medium text-white hover:bg-[#1f3d5f] disabled:cursor-not-allowed disabled:opacity-60"
-          >
+          />
+
+          <PasswordInput
+            label="Confirm Password"
+            name="confirmPassword"
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+            placeholder="Confirm new password"
+            disabled={isSubmitting || !token}
+          />
+
+          <Button type="submit" className="w-full" disabled={isSubmitting || !token}>
             {isSubmitting ? "Setting password..." : "Set password"}
-          </button>
+          </Button>
         </form>
 
-        <p className="mt-5 text-center text-sm text-slate-600">
+        <p className="mt-5 text-center text-sm text-primary-gray">
           Already set your password?{" "}
-          <Link to="/login" className="font-medium text-slate-900 underline">
+          <Link to="/login" className="font-medium text-primary-blue hover:underline">
             Sign in
           </Link>
         </p>
-      </section>
-    </main>
+      </Card>
+    </div>
   );
 }
 
