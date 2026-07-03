@@ -68,14 +68,14 @@ export default function ActionCenter({ data }: ActionCenterProps) {
 
   return (
     <div>
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
           <DashboardIcon name="action" />
-          <div>
+          <div className="min-w-0">
             <h2 className="text-lg font-semibold text-primary-black">
               Action Center
             </h2>
-            <p className="mt-1 text-sm leading-5 text-primary-gray">
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-primary-gray">
               The work that needs attention across approvals, POs, invoices, and
               payments.
             </p>
@@ -90,27 +90,33 @@ export default function ActionCenter({ data }: ActionCenterProps) {
         </Link>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-2">
         {actionItems.map((item) => (
           <Link
             key={item.label}
             to={item.to}
-            className="dashboard-glass-card group rounded-2xl border p-4 transition hover:-translate-y-0.5"
+            className="dashboard-glass-card group rounded-2xl border p-4 transition hover:-translate-y-0.5 sm:p-5"
           >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-primary-black">
-                  {item.label}
-                </p>
-                <p className="mt-1 text-xs leading-5 text-primary-gray">
-                  {item.helper}
-                </p>
+            <div className="flex min-h-[112px] flex-col justify-between gap-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold leading-5 text-primary-black">
+                    {item.label}
+                  </p>
+                  <p className="mt-2 text-xs leading-5 text-primary-gray">
+                    {item.helper}
+                  </p>
+                </div>
+
+                <span
+                  className={`flex h-11 min-w-11 shrink-0 items-center justify-center rounded-2xl px-3 text-base font-bold ring-1 ${toneClasses[item.tone]}`}
+                >
+                  {item.value}
+                </span>
               </div>
 
-              <span
-                className={`flex h-10 min-w-10 shrink-0 items-center justify-center rounded-full px-3 text-sm font-bold ring-1 ${toneClasses[item.tone]}`}
-              >
-                {item.value}
+              <span className="text-xs font-semibold text-primary-blue transition group-hover:translate-x-0.5">
+                Open details
               </span>
             </div>
           </Link>

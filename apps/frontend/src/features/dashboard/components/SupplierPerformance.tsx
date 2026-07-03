@@ -34,10 +34,10 @@ export default function SupplierPerformance({
 
   return (
     <div>
-      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+      <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex items-start gap-3">
           <DashboardIcon name="supplier" />
-          <div>
+          <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-lg font-semibold text-primary-black">
                 Supplier Scorecard
@@ -46,7 +46,7 @@ export default function SupplierPerformance({
                 Top 5
               </span>
             </div>
-            <p className="mt-1 text-sm leading-5 text-primary-gray">
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-primary-gray">
               Performance is estimated from orders received, invoice progress, and
               supplier activity already recorded in Tendaflow.
             </p>
@@ -64,7 +64,7 @@ export default function SupplierPerformance({
       {visibleItems.length === 0 ? (
         <EmptyState message="No supplier performance data yet. Add suppliers and create POs to build scorecards." />
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {visibleItems.map((supplier) => {
             const receivedRatio =
               supplier.totalOrders > 0
@@ -83,27 +83,50 @@ export default function SupplierPerformance({
               <Link
                 key={supplier.supplierId}
                 to={`/suppliers/${supplier.supplierId}`}
-                className="dashboard-glass-card block rounded-2xl border p-4 transition hover:-translate-y-0.5"
+                className="dashboard-glass-card block rounded-2xl border p-4 transition hover:-translate-y-0.5 sm:p-5"
               >
-                <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr_0.7fr] lg:items-center">
+                <div className="grid gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(240px,0.9fr)] xl:items-start">
                   <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="truncate text-base font-semibold text-primary-black">
-                        {supplier.supplierName}
-                      </p>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <p className="break-words text-base font-semibold leading-6 text-primary-black">
+                          {supplier.supplierName}
+                        </p>
+                        <p className="mt-1 text-sm leading-5 text-primary-gray">
+                          {supplier.category ?? "Uncategorised"}
+                          {supplier.subCategory ? ` / ${supplier.subCategory}` : ""}
+                        </p>
+                      </div>
+
                       <span
-                        className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ring-1 ${labelClasses[supplier.performanceLabel]}`}
+                        className={`inline-flex w-fit shrink-0 items-center rounded-full px-3 py-1 text-xs font-semibold ring-1 ${labelClasses[supplier.performanceLabel]}`}
                       >
                         {supplier.performanceLabel}
                       </span>
                     </div>
-                    <p className="mt-1 text-sm text-primary-gray">
-                      {supplier.category ?? "Uncategorised"}
-                      {supplier.subCategory ? ` / ${supplier.subCategory}` : ""}
-                    </p>
-                    <p className="mt-2 truncate text-xs text-primary-gray">
-                      {supplier.contactPerson || supplier.email || "No contact set"}
-                    </p>
+
+                    <div className="mt-4 grid gap-3 text-xs text-primary-gray sm:grid-cols-2">
+                      <div className="rounded-xl border border-white/60 bg-white/45 p-3 shadow-inner backdrop-blur">
+                        <p className="font-semibold uppercase tracking-wide text-primary-gray">
+                          Contact
+                        </p>
+                        <p className="mt-1 break-words font-medium text-primary-black">
+                          {supplier.contactPerson || supplier.email || "No contact set"}
+                        </p>
+                      </div>
+
+                      <div className="rounded-xl border border-white/60 bg-white/45 p-3 shadow-inner backdrop-blur">
+                        <p className="font-semibold uppercase tracking-wide text-primary-gray">
+                          Total spend
+                        </p>
+                        <p className="mt-1 break-words font-semibold text-primary-black">
+                          {formatCurrency(supplier.totalSpend, currency ?? "KES")}
+                        </p>
+                        <p className="mt-1 text-primary-gray">
+                          Last order: {formatDate(supplier.lastOrderDate)}
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
                   <div>
@@ -115,24 +138,32 @@ export default function SupplierPerformance({
                         {supplier.performanceScore}%
                       </span>
                     </div>
-                    <div className="h-2.5 overflow-hidden rounded-full bg-gray-100">
+                    <div className="h-2.5 overflow-hidden rounded-full bg-white/65 ring-1 ring-white/70">
                       <div
                         className="h-full rounded-full brand-gradient-accent transition-all"
                         style={{ width: `${supplier.performanceScore}%` }}
                       />
                     </div>
-                    <div className="mt-3 grid grid-cols-3 gap-2 text-xs text-primary-gray">
-                      <span>{supplier.totalOrders} orders</span>
-                      <span>{receivedRatio}% received</span>
-                      <span>{paymentRatio}% paid</span>
+                    <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs text-primary-gray">
+                      <span className="rounded-xl bg-white/45 px-2 py-2 shadow-inner">
+                        <strong className="block text-sm text-primary-black">
+                          {supplier.totalOrders}
+                        </strong>
+                        orders
+                      </span>
+                      <span className="rounded-xl bg-white/45 px-2 py-2 shadow-inner">
+                        <strong className="block text-sm text-primary-black">
+                          {receivedRatio}%
+                        </strong>
+                        received
+                      </span>
+                      <span className="rounded-xl bg-white/45 px-2 py-2 shadow-inner">
+                        <strong className="block text-sm text-primary-black">
+                          {paymentRatio}%
+                        </strong>
+                        paid
+                      </span>
                     </div>
-                  </div>
-
-                  <div className="rounded-xl border border-white/60 bg-white/45 p-3 text-xs text-primary-gray shadow-inner backdrop-blur">
-                    <p className="font-semibold text-primary-black">
-                      {formatCurrency(supplier.totalSpend, currency ?? "KES")}
-                    </p>
-                    <p className="mt-1">Last order: {formatDate(supplier.lastOrderDate)}</p>
                   </div>
                 </div>
               </Link>

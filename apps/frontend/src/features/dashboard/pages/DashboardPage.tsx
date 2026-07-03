@@ -240,7 +240,7 @@ export default function DashboardPage() {
                 title="What needs attention now"
                 description="A focused starting point for actions users may need to take next."
               />
-              <div className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+              <div className="grid gap-6 2xl:grid-cols-[1.05fr_0.95fr]">
                 <Card className="p-5 sm:p-6">
                   <ActionCenter data={data?.actionCenter} />
                 </Card>
@@ -262,7 +262,7 @@ export default function DashboardPage() {
                 title="Money movement and supplier health"
                 description="A focused view of spend patterns and the top suppliers users may need to review."
               />
-              <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+              <div className="grid gap-6 2xl:grid-cols-[0.95fr_1.05fr]">
                 <Card className="p-5 sm:p-6">
                   <SpendSnapshot
                     data={data?.spendSnapshot}
@@ -287,7 +287,7 @@ export default function DashboardPage() {
                 title="Workflow and approval movement"
                 description="Workflow movement and pending approval queue for deeper operational context."
               />
-              <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+              <div className="grid gap-6 2xl:grid-cols-[1fr_1fr]">
                 <Card className="p-5 sm:p-6">
                   <WorkflowOverview data={data?.workflow} />
                 </Card>
@@ -306,7 +306,7 @@ export default function DashboardPage() {
                 title="Recent records and reporting signals"
                 description="Recent system activity and reporting totals for users who need to review what has changed."
               />
-              <div className="grid items-start gap-6 xl:grid-cols-[1fr_1fr]">
+              <div className="grid items-start gap-6 2xl:grid-cols-[1fr_1fr]">
                 <Card className="p-5 sm:p-6">
                   <RecentActivity items={data?.recentActivity} />
                 </Card>

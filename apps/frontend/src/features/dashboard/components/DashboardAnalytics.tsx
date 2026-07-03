@@ -45,14 +45,14 @@ export default function DashboardAnalytics({
 
   return (
     <div>
-      <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+      <div className="mb-5 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex items-start gap-3">
           <DashboardIcon name="analytics" />
-          <div>
+          <div className="min-w-0">
             <h2 className="text-lg font-semibold text-primary-black">
               Procurement Analytics
             </h2>
-            <p className="mt-1 text-sm leading-5 text-primary-gray">
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-primary-gray">
               Visual signals for approval pressure and supplier performance.
             </p>
           </div>
@@ -60,7 +60,7 @@ export default function DashboardAnalytics({
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">
-        <div className="dashboard-glass-card rounded-2xl border p-5">
+        <div className="dashboard-glass-card rounded-2xl border p-4 sm:p-5">
           <p className="text-sm font-semibold text-primary-black">
             Approval load
           </p>
@@ -68,21 +68,21 @@ export default function DashboardAnalytics({
             Where approval work is currently building up.
           </p>
 
-          <div className="mt-5 space-y-4">
+          <div className="mt-5 space-y-5">
             {approvalItems.map((item) => {
               const width = clampPercent((item.value / maxApprovalValue) * 100);
 
               return (
                 <div key={item.label}>
-                  <div className="mb-2 flex items-center justify-between gap-3 text-xs">
+                  <div className="mb-2 flex items-center justify-between gap-3 text-sm">
                     <span className="font-semibold text-primary-black">
                       {item.label}
                     </span>
-                    <span className="font-medium text-primary-gray">
+                    <span className="rounded-full bg-white/55 px-3 py-1 text-xs font-semibold text-primary-gray shadow-inner">
                       {item.value}
                     </span>
                   </div>
-                  <div className="h-3 overflow-hidden rounded-full bg-gray-100">
+                  <div className="h-3 overflow-hidden rounded-full bg-white/65 ring-1 ring-white/70">
                     <div
                       className={`h-full rounded-full ${item.color}`}
                       style={{ width: `${width}%` }}
@@ -94,7 +94,7 @@ export default function DashboardAnalytics({
           </div>
         </div>
 
-        <div className="dashboard-glass-card rounded-2xl border p-5">
+        <div className="dashboard-glass-card rounded-2xl border p-4 sm:p-5">
           <p className="text-sm font-semibold text-primary-black">
             Top supplier performance
           </p>
@@ -102,7 +102,7 @@ export default function DashboardAnalytics({
             Top 5 suppliers by activity and recorded performance.
           </p>
 
-          <div className="mt-5 space-y-4">
+          <div className="mt-5 space-y-5">
             {topSuppliers.length === 0 ? (
               <p className="rounded-xl border border-dashed border-primary-blue/20 bg-white/45 p-4 text-sm text-primary-gray backdrop-blur">
                 Supplier analytics will appear after suppliers receive POs.
@@ -110,15 +110,15 @@ export default function DashboardAnalytics({
             ) : (
               topSuppliers.map((supplier) => (
                 <div key={supplier.supplierId}>
-                  <div className="mb-2 flex items-center justify-between gap-3 text-xs">
-                    <span className="truncate font-semibold text-primary-black">
+                  <div className="mb-2 flex items-start justify-between gap-3 text-sm">
+                    <span className="min-w-0 break-words font-semibold text-primary-black">
                       {supplier.supplierName}
                     </span>
-                    <span className="font-medium text-primary-gray">
+                    <span className="shrink-0 rounded-full bg-white/55 px-3 py-1 text-xs font-semibold text-primary-gray shadow-inner">
                       {supplier.performanceScore}%
                     </span>
                   </div>
-                  <div className="h-3 overflow-hidden rounded-full bg-gray-100">
+                  <div className="h-3 overflow-hidden rounded-full bg-white/65 ring-1 ring-white/70">
                     <div
                       className="h-full rounded-full brand-gradient-accent"
                       style={{

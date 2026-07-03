@@ -38,14 +38,14 @@ export default function SpendSnapshot({ data, currency }: SpendSnapshotProps) {
 
   return (
     <div>
-      <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex items-start gap-3">
           <DashboardIcon name="spend" />
-          <div>
+          <div className="min-w-0">
             <h2 className="text-lg font-semibold text-primary-black">
               Spend Snapshot
             </h2>
-            <p className="mt-1 text-sm leading-5 text-primary-gray">
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-primary-gray">
               A quick view of current spend, supplier coverage, and procurement
               concentration.
             </p>
@@ -60,29 +60,34 @@ export default function SpendSnapshot({ data, currency }: SpendSnapshotProps) {
         </Link>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
         {metrics.map((metric) => (
           <div
             key={metric.label}
-            className={`dashboard-glass-card rounded-2xl border p-5 transition hover:-translate-y-0.5 ${
-              metric.featured ? "lg:col-span-2" : ""
+            className={`dashboard-glass-card rounded-2xl border p-4 transition hover:-translate-y-0.5 sm:p-5 ${
+              metric.featured ? "md:col-span-2" : ""
             }`}
           >
-            <p className="text-xs font-semibold uppercase tracking-wide text-primary-gray">
-              {metric.label}
-            </p>
-            <p
-              className={`mt-3 text-primary-black ${
-                metric.featured
-                  ? "text-3xl font-bold sm:text-4xl"
-                  : "text-2xl font-semibold"
-              }`}
-            >
-              {metric.value}
-            </p>
-            <p className="mt-3 text-sm leading-5 text-primary-gray">
-              {metric.helper}
-            </p>
+            <div className="flex min-h-[132px] flex-col justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                  {metric.label}
+                </p>
+                <p
+                  className={`mt-3 break-words text-primary-black ${
+                    metric.featured
+                      ? "text-2xl font-bold sm:text-3xl"
+                      : "text-xl font-semibold sm:text-2xl"
+                  }`}
+                >
+                  {metric.value}
+                </p>
+              </div>
+
+              <p className="text-sm leading-5 text-primary-gray">
+                {metric.helper}
+              </p>
+            </div>
           </div>
         ))}
       </div>

@@ -20,15 +20,15 @@ function formatDateTime(value: string) {
 export default function ReportingSnapshot({ data }: ReportingSnapshotProps) {
   return (
     <div>
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex items-start gap-3">
           <DashboardIcon name="reports" />
-          <div>
+          <div className="min-w-0">
             <h2 className="text-lg font-semibold text-primary-black">
               Reporting Snapshot
             </h2>
 
-            <p className="mt-1 text-sm leading-5 text-primary-gray">
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-primary-gray">
               Quick view of report activity and available export formats.
             </p>
           </div>
@@ -46,36 +46,40 @@ export default function ReportingSnapshot({ data }: ReportingSnapshotProps) {
         <EmptyState message="No reporting snapshot available." />
       ) : (
         <div className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="dashboard-glass-card rounded-2xl border p-4">
-              <p className="text-sm font-medium text-primary-gray">
-                Reports Generated
-              </p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="dashboard-glass-card rounded-2xl border p-4 sm:p-5">
+              <div className="flex min-h-[112px] flex-col justify-between gap-4">
+                <p className="text-sm font-medium text-primary-gray">
+                  Reports Generated
+                </p>
 
-              <p className="mt-2 text-2xl font-semibold text-primary-black">
-                {data.totalReportsGenerated}
-              </p>
+                <p className="break-words text-3xl font-semibold text-primary-black">
+                  {data.totalReportsGenerated}
+                </p>
+              </div>
             </div>
 
-            <div className="dashboard-glass-card rounded-2xl border p-4">
-              <p className="text-sm font-medium text-primary-gray">
-                Last Generated
-              </p>
+            <div className="dashboard-glass-card rounded-2xl border p-4 sm:p-5">
+              <div className="flex min-h-[112px] flex-col justify-between gap-4">
+                <p className="text-sm font-medium text-primary-gray">
+                  Last Generated
+                </p>
 
-              <p className="mt-2 text-sm font-semibold text-primary-black">
-                {data.lastReportGeneratedAt
-                  ? formatDateTime(data.lastReportGeneratedAt)
-                  : "No reports generated yet"}
-              </p>
+                <p className="break-words text-sm font-semibold leading-6 text-primary-black">
+                  {data.lastReportGeneratedAt
+                    ? formatDateTime(data.lastReportGeneratedAt)
+                    : "No reports generated yet"}
+                </p>
+              </div>
             </div>
           </div>
 
-          <div className="dashboard-glass-card rounded-2xl border p-4">
+          <div className="dashboard-glass-card rounded-2xl border p-4 sm:p-5">
             <p className="text-sm font-medium text-primary-gray">
               Export Formats
             </p>
 
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="mt-4 flex flex-wrap gap-2">
               {data.exportFormatsAvailable.map((format) => (
                 <span
                   key={format}
