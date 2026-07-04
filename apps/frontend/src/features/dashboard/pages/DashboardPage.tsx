@@ -149,37 +149,28 @@ export default function DashboardPage() {
         </div>
       </section>
 
-      <section className="dashboard-glass-card rounded-2xl border border-white/80 bg-white/55 px-2 py-2 shadow-sm">
-        <div
-          aria-label="Dashboard sections"
-          className="flex snap-x snap-mandatory gap-2 overflow-x-auto [scrollbar-width:none]"
-        >
-          {dashboardViews.map((view) => {
-            const isActive = activeView === view.key;
-
-            return (
-              <button
-                key={view.key}
-                type="button"
-                aria-pressed={isActive}
-                title={view.helper}
-                onClick={() => handleViewChange(view.key)}
-                className={`group flex min-w-[10.75rem] snap-start items-center justify-center gap-2 rounded-xl border border-white/85 px-3.5 py-2 text-sm font-semibold backdrop-blur-xl transition-all duration-200 sm:min-w-[12rem] ${
-                  isActive
-                    ? "bg-gradient-to-r from-[#A7EBF2]/80 via-white/70 to-[#54ACBF]/32 text-[#011C40] shadow-[0_12px_28px_rgba(84,172,191,0.22),inset_0_1px_0_rgba(255,255,255,0.86)]"
-                    : "bg-gradient-to-r from-white/78 via-[#A7EBF2]/28 to-white/62 text-[#26658C] shadow-sm hover:-translate-y-0.5 hover:from-[#A7EBF2]/55 hover:via-white/78 hover:to-[#54ACBF]/22 hover:text-[#011C40] hover:shadow-md"
-                }`}
-              >
-                <span
-                  aria-hidden="true"
-                  className={`h-2 w-2 shrink-0 rounded-full ${
-                    isActive ? "bg-[#54ACBF]" : "bg-[#A7EBF2]"
-                  } ring-4 ring-white/70`}
-                />
-                <span className="truncate">{view.label}</span>
-              </button>
-            );
-          })}
+      <section className="dashboard-glass-card rounded-2xl border border-white/80 bg-white/55 p-3 shadow-sm">
+        <div className="flex flex-col gap-2 sm:max-w-sm">
+          <label
+            htmlFor="dashboard-section-selector"
+            className="text-xs font-semibold uppercase tracking-[0.16em] text-[#26658C]"
+          >
+            View dashboard section
+          </label>
+          <select
+            id="dashboard-section-selector"
+            value={activeView}
+            onChange={(event) =>
+              handleViewChange(event.target.value as DashboardView)
+            }
+            className="w-full rounded-xl border border-white/85 bg-gradient-to-r from-white/85 via-[#A7EBF2]/28 to-white/70 px-4 py-2.5 text-sm font-semibold text-[#011C40] shadow-sm outline-none backdrop-blur-xl transition focus:border-[#54ACBF] focus:ring-2 focus:ring-[#54ACBF]/25"
+          >
+            {dashboardViews.map((view) => (
+              <option key={view.key} value={view.key}>
+                {view.label}
+              </option>
+            ))}
+          </select>
         </div>
       </section>
       {loading && <LoadingState message="Loading dashboard data..." />}
@@ -192,7 +183,7 @@ export default function DashboardPage() {
             <DashboardSectionHeader
               eyebrow="At a glance"
               title="Your procurement snapshot"
-              description="Current requisitions, orders, approval load, and approved spend in one clear view. Use the dashboard buttons above when you need more detail."
+              description="Current requisitions, orders, approval load, and approved spend in one clear view. Use the dashboard section menu above when you need more detail."
             />
             <div className="grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <SummaryCard
