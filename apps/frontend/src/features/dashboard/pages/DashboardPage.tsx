@@ -143,36 +143,35 @@ export default function DashboardPage() {
               A calmer view of approvals, procurement movement, supplier
               performance, and spend signals so teams can decide what to do next.
             </p>
+
+            <div className="mt-5 max-w-sm">
+              <label
+                htmlFor="dashboard-section-selector"
+                className="text-xs font-semibold uppercase tracking-[0.16em] text-[#26658C]"
+              >
+                View dashboard section
+              </label>
+              <select
+                id="dashboard-section-selector"
+                value={activeView}
+                onChange={(event) =>
+                  handleViewChange(event.target.value as DashboardView)
+                }
+                className="mt-2 w-full rounded-xl border border-[#A7EBF2]/70 bg-white/80 px-4 py-2.5 text-sm font-semibold text-[#011C40] shadow-sm outline-none backdrop-blur-xl transition focus:border-[#54ACBF] focus:ring-2 focus:ring-[#54ACBF]/25"
+              >
+                {dashboardViews.map((view) => (
+                  <option key={view.key} value={view.key}>
+                    {view.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <DashboardAssistantCard />
         </div>
       </section>
 
-      <section className="dashboard-glass-card rounded-2xl border border-white/80 bg-white/55 p-3 shadow-sm">
-        <div className="flex flex-col gap-2 sm:max-w-sm">
-          <label
-            htmlFor="dashboard-section-selector"
-            className="text-xs font-semibold uppercase tracking-[0.16em] text-[#26658C]"
-          >
-            View dashboard section
-          </label>
-          <select
-            id="dashboard-section-selector"
-            value={activeView}
-            onChange={(event) =>
-              handleViewChange(event.target.value as DashboardView)
-            }
-            className="w-full rounded-xl border border-white/85 bg-gradient-to-r from-white/85 via-[#A7EBF2]/28 to-white/70 px-4 py-2.5 text-sm font-semibold text-[#011C40] shadow-sm outline-none backdrop-blur-xl transition focus:border-[#54ACBF] focus:ring-2 focus:ring-[#54ACBF]/25"
-          >
-            {dashboardViews.map((view) => (
-              <option key={view.key} value={view.key}>
-                {view.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </section>
       {loading && <LoadingState message="Loading dashboard data..." />}
 
       {error && !loading && <ErrorState message={error} />}
