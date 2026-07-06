@@ -133,7 +133,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <section className="glass-panel-strong overflow-visible rounded-3xl border p-5 sm:p-6">
+      <section className={`glass-panel-strong relative overflow-visible rounded-3xl border p-5 sm:p-6 ${isSectionMenuOpen ? "z-[120]" : "z-10"}`}>
         <div className="grid gap-6 lg:grid-cols-[1.55fr_1fr] lg:items-center">
           <div className="max-w-3xl">
             <p className="text-sm font-semibold text-[#26658C]">
@@ -157,7 +157,7 @@ export default function DashboardPage() {
                 View dashboard section
               </label>
               <div
-                className="relative mt-2"
+                className="relative z-[130] mt-2"
                 onBlur={(event) => {
                   if (!event.currentTarget.contains(event.relatedTarget)) {
                     setIsSectionMenuOpen(false);
@@ -191,7 +191,7 @@ export default function DashboardPage() {
 
                 {isSectionMenuOpen && (
                   <div
-                    className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[90] overflow-hidden rounded-2xl border border-[#A7EBF2]/70 bg-white p-1.5 shadow-[0_18px_42px_rgba(1,28,64,0.20)] ring-1 ring-[#54ACBF]/25"
+                    className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[140] overflow-hidden rounded-2xl border border-[#A7EBF2]/70 bg-white p-1.5 shadow-[0_18px_42px_rgba(1,28,64,0.20)] ring-1 ring-[#54ACBF]/25"
                     role="listbox"
                     aria-labelledby="dashboard-section-selector"
                   >

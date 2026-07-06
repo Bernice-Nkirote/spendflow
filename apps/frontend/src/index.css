@@ -250,14 +250,15 @@
   .module-theme .page-header::before {
     content: "";
     position: absolute;
-    inset: -2.75rem auto auto -2rem;
+    inset: 0 auto auto 0;
     z-index: 0;
-    width: min(27rem, 64%);
-    height: 13rem;
-    border-radius: 0 0 999px 0;
+    width: min(34rem, 72%);
+    height: 100%;
+    border-radius: 1.5rem 0 999px 0;
     background:
-      radial-gradient(ellipse 92% 74% at 0% 0%, rgba(var(--module-a-rgb), 0.4) 0%, rgba(var(--module-a-rgb), 0.24) 28%, rgba(167, 235, 242, 0.14) 52%, rgba(255, 255, 255, 0) 78%);
-    filter: blur(1.25px);
+      linear-gradient(132deg, rgba(var(--module-a-rgb), 0.34) 0%, rgba(var(--module-a-rgb), 0.2) 24%, rgba(167, 235, 242, 0.12) 48%, rgba(255, 255, 255, 0) 72%),
+      radial-gradient(ellipse 80% 96% at 0% 0%, rgba(var(--module-a-rgb), 0.34) 0%, rgba(var(--module-a-rgb), 0.18) 38%, rgba(167, 235, 242, 0.08) 62%, rgba(255, 255, 255, 0) 82%);
+    filter: blur(0.5px);
     pointer-events: none;
   }
 
