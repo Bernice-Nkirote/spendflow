@@ -10,11 +10,31 @@ import Card from "../../../components/ui/Card";
 import Input from "../../../components/ui/Input";
 import PhoneInputField from "../../../components/ui/PhoneInputField";
 import PasswordInput from "../../../components/ui/PasswordInput";
+
+const businessTypeOptions = [
+  {
+    value: "sole_proprietorship",
+    label: "Sole Proprietorship",
+    helper: "One-person ownership with simpler approval setup",
+  },
+  {
+    value: "partnership",
+    label: "Partnership",
+    helper: "Partner-led approval rules and shared control",
+  },
+  {
+    value: "company",
+    label: "Company",
+    helper: "Teams, roles, departments, and workflows",
+  },
+];
+
 function CompanySignupPage() {
   const navigate = useNavigate();
 
   const [companyName, setCompanyName] = useState("");
   const [businessType, setBusinessType] = useState("company");
+  const [isBusinessTypeMenuOpen, setIsBusinessTypeMenuOpen] = useState(false);
   const [adminName, setAdminName] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,6 +50,16 @@ function CompanySignupPage() {
   const [phoneNumberError, setPhoneNumberError] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const selectedBusinessType =
+    businessTypeOptions.find((option) => option.value === businessType) ??
+    businessTypeOptions[2];
+
+  function handleBusinessTypeChange(value: string) {
+    setBusinessType(value);
+    setBusinessTypeError("");
+    setIsBusinessTypeMenuOpen(false);
+  }
 
   const validateForm = (): boolean => {
     let isValid = true;
@@ -203,23 +233,37 @@ function CompanySignupPage() {
             >
               Business Type
             </label>
-            <div className="relative">
-              <select
+            <div
+              className="relative"
+              onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                  setIsBusinessTypeMenuOpen(false);
+                }
+              }}
+            >
+              <input type="hidden" name="businessType" value={businessType} />
+              <button
                 id="businessType"
-                name="businessType"
-                value={businessType}
-                onChange={(e) => setBusinessType(e.target.value)}
-                className="h-11 w-full appearance-none rounded-2xl border border-white/75 bg-white/82 px-3.5 pr-10 text-sm font-semibold text-[#011C40] shadow-[0_10px_24px_rgba(1,28,64,0.08)] outline-none ring-1 ring-[#A7EBF2]/45 backdrop-blur-xl transition hover:border-[#54ACBF]/55 hover:bg-white/92 focus:border-[#54ACBF] focus:ring-2 focus:ring-[#54ACBF]/25"
+                type="button"
+                onClick={() =>
+                  setIsBusinessTypeMenuOpen((current) => !current)
+                }
+                className="flex min-h-11 w-full items-center justify-between gap-3 rounded-2xl border border-white/75 bg-white/88 px-3.5 py-2 text-left text-sm font-semibold text-[#011C40] shadow-[0_10px_24px_rgba(1,28,64,0.08)] outline-none ring-1 ring-[#A7EBF2]/45 backdrop-blur-xl transition hover:border-[#54ACBF]/55 hover:bg-white/94 focus:border-[#54ACBF] focus:ring-2 focus:ring-[#54ACBF]/25"
+                aria-haspopup="listbox"
+                aria-expanded={isBusinessTypeMenuOpen}
               >
-                <option value="sole_proprietorship">Sole Proprietorship</option>
-                <option value="partnership">Partnership</option>
-                <option value="company">Company</option>
-              </select>
-              <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[#26658C]">
+                <span>
+                  <span className="block">{selectedBusinessType.label}</span>
+                  <span className="mt-0.5 block text-xs font-medium text-[#26658C]/75">
+                    {selectedBusinessType.helper}
+                  </span>
+                </span>
                 <svg
                   aria-hidden="true"
                   viewBox="0 0 20 20"
-                  className="h-5 w-5"
+                  className={`h-5 w-5 shrink-0 text-[#26658C] transition-transform ${
+                    isBusinessTypeMenuOpen ? "rotate-180" : ""
+                  }`}
                   fill="currentColor"
                 >
                   <path
@@ -228,8 +272,46 @@ function CompanySignupPage() {
                     clipRule="evenodd"
                   />
                 </svg>
-              </span>
-            </div>            {businessTypeError && (
+              </button>
+
+              {isBusinessTypeMenuOpen && (
+                <div
+                  className="absolute left-0 right-0 top-[calc(100%+0.45rem)] z-30 overflow-hidden rounded-2xl border border-white/80 bg-white/96 p-1.5 shadow-[0_18px_42px_rgba(1,28,64,0.16)] ring-1 ring-[#A7EBF2]/45 backdrop-blur-xl"
+                  role="listbox"
+                  aria-labelledby="businessType"
+                >
+                  {businessTypeOptions.map((option) => {
+                    const isSelected = option.value === businessType;
+
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => handleBusinessTypeChange(option.value)}
+                        className={`w-full rounded-xl px-3 py-2.5 text-left text-sm transition ${
+                          isSelected
+                            ? "bg-[#26658C] font-semibold text-white shadow-sm"
+                            : "text-[#011C40] hover:bg-[#A7EBF2]/28"
+                        }`}
+                        role="option"
+                        aria-selected={isSelected}
+                      >
+                        <span className="block font-semibold">{option.label}</span>
+                        <span
+                          className={`mt-0.5 block text-xs ${
+                            isSelected ? "text-white/75" : "text-[#26658C]/75"
+                          }`}
+                        >
+                          {option.helper}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            {businessTypeError && (
               <p className="mt-1 text-sm text-accent-error">
                 {businessTypeError}
               </p>

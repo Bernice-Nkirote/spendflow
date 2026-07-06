@@ -96,6 +96,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<DashboardView>("overview");
+  const [isSectionMenuOpen, setIsSectionMenuOpen] = useState(false);
 
   useEffect(() => {
     async function fetchDashboard() {
@@ -117,6 +118,7 @@ export default function DashboardPage() {
 
   function handleViewChange(view: DashboardView) {
     setActiveView(view);
+    setIsSectionMenuOpen(false);
 
     window.setTimeout(() => {
       document.getElementById("dashboard-detail-section")?.scrollIntoView({
@@ -125,6 +127,9 @@ export default function DashboardPage() {
       });
     }, 50);
   }
+
+  const activeDashboardView =
+    dashboardViews.find((view) => view.key === activeView) ?? dashboardViews[0];
 
   return (
     <div className="space-y-8">
@@ -151,26 +156,29 @@ export default function DashboardPage() {
               >
                 View dashboard section
               </label>
-              <div className="relative mt-2">
-                <select
-                  id="dashboard-section-selector"
-                  value={activeView}
-                  onChange={(event) =>
-                    handleViewChange(event.target.value as DashboardView)
+              <div
+                className="relative mt-2"
+                onBlur={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget)) {
+                    setIsSectionMenuOpen(false);
                   }
-                  className="h-12 w-full appearance-none rounded-2xl border border-white/80 bg-white/82 px-4 pr-11 text-sm font-semibold text-[#011C40] shadow-[0_12px_28px_rgba(1,28,64,0.09)] outline-none ring-1 ring-[#A7EBF2]/40 backdrop-blur-xl transition hover:border-[#54ACBF]/50 hover:bg-white/92 focus:border-[#54ACBF] focus:ring-2 focus:ring-[#54ACBF]/25"
+                }}
+              >
+                <button
+                  id="dashboard-section-selector"
+                  type="button"
+                  onClick={() => setIsSectionMenuOpen((current) => !current)}
+                  className="flex h-12 w-full items-center justify-between rounded-2xl border border-white/80 bg-white/88 px-4 text-left text-sm font-semibold text-[#011C40] shadow-[0_12px_28px_rgba(1,28,64,0.09)] outline-none ring-1 ring-[#A7EBF2]/45 backdrop-blur-xl transition hover:border-[#54ACBF]/50 hover:bg-white/95 focus:border-[#54ACBF] focus:ring-2 focus:ring-[#54ACBF]/25"
+                  aria-haspopup="listbox"
+                  aria-expanded={isSectionMenuOpen}
                 >
-                  {dashboardViews.map((view) => (
-                    <option key={view.key} value={view.key}>
-                      {view.label}
-                    </option>
-                  ))}
-                </select>
-                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[#26658C]">
+                  <span>{activeDashboardView.label}</span>
                   <svg
                     aria-hidden="true"
                     viewBox="0 0 20 20"
-                    className="h-5 w-5"
+                    className={`h-5 w-5 text-[#26658C] transition-transform ${
+                      isSectionMenuOpen ? "rotate-180" : ""
+                    }`}
                     fill="currentColor"
                   >
                     <path
@@ -179,7 +187,44 @@ export default function DashboardPage() {
                       clipRule="evenodd"
                     />
                   </svg>
-                </span>
+                </button>
+
+                {isSectionMenuOpen && (
+                  <div
+                    className="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-30 overflow-hidden rounded-2xl border border-white/80 bg-white/96 p-1.5 shadow-[0_18px_42px_rgba(1,28,64,0.16)] ring-1 ring-[#A7EBF2]/45 backdrop-blur-xl"
+                    role="listbox"
+                    aria-labelledby="dashboard-section-selector"
+                  >
+                    {dashboardViews.map((view) => {
+                      const isSelected = view.key === activeView;
+
+                      return (
+                        <button
+                          key={view.key}
+                          type="button"
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => handleViewChange(view.key)}
+                          className={`w-full rounded-xl px-3 py-2.5 text-left text-sm transition ${
+                            isSelected
+                              ? "bg-[#26658C] font-semibold text-white shadow-sm"
+                              : "text-[#011C40] hover:bg-[#A7EBF2]/28"
+                          }`}
+                          role="option"
+                          aria-selected={isSelected}
+                        >
+                          <span className="block font-semibold">{view.label}</span>
+                          <span
+                            className={`mt-0.5 block text-xs ${
+                              isSelected ? "text-white/75" : "text-[#26658C]/75"
+                            }`}
+                          >
+                            {view.helper}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           </div>
