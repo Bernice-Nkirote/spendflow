@@ -151,20 +151,36 @@ export default function DashboardPage() {
               >
                 View dashboard section
               </label>
-              <select
-                id="dashboard-section-selector"
-                value={activeView}
-                onChange={(event) =>
-                  handleViewChange(event.target.value as DashboardView)
-                }
-                className="mt-2 w-full rounded-xl border border-[#A7EBF2]/70 bg-white/80 px-4 py-2.5 text-sm font-semibold text-[#011C40] shadow-sm outline-none backdrop-blur-xl transition focus:border-[#54ACBF] focus:ring-2 focus:ring-[#54ACBF]/25"
-              >
-                {dashboardViews.map((view) => (
-                  <option key={view.key} value={view.key}>
-                    {view.label}
-                  </option>
-                ))}
-              </select>
+              <div className="relative mt-2">
+                <select
+                  id="dashboard-section-selector"
+                  value={activeView}
+                  onChange={(event) =>
+                    handleViewChange(event.target.value as DashboardView)
+                  }
+                  className="h-12 w-full appearance-none rounded-2xl border border-white/80 bg-white/82 px-4 pr-11 text-sm font-semibold text-[#011C40] shadow-[0_12px_28px_rgba(1,28,64,0.09)] outline-none ring-1 ring-[#A7EBF2]/40 backdrop-blur-xl transition hover:border-[#54ACBF]/50 hover:bg-white/92 focus:border-[#54ACBF] focus:ring-2 focus:ring-[#54ACBF]/25"
+                >
+                  {dashboardViews.map((view) => (
+                    <option key={view.key} value={view.key}>
+                      {view.label}
+                    </option>
+                  ))}
+                </select>
+                <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[#26658C]">
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 20 20"
+                    className="h-5 w-5"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.17l3.71-3.94a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </span>
+              </div>
             </div>
           </div>
 

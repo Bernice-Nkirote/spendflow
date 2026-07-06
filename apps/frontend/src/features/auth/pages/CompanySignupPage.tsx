@@ -203,18 +203,33 @@ function CompanySignupPage() {
             >
               Business Type
             </label>
-            <select
-              id="businessType"
-              name="businessType"
-              value={businessType}
-              onChange={(e) => setBusinessType(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-blue focus:outline-none focus:ring-1 focus:ring-primary-blue"
-            >
-              <option value="sole_proprietorship">Sole Proprietorship</option>
-              <option value="partnership">Partnership</option>
-              <option value="company">Company</option>
-            </select>
-            {businessTypeError && (
+            <div className="relative">
+              <select
+                id="businessType"
+                name="businessType"
+                value={businessType}
+                onChange={(e) => setBusinessType(e.target.value)}
+                className="h-11 w-full appearance-none rounded-2xl border border-white/75 bg-white/82 px-3.5 pr-10 text-sm font-semibold text-[#011C40] shadow-[0_10px_24px_rgba(1,28,64,0.08)] outline-none ring-1 ring-[#A7EBF2]/45 backdrop-blur-xl transition hover:border-[#54ACBF]/55 hover:bg-white/92 focus:border-[#54ACBF] focus:ring-2 focus:ring-[#54ACBF]/25"
+              >
+                <option value="sole_proprietorship">Sole Proprietorship</option>
+                <option value="partnership">Partnership</option>
+                <option value="company">Company</option>
+              </select>
+              <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[#26658C]">
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 20 20"
+                  className="h-5 w-5"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.17l3.71-3.94a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </span>
+            </div>            {businessTypeError && (
               <p className="mt-1 text-sm text-accent-error">
                 {businessTypeError}
               </p>

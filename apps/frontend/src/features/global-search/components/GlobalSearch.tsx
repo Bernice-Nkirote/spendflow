@@ -350,9 +350,9 @@ function GlobalSearch({
         </button>
 
         {isSearchOpen && (
-          <div className="fixed inset-0 z-[80] bg-[linear-gradient(135deg,rgba(1,28,64,0.32),rgba(38,101,140,0.26),rgba(167,235,242,0.3))] px-3 pt-4 backdrop-blur-[2px]">
-            <div className="mx-auto w-full max-w-md rounded-3xl border border-white/80 bg-white/92 p-3 shadow-[0_24px_54px_rgba(1,28,64,0.22)] backdrop-blur-xl">
-              <div className="flex h-12 items-center rounded-2xl border border-[#54ACBF]/35 bg-white/96 px-3 shadow-[0_10px_28px_rgba(1,28,64,0.16)] backdrop-blur-lg">
+          <div className="fixed inset-0 z-[80] bg-[linear-gradient(135deg,rgba(1,28,64,0.30),rgba(38,101,140,0.24),rgba(167,235,242,0.32))] px-3 pt-5 backdrop-blur-[1.5px]">
+            <div className="mx-auto w-full max-w-md rounded-3xl border border-white/85 bg-white/95 p-3 shadow-[0_26px_60px_rgba(1,28,64,0.28)] backdrop-blur-xl">
+              <div className="flex h-12 items-center rounded-2xl border border-[#26658C]/35 bg-white px-3 shadow-[0_12px_30px_rgba(1,28,64,0.18)] ring-1 ring-[#A7EBF2]/35 backdrop-blur-lg">
                 <span className="mr-3 shrink-0 text-primary-blue">
                   <SearchIcon />
                 </span>
@@ -364,7 +364,7 @@ function GlobalSearch({
                   onChange={(event) => setSearchQuery(event.target.value)}
                   autoFocus
                   placeholder={placeholder}
-                  className="h-full min-w-0 flex-1 bg-transparent text-sm text-primary-black outline-none placeholder:text-primary-blue/45"
+                  className="h-full min-w-0 flex-1 bg-transparent text-sm font-medium text-[#011C40] outline-none placeholder:text-[#26658C]/60"
                 />
 
                 {searchQuery ? (
@@ -389,7 +389,7 @@ function GlobalSearch({
               </div>
 
               {searchQuery.trim().length >= 2 && (
-                <div className="mt-3 max-h-[70vh] overflow-y-auto rounded-2xl border border-[#D7E3F4] bg-white/95 p-3 shadow-sm [scrollbar-width:thin] [scrollbar-color:rgba(39,76,119,0.35)_transparent]">
+                <div className="mt-3 max-h-[70vh] overflow-y-auto rounded-2xl border border-[#A7EBF2]/70 bg-white/98 p-3 shadow-[0_10px_28px_rgba(1,28,64,0.12)] [scrollbar-width:thin] [scrollbar-color:rgba(38,101,140,0.45)_transparent]">
                   {renderResults()}
                 </div>
               )}
