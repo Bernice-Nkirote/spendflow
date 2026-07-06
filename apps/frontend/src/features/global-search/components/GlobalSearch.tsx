@@ -350,9 +350,9 @@ function GlobalSearch({
         </button>
 
         {isSearchOpen && (
-          <div className="fixed inset-0 z-[80] bg-[#A7EBF2]/38 px-3 pt-4 backdrop-blur-[1px]">
-            <div className="mx-auto w-full max-w-md rounded-3xl border border-white/70 bg-white/90 p-3 shadow-[0_20px_45px_rgba(39,76,119,0.18)] backdrop-blur-xl">
-              <div className="flex h-12 items-center rounded-2xl border border-[#D7E3F4] bg-white/95 px-3 shadow-[0_8px_24px_rgba(39,76,119,0.14)] backdrop-blur-lg">
+          <div className="fixed inset-0 z-[80] bg-[linear-gradient(135deg,rgba(1,28,64,0.32),rgba(38,101,140,0.26),rgba(167,235,242,0.3))] px-3 pt-4 backdrop-blur-[2px]">
+            <div className="mx-auto w-full max-w-md rounded-3xl border border-white/80 bg-white/92 p-3 shadow-[0_24px_54px_rgba(1,28,64,0.22)] backdrop-blur-xl">
+              <div className="flex h-12 items-center rounded-2xl border border-[#54ACBF]/35 bg-white/96 px-3 shadow-[0_10px_28px_rgba(1,28,64,0.16)] backdrop-blur-lg">
                 <span className="mr-3 shrink-0 text-primary-blue">
                   <SearchIcon />
                 </span>

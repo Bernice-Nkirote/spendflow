@@ -67,7 +67,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
     <>
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-[#A7EBF2]/38 backdrop-blur-[1px] lg:hidden"
+          className="fixed inset-0 z-40 bg-[linear-gradient(135deg,rgba(1,28,64,0.28),rgba(38,101,140,0.24),rgba(167,235,242,0.28))] backdrop-blur-[2px] lg:hidden"
           onClick={onClose}
         />
       )}
@@ -153,7 +153,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
         <div className="shrink-0 border-t border-white/10 px-5 py-4 text-xs text-white/55">
           <p className="mt-1">
-            © {currentYear} Tendaflow. All rights reserved.
+            Â© {currentYear} Tendaflow. All rights reserved.
           </p>
         </div>
       </aside>
