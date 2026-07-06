@@ -445,7 +445,7 @@ function SuppliersPage() {
     : "";
 
   return (
-    <PageContainer className="module-theme module-suppliers">
+    <PageContainer className="module-theme module-procurement">
       {alert && (
         <FloatingAlert
           type={alert.type}

@@ -170,7 +170,7 @@ export default function CreateInvoicePage() {
 
   if (!canCreateInvoice) {
     return (
-      <PageContainer className="module-theme module-finance">
+      <PageContainer className="module-theme module-procurement">
         <BackButton fallbackLabel="Back to Invoices" fallbackTo="/invoices" />
         <ErrorState message="You do not have permission to create invoices." />
       </PageContainer>
@@ -179,7 +179,7 @@ export default function CreateInvoicePage() {
 
   if (error && !purchaseOrder) {
     return (
-      <PageContainer className="module-theme module-finance">
+      <PageContainer className="module-theme module-procurement">
         <BackButton fallbackLabel="Back to Invoices" fallbackTo="/invoices" />
 
         <Card>
@@ -201,7 +201,7 @@ export default function CreateInvoicePage() {
   }
 
   return (
-    <PageContainer className="module-theme module-finance">
+    <PageContainer className="module-theme module-procurement">
       {alert && (
         <FloatingAlert
           type={alert.type}

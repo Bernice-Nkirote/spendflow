@@ -198,18 +198,18 @@
   }
 
   .module-procurement {
-    --module-a: #fff7ae;
-    --module-a-rgb: 255, 247, 174;
+    --module-a: #54acbf;
+    --module-a-rgb: 84, 172, 191;
   }
 
   .module-approvals {
-    --module-a: #d76a03;
-    --module-a-rgb: 215, 106, 3;
+    --module-a: #ec9f05;
+    --module-a-rgb: 236, 159, 5;
   }
 
   .module-suppliers {
-    --module-a: #8ea604;
-    --module-a-rgb: 142, 166, 4;
+    --module-a: #54acbf;
+    --module-a-rgb: 84, 172, 191;
   }
 
   .module-reports {
@@ -218,13 +218,13 @@
   }
 
   .module-finance {
-    --module-a: #925e78;
-    --module-a-rgb: 146, 94, 120;
+    --module-a: #54acbf;
+    --module-a-rgb: 84, 172, 191;
   }
 
   .module-help {
-    --module-a: #54acbf;
-    --module-a-rgb: 84, 172, 191;
+    --module-a: #26658c;
+    --module-a-rgb: 38, 101, 140;
   }
 
   .module-admin {
@@ -234,15 +234,31 @@
 
   .module-theme .page-header {
     position: relative;
+    isolation: isolate;
     overflow: hidden;
-    border: 1px solid rgba(var(--module-a-rgb), 0.52);
+    border: 1px solid rgba(255, 255, 255, 0.82);
     border-radius: 1.5rem;
     padding: 1rem;
-    background: rgba(255, 255, 255, 0.78);
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.72));
     box-shadow:
-      0 18px 45px rgba(1, 28, 64, 0.07),
-      inset 0 1px 0 rgba(255, 255, 255, 0.78);
-    backdrop-filter: blur(18px) saturate(1.08);
+      0 20px 52px rgba(1, 28, 64, 0.08),
+      inset 0 0 0 1px rgba(167, 235, 242, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.86);
+    backdrop-filter: blur(20px) saturate(1.12);
+  }
+
+  .module-theme .page-header::before {
+    content: "";
+    position: absolute;
+    inset: -28% auto auto -10%;
+    z-index: 0;
+    width: min(32rem, 68%);
+    height: 165%;
+    border-radius: 999px;
+    background:
+      radial-gradient(circle at 24% 22%, rgba(var(--module-a-rgb), 0.44) 0%, rgba(var(--module-a-rgb), 0.24) 34%, rgba(167, 235, 242, 0.12) 56%, rgba(255, 255, 255, 0) 74%);
+    filter: blur(2px);
+    pointer-events: none;
   }
 
   .module-theme .page-header > * {

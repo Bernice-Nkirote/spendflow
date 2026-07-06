@@ -119,7 +119,7 @@ export default function PaymentsPage() {
   }, [invoices, allPaymentsForBalance]);
 
   return (
-    <PageContainer className="module-theme module-finance">
+    <PageContainer className="module-theme module-procurement">
       <PageHeader
         title="Payments"
         description="Create payments from approved invoices, continue partially paid invoices, and track payment approval status."

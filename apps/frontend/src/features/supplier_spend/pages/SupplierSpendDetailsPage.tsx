@@ -69,7 +69,7 @@ export default function SupplierSpendDetailsPage() {
 
   if (loading) {
     return (
-      <PageContainer className="module-theme module-suppliers">
+      <PageContainer className="module-theme module-reports">
         <LoadingState message="Loading supplier spend details..." />
       </PageContainer>
     );
@@ -77,7 +77,7 @@ export default function SupplierSpendDetailsPage() {
 
   if (error) {
     return (
-      <PageContainer className="module-theme module-suppliers">
+      <PageContainer className="module-theme module-reports">
         <BackButton fallbackLabel="Back to Reports" fallbackTo="/reports" />
         <ErrorState message={error} />
       </PageContainer>
@@ -86,7 +86,7 @@ export default function SupplierSpendDetailsPage() {
 
   if (!supplierSpend) {
     return (
-      <PageContainer className="module-theme module-suppliers">
+      <PageContainer className="module-theme module-reports">
         <BackButton fallbackLabel="Back to Reports" fallbackTo="/reports" />
         <ErrorState message="Supplier spend details were not found." />
       </PageContainer>
@@ -94,7 +94,7 @@ export default function SupplierSpendDetailsPage() {
   }
 
   return (
-    <PageContainer className="module-theme module-suppliers">
+    <PageContainer className="module-theme module-reports">
       <BackButton fallbackLabel="Back to Reports" fallbackTo="/reports" />
 
       <PageHeader
@@ -150,7 +150,7 @@ export default function SupplierSpendDetailsPage() {
             {supplierSpend.invoice_count + supplierSpend.payment_count}
           </p>
           <p className="mt-1 text-xs text-primary-gray">
-            {supplierSpend.invoice_count} invoices ·{" "}
+            {supplierSpend.invoice_count} invoices Ã‚Â·{" "}
             {supplierSpend.payment_count} payments
           </p>
         </Card>
@@ -330,7 +330,7 @@ export default function SupplierSpendDetailsPage() {
               Payment Breakdown
             </h2>
             <p className="mt-1 text-sm text-gray-600">
-              Payments recorded against this supplier’s invoices.
+              Payments recorded against this supplierÃ¢â‚¬â„¢s invoices.
             </p>
           </div>
 
