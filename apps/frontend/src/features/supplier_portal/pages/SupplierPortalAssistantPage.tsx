@@ -162,7 +162,7 @@ export default function SupplierPortalAssistantPage() {
 
           <Link
             to="/supplier-portal/guide"
-            className="inline-flex w-fit items-center justify-center rounded-full border border-primary-blue/20 bg-blue-50 px-4 py-2 text-sm font-semibold text-primary-blue shadow-sm transition hover:bg-blue-100"
+            className="inline-flex w-fit items-center justify-center rounded-xl border border-[#A7EBF2]/70 bg-white/75 px-4 py-2 text-sm font-semibold text-[#26658C] shadow-sm backdrop-blur transition-all duration-200 hover:-translate-y-0.5 hover:border-[#54ACBF]/70 hover:bg-white hover:text-[#007CBE] hover:shadow-md"
           >
             Supplier Guide
           </Link>
@@ -180,7 +180,7 @@ export default function SupplierPortalAssistantPage() {
                 key={prompt}
                 type="button"
                 onClick={() => submitMessage(prompt)}
-                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-left text-sm font-semibold text-primary-gray transition hover:border-primary-blue/30 hover:bg-blue-50 hover:text-primary-blue"
+                className="w-full rounded-xl border border-[#A7EBF2]/55 bg-white/72 px-3 py-2 text-left text-sm font-semibold text-primary-gray shadow-sm backdrop-blur transition-all duration-200 hover:-translate-y-0.5 hover:border-[#54ACBF]/70 hover:bg-white hover:text-[#26658C]"
               >
                 {prompt}
               </button>
@@ -245,7 +245,7 @@ export default function SupplierPortalAssistantPage() {
                     <Link
                       key={action.path}
                       to={action.path}
-                      className="rounded-full bg-primary-blue px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-primary-blue/90"
+                      className="rounded-xl border border-[#54ACBF]/40 bg-[#26658C] px-3 py-2 text-xs font-semibold text-white shadow-sm shadow-[#26658C]/20 backdrop-blur transition-all duration-200 hover:-translate-y-0.5 hover:border-[#54ACBF]/80 hover:bg-white/35 hover:text-[#26658C] hover:shadow-md"
                     >
                       {action.label}
                     </Link>
@@ -276,7 +276,7 @@ export default function SupplierPortalAssistantPage() {
                   type="button"
                   onClick={() => submitMessage()}
                   disabled={!message.trim()}
-                  className="inline-flex items-center justify-center rounded-full bg-primary-blue px-5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-blue/90 disabled:cursor-not-allowed disabled:bg-gray-300"
+                  className="inline-flex items-center justify-center rounded-xl border border-[#54ACBF]/40 bg-[#26658C] px-5 py-2 text-sm font-semibold text-white shadow-sm shadow-[#26658C]/20 backdrop-blur transition-all duration-200 hover:-translate-y-0.5 hover:border-[#54ACBF]/80 hover:bg-white/35 hover:text-[#26658C] hover:shadow-md disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-300 disabled:text-white disabled:shadow-none"
                 >
                   Ask
                 </button>

@@ -16,14 +16,14 @@ function SupplierPortalLayout() {
   }
 
   const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `whitespace-nowrap rounded-xl px-3 py-2 text-sm font-semibold transition ${
+    `whitespace-nowrap rounded-xl border px-3 py-2 text-sm font-semibold transition-all duration-200 ${
       isActive
-        ? "bg-[#629460] text-white shadow-sm"
-        : "text-primary-black hover:bg-[#DFF8E8]"
+        ? "border-[#54ACBF]/45 bg-[#26658C] text-white shadow-sm shadow-[#26658C]/20"
+        : "border-transparent text-[#011C40] hover:-translate-y-0.5 hover:border-[#A7EBF2]/70 hover:bg-white/55 hover:text-[#26658C] hover:shadow-sm"
     }`;
 
   return (
-    <div className="module-theme module-suppliers min-h-screen bg-primary-white">
+    <div className="module-theme module-suppliers app-shell-bg min-h-screen">
       <ConfirmDialog
         isOpen={isSessionWarningOpen}
         title="Session expiring soon"
@@ -34,21 +34,27 @@ function SupplierPortalLayout() {
         onConfirm={staySignedIn}
         onCancel={logoutNow}
       />
-      <header className="sticky top-0 z-40 border-b bg-white/95 shadow-sm backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-white/65 bg-white/72 shadow-[0_16px_42px_rgba(1,28,64,0.10)] backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
-            <img
-              src="/tendaflow-app-icon.svg"
-              alt="Tendaflow"
-              className="h-10 w-10 rounded-xl object-contain shadow-sm"
-            />
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#A7EBF2]/60 bg-white/70 shadow-sm shadow-[#011C40]/10 backdrop-blur">
+              <img
+                src="/tendaflow-auth-logo.svg"
+                alt="Tendaflow"
+                className="h-9 w-9 object-contain"
+              />
+            </span>
             <div>
-              <h1 className="text-xl font-bold text-primary-blue">Tendaflow</h1>
-              <p className="text-sm text-primary-gray">Supplier Portal</p>
+              <h1 className="bg-gradient-to-r from-[#011C40] via-[#26658C] to-[#54ACBF] bg-clip-text text-xl font-bold text-transparent">
+                Tendaflow
+              </h1>
+              <p className="text-sm font-medium text-primary-gray">
+                Supplier Portal
+              </p>
             </div>
           </div>
 
-          <nav className="flex flex-wrap items-center gap-2">
+          <nav className="flex flex-wrap items-center gap-2 rounded-2xl border border-white/60 bg-white/45 p-2 shadow-sm backdrop-blur">
             <NavLink
               to="/supplier-portal/purchase-orders"
               className={navLinkClass}
