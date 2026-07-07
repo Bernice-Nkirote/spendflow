@@ -150,7 +150,7 @@ export default function SupplierSpendDetailsPage() {
             {supplierSpend.invoice_count + supplierSpend.payment_count}
           </p>
           <p className="mt-1 text-xs text-primary-gray">
-            {supplierSpend.invoice_count} invoices Ã‚Â·{" "}
+            {supplierSpend.invoice_count} invoices - {" "}
             {supplierSpend.payment_count} payments
           </p>
         </Card>
@@ -330,7 +330,7 @@ export default function SupplierSpendDetailsPage() {
               Payment Breakdown
             </h2>
             <p className="mt-1 text-sm text-gray-600">
-              Payments recorded against this supplierÃ¢â‚¬â„¢s invoices.
+              Payments recorded against this supplier's invoices.
             </p>
           </div>
 

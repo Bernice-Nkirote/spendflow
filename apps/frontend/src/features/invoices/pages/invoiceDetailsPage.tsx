@@ -194,7 +194,7 @@ export default function InvoiceDetailsPage() {
           </p>
           <p className="mt-1 text-xs text-gray-500">
             {invoice.currency}
-            {invoice.base_currency ? ` Ã¢â€ â€™ ${invoice.base_currency}` : ""}
+            {invoice.base_currency ? ` -> ${invoice.base_currency}` : ""}
           </p>
         </Card>
 

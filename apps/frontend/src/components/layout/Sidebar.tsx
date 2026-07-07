@@ -152,9 +152,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
           ))}
         </nav>
         <div className="shrink-0 border-t border-white/10 px-5 py-4 text-xs text-white/55">
-          <p className="mt-1">
-            Ã‚Â© {currentYear} Tendaflow. All rights reserved.
-          </p>
+          <p className="mt-1">&copy; {currentYear} Tendaflow. All rights reserved.</p>
         </div>
       </aside>
     </>

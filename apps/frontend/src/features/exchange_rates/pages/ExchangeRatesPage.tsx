@@ -697,7 +697,7 @@ function ExchangeRatesPage() {
                               className="block max-w-[220px] text-left lg:pointer-events-none"
                               title="Tap to show actions"
                             >
-                              {exchangeRate.from_currency} Ã¢â€ â€™{" "}
+                              {exchangeRate.from_currency}{" -> "}
                               {exchangeRate.to_currency}
                             </button>
                           </td>
@@ -760,7 +760,7 @@ function ExchangeRatesPage() {
                   isOpen={Boolean(selectedMobileExchangeRate)}
                   reference={
                     selectedMobileExchangeRate
-                      ? `${selectedMobileExchangeRate.from_currency} Ã¢â€ â€™ ${selectedMobileExchangeRate.to_currency}`
+                      ? `${selectedMobileExchangeRate.from_currency} -> ${selectedMobileExchangeRate.to_currency}`
                       : ""
                   }
                   label="Selected exchange rate"

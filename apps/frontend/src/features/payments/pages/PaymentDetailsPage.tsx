@@ -260,7 +260,7 @@ export default function PaymentDetailsPage() {
           </p>
           <p className="mt-1 text-xs text-primary-gray">
             {payment.currency ?? invoice?.currency ?? "-"}
-            {payment.base_currency ? ` Ã¢â€ â€™ ${payment.base_currency}` : ""}
+            {payment.base_currency ? ` -> ${payment.base_currency}` : ""}
           </p>
         </Card>
 
