@@ -67,7 +67,7 @@ export default function ReportTabs({
   );
 
   return (
-    <Card>
+    <Card className="overflow-hidden">
       <div className="min-w-0">
         <div className="mb-3">
           <h2 className="text-lg font-semibold text-primary-black">
@@ -78,8 +78,8 @@ export default function ReportTabs({
           </p>
         </div>
 
-        <div className="-mx-1 overflow-x-auto px-1">
-          <div className="flex w-max gap-2">
+        <div className="tendaflow-scrollbar -mx-1 overflow-x-auto px-1 pb-1">
+          <div className="flex w-max gap-2 rounded-2xl border border-[#A7C7E7]/45 bg-white/48 p-2 shadow-inner shadow-[#011C40]/[0.03] backdrop-blur">
             {visibleReports.map((report) => {
               const isActive = activeReport === report.value;
 

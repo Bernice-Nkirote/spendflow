@@ -191,45 +191,45 @@
   .module-theme {
     --module-a: #26658c;
     --module-b: #ffffff;
-    --module-c: #a7ebf2;
+    --module-c: #a7c7e7;
     --module-a-rgb: 38, 101, 140;
     --module-b-rgb: 255, 255, 255;
-    --module-c-rgb: 167, 235, 242;
+    --module-c-rgb: 167, 199, 231;
   }
 
   .module-procurement {
-    --module-a: #54acbf;
-    --module-a-rgb: 84, 172, 191;
+    --module-a: #5eb0c8;
+    --module-a-rgb: 94, 176, 200;
   }
 
   .module-approvals {
-    --module-a: #ec9f05;
-    --module-a-rgb: 236, 159, 5;
+    --module-a: #2a7387;
+    --module-a-rgb: 42, 115, 135;
   }
 
   .module-suppliers {
-    --module-a: #54acbf;
-    --module-a-rgb: 84, 172, 191;
+    --module-a: #8eb1d1;
+    --module-a-rgb: 142, 177, 209;
   }
 
   .module-reports {
-    --module-a: #925e78;
-    --module-a-rgb: 146, 94, 120;
+    --module-a: #a7c7e7;
+    --module-a-rgb: 167, 199, 231;
   }
 
   .module-finance {
-    --module-a: #54acbf;
-    --module-a-rgb: 84, 172, 191;
-  }
-
-  .module-help {
     --module-a: #26658c;
     --module-a-rgb: 38, 101, 140;
   }
 
+  .module-help {
+    --module-a: #5eb0c8;
+    --module-a-rgb: 94, 176, 200;
+  }
+
   .module-admin {
-    --module-a: #8ea604;
-    --module-a-rgb: 142, 166, 4;
+    --module-a: #2a7387;
+    --module-a-rgb: 42, 115, 135;
   }
 
   .module-theme .page-header {
@@ -326,6 +326,54 @@
     border-color: rgba(var(--module-a-rgb), 0.22);
     background: rgba(var(--module-a-rgb), 0.08);
     color: #011c40;
+  }
+
+
+  .tendaflow-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(94, 176, 200, 0.42) rgba(255, 255, 255, 0.34);
+  }
+
+  .tendaflow-scrollbar::-webkit-scrollbar {
+    width: 0.5rem;
+    height: 0.5rem;
+  }
+
+  .tendaflow-scrollbar::-webkit-scrollbar-track {
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.34);
+  }
+
+  .tendaflow-scrollbar::-webkit-scrollbar-thumb {
+    border: 2px solid rgba(255, 255, 255, 0.56);
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(167, 199, 231, 0.74), rgba(94, 176, 200, 0.62));
+  }
+
+  .tendaflow-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, rgba(142, 177, 209, 0.82), rgba(42, 115, 135, 0.68));
+  }
+
+  .tendaflow-menu-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(167, 199, 231, 0.44) transparent;
+  }
+
+  .tendaflow-menu-scrollbar::-webkit-scrollbar {
+    width: 0.45rem;
+  }
+
+  .tendaflow-menu-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .tendaflow-menu-scrollbar::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(167, 199, 231, 0.36);
+  }
+
+  .tendaflow-menu-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(167, 199, 231, 0.58);
   }
 
   .kpi-gradient-procurement {

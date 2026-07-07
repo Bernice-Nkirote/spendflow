@@ -122,7 +122,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
           </div>
         </div>
 
-        <nav className="flex-1 space-y-5 overflow-y-auto px-4 py-5 [scrollbar-width:thin] [scrollbar-color:rgba(255,255,255,0.25)_transparent]">
+        <nav className="tendaflow-menu-scrollbar flex-1 space-y-5 overflow-y-auto px-4 py-5 [scrollbar-width:thin] [scrollbar-color:rgba(167,199,231,0.44)_transparent]">
           {groupedNavItems.map((group) => (
             <div key={group.section}>
               <p className="mb-2 px-3 text-xs font-semibold uppercase tracking-[0.18em] text-white/45">
@@ -153,7 +153,7 @@ function Sidebar({ isOpen, onClose }: SidebarProps) {
         </nav>
         <div className="shrink-0 border-t border-white/10 px-5 py-4 text-xs text-white/55">
           <p className="mt-1">
-            Â© {currentYear} Tendaflow. All rights reserved.
+            Ã‚Â© {currentYear} Tendaflow. All rights reserved.
           </p>
         </div>
       </aside>
