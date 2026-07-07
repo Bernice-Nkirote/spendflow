@@ -88,10 +88,10 @@ export default function ReportTabs({
                   key={report.value}
                   type="button"
                   onClick={() => onChange(report.value)}
-                  className={`shrink-0 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition ${
+                  className={`shrink-0 whitespace-nowrap rounded-xl border px-4 py-2 text-sm font-semibold transition-all duration-200 ${
                     isActive
-                      ? "bg-primary-blue text-white shadow-sm"
-                      : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-primary-black"
+                      ? "border-[#5EB0C8]/50 bg-[#26658C] text-white shadow-sm shadow-[#26658C]/20"
+                      : "border-white/70 bg-white/68 text-[#2A7387] shadow-sm shadow-[#011C40]/[0.03] backdrop-blur hover:-translate-y-0.5 hover:border-[#8EB1D1]/70 hover:bg-[#A7C7E7]/22 hover:text-[#011C40] hover:shadow-md"
                   }`}
                 >
                   {report.label}
