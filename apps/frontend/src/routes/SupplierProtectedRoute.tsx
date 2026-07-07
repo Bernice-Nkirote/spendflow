@@ -72,7 +72,7 @@ function SupplierProtectedRoute() {
   }, []);
 
   if (isCheckingSession) {
-    return <LoadingState message="Restoring supplier session..." />;
+    return <LoadingState message="Restoring supplier session..." fullScreen />;
   }
 
   if (!isAuthenticated) {

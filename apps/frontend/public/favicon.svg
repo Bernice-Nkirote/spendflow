@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Tendaflow">
+  <defs>
+    <linearGradient id="tfMark" x1="17" y1="31" x2="49" y2="31" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#011C40"/>
+      <stop offset="0.5" stop-color="#26658C"/>
+      <stop offset="1" stop-color="#A7EBF2"/>
+    </linearGradient>
+    <linearGradient id="tfTile" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.58" stop-color="#F4FBFE"/>
+      <stop offset="1" stop-color="#E7F9FC"/>
+    </linearGradient>
+  </defs>
+  <rect x="6" y="8" width="52" height="48" rx="11" fill="url(#tfTile)"/>
+  <rect x="6.75" y="8.75" width="50.5" height="46.5" rx="10.25" fill="none" stroke="#A7EBF2" stroke-opacity="0.8" stroke-width="1.5"/>
+  <path d="M17 24 H31" fill="none" stroke="url(#tfMark)" stroke-width="3" stroke-linecap="round"/>
+  <path d="M24 24 V37.5 C24 42 28 44.5 33 44.5 C38 44.5 41 42 41 37.5 V24 H49" fill="none" stroke="url(#tfMark)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M41 31.5 H48" fill="none" stroke="url(#tfMark)" stroke-width="3" stroke-linecap="round"/>
+</svg>

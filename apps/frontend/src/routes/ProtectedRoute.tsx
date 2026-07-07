@@ -76,7 +76,7 @@ function ProtectedRoute() {
   }, []);
 
   if (isCheckingSession) {
-    return <LoadingState message="Restoring your session..." />;
+    return <LoadingState message="Restoring your session..." fullScreen />;
   }
 
   if (!isAuthenticated) {
