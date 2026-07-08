@@ -307,7 +307,7 @@ export default function AssistantChat() {
   }
 
   return (
-    <section className="flex min-h-[680px] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <section className="tenda-chat-shell flex min-h-[680px] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
       <div className="border-b border-gray-200 brand-gradient-surface px-4 py-4 text-white sm:px-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -329,7 +329,7 @@ export default function AssistantChat() {
         </div>
       </div>
 
-      <div className="border-b border-gray-200 bg-gray-50 px-4 py-3 sm:px-6">
+      <div className="tenda-chat-tasks border-b border-gray-200 bg-gray-50 px-4 py-3 sm:px-6">
         <button
           type="button"
           onClick={() => setIsTasksOpen((current) => !current)}
@@ -357,7 +357,7 @@ export default function AssistantChat() {
         )}
       </div>
 
-      <div className="flex-1 space-y-4 overflow-y-auto bg-gray-50/80 px-4 py-5 [scrollbar-width:thin] sm:px-6">
+      <div className="tenda-chat-messages flex-1 space-y-4 overflow-y-auto bg-gray-50/80 px-4 py-5 [scrollbar-width:thin] sm:px-6">
         {messages.map((chatMessage) =>
           chatMessage.role === "user" ? (
             <div key={chatMessage.id} className="flex justify-end">
@@ -386,7 +386,7 @@ export default function AssistantChat() {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="border-t border-gray-200 bg-white p-4 sm:p-5">
+      <div className="tenda-chat-composer border-t border-gray-200 bg-white p-4 sm:p-5">
         <div className="rounded-2xl border border-gray-200 bg-gray-50 p-2 shadow-sm focus-within:border-primary-blue focus-within:ring-2 focus-within:ring-primary-blue/20">
           <textarea
             value={message}
