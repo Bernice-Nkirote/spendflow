@@ -933,3 +933,107 @@ body {
   background: transparent !important;
   box-shadow: none !important;
 }
+
+/* Dark mode refinements for dropdowns, assistant, and guide readability. */
+:root[data-theme="dark"] #businessType {
+  border-color: rgba(167, 235, 242, 0.34) !important;
+  background: rgba(5, 11, 20, 0.72) !important;
+  color: var(--tf-night-text) !important;
+  box-shadow: inset 0 0 0 1px rgba(167, 235, 242, 0.06), 0 12px 28px rgba(0, 0, 0, 0.22) !important;
+}
+
+:root[data-theme="dark"] #businessType span,
+:root[data-theme="dark"] #businessType svg {
+  color: var(--tf-night-text) !important;
+}
+
+:root[data-theme="dark"] [role="listbox"][aria-labelledby="businessType"] {
+  border-color: rgba(167, 235, 242, 0.52) !important;
+  background: rgba(247, 252, 253, 0.96) !important;
+  box-shadow: 0 24px 58px rgba(0, 0, 0, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(18px) saturate(1.08);
+}
+
+:root[data-theme="dark"] [role="listbox"][aria-labelledby="businessType"] button:not([aria-selected="true"]),
+:root[data-theme="dark"] [role="listbox"][aria-labelledby="businessType"] button:not([aria-selected="true"]) span {
+  color: #011c40 !important;
+}
+
+:root[data-theme="dark"] [role="listbox"][aria-labelledby="businessType"] button:not([aria-selected="true"]):hover {
+  background: #e7f9fc !important;
+}
+
+:root[data-theme="dark"] [role="listbox"][aria-labelledby="businessType"] button[aria-selected="true"],
+:root[data-theme="dark"] [role="listbox"][aria-labelledby="businessType"] button[aria-selected="true"] span {
+  background: #26658c !important;
+  color: #ffffff !important;
+}
+
+:root[data-theme="dark"] .brand-gradient-soft {
+  border-color: rgba(84, 172, 191, 0.34) !important;
+  background:
+    radial-gradient(circle at 92% 8%, rgba(84, 172, 191, 0.2), transparent 30%),
+    linear-gradient(145deg, rgba(8, 24, 40, 0.96), rgba(12, 38, 62, 0.88)) !important;
+  color: var(--tf-night-text) !important;
+  box-shadow: 0 22px 58px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+
+:root[data-theme="dark"] .brand-gradient-soft p,
+:root[data-theme="dark"] .brand-gradient-soft h1,
+:root[data-theme="dark"] .brand-gradient-soft h2,
+:root[data-theme="dark"] .brand-gradient-soft h3 {
+  color: var(--tf-night-text) !important;
+}
+
+:root[data-theme="dark"] .brand-gradient-soft a.bg-white {
+  background: linear-gradient(135deg, #007cbe, #54acbf) !important;
+  color: #ffffff !important;
+  box-shadow: 0 14px 28px rgba(0, 124, 190, 0.28) !important;
+}
+
+:root[data-theme="dark"] .brand-gradient-soft a[class*="bg-white/"] {
+  border-color: rgba(167, 235, 242, 0.22) !important;
+  background: rgba(167, 235, 242, 0.08) !important;
+  color: var(--tf-night-text) !important;
+}
+
+:root[data-theme="dark"] .bg-blue-50,
+:root[data-theme="dark"] [class*="bg-blue-50/"],
+:root[data-theme="dark"] .bg-gray-50,
+:root[data-theme="dark"] [class*="bg-gray-50/"],
+:root[data-theme="dark"] .bg-amber-50,
+:root[data-theme="dark"] [class*="bg-amber-50/"] {
+  border-color: rgba(167, 235, 242, 0.18) !important;
+  background: rgba(9, 25, 42, 0.82) !important;
+  color: var(--tf-night-text) !important;
+}
+
+:root[data-theme="dark"] .text-amber-900,
+:root[data-theme="dark"] .text-amber-800,
+:root[data-theme="dark"] .text-amber-700,
+:root[data-theme="dark"] .text-blue-800,
+:root[data-theme="dark"] .text-blue-700 {
+  color: var(--tf-night-text) !important;
+}
+
+:root[data-theme="dark"] .border-amber-100 {
+  border-color: rgba(244, 211, 94, 0.28) !important;
+}
+
+:root[data-theme="dark"] .bg-amber-50,
+:root[data-theme="dark"] [class*="bg-amber-50/"] {
+  border-color: rgba(244, 211, 94, 0.3) !important;
+  background: rgba(244, 211, 94, 0.12) !important;
+}
+
+:root[data-theme="dark"] .bg-amber-50 *,
+:root[data-theme="dark"] [class*="bg-amber-50/"] * {
+  color: var(--tf-night-text) !important;
+}
+
+:root[data-theme="dark"] .bg-blue-50 *,
+:root[data-theme="dark"] [class*="bg-blue-50/"] *,
+:root[data-theme="dark"] .bg-gray-50 *,
+:root[data-theme="dark"] [class*="bg-gray-50/"] * {
+  color: var(--tf-night-text) !important;
+}
