@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="164" height="162" viewBox="0 0 164 162" role="img" aria-label="Tendaflow icon">
+  <defs>
+    <linearGradient id="tfDarkIconGradient" x1="36" y1="82" x2="128" y2="82" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F4FAFC"/>
+      <stop offset="0.44" stop-color="#A7EBF2"/>
+      <stop offset="0.72" stop-color="#54ACBF"/>
+      <stop offset="1" stop-color="#7DD8E2"/>
+    </linearGradient>
+  </defs>
+  <path d="M39 58 H79" fill="none" stroke="url(#tfDarkIconGradient)" stroke-width="4.2" stroke-linecap="round"/>
+  <path d="M59 58 V94.5 C59 104 67.6 108.7 80.2 108.7 C92.6 108.7 99 104 99 94.5 V58 H127" fill="none" stroke="url(#tfDarkIconGradient)" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M99 77 H122" fill="none" stroke="url(#tfDarkIconGradient)" stroke-width="4.2" stroke-linecap="round"/>
+</svg>

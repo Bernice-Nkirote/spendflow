@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="164" viewBox="0 0 500 164" role="img" aria-labelledby="title desc">
+  <title id="title">Tendaflow logo</title>
+  <desc id="desc">Tendaflow horizontal dark mode loader logo with a connected TF mark and light wordmark.</desc>
+  <defs>
+    <linearGradient id="darkMarkGradient" x1="112" x2="216" y1="55" y2="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F4FAFC"/>
+      <stop offset="0.42" stop-color="#A7EBF2"/>
+      <stop offset="0.72" stop-color="#54ACBF"/>
+      <stop offset="1" stop-color="#7DD8E2"/>
+    </linearGradient>
+    <linearGradient id="darkWordmarkGradient" x1="234" x2="404" y1="82" y2="82" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F4FAFC"/>
+      <stop offset="0.58" stop-color="#F4FAFC"/>
+      <stop offset="0.84" stop-color="#A7EBF2"/>
+      <stop offset="1" stop-color="#54ACBF"/>
+    </linearGradient>
+    <style>
+      .tf-draw {
+        stroke-dasharray: 250;
+        stroke-dashoffset: 250;
+        animation: tfDraw 1.45s ease-out forwards;
+      }
+      .tf-wordmark {
+        opacity: 0;
+        animation: tfFade 0.7s ease-out 0.7s forwards;
+      }
+      @keyframes tfDraw {
+        to { stroke-dashoffset: 0; }
+      }
+      @keyframes tfFade {
+        to { opacity: 1; }
+      }
+    </style>
+  </defs>
+
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path
+      class="tf-draw"
+      d="M112 56 H148 M130 56 V93 C130 104 140 110 154 110 C168 110 178 104 178 93 M178 56 V93 M178 56 H216 M178 78 H207"
+      stroke="url(#darkMarkGradient)"
+      stroke-width="5"
+    />
+  </g>
+
+  <text
+    class="tf-wordmark"
+    x="234"
+    y="97"
+    fill="url(#darkWordmarkGradient)"
+    font-family="Inter, Avenir Next, Nunito Sans, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    font-size="43"
+    font-weight="700"
+    letter-spacing="-0.45"
+  >Tendaflow</text>
+</svg>

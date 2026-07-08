@@ -919,3 +919,17 @@ body {
   border-color: rgba(5, 11, 20, 0.64);
   background: linear-gradient(180deg, rgba(84, 172, 191, 0.62), rgba(0, 124, 190, 0.5));
 }
+
+:root[data-theme="dark"] img[src="/tendaflow-auth-logo.svg"] {
+  content: url("/tendaflow-auth-logo-dark.svg");
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+:root[data-theme="dark"] img[src="/tendaflow-loading-logo.svg"] {
+  content: url("/tendaflow-loading-logo-dark.svg");
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
