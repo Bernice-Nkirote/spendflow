@@ -3,6 +3,7 @@ import { useSupplierInactivityLogout } from "../../supplier_auth/hooks/useSuppli
 
 import Button from "../../../components/ui/Button";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
+import ThemeToggle from "../../../components/ui/ThemeToggle";
 
 function SupplierPortalLayout() {
   const { isSessionWarningOpen, staySignedIn, logoutNow } =
@@ -77,6 +78,8 @@ function SupplierPortalLayout() {
             <NavLink to="/supplier-portal/assistant" className={navLinkClass}>
               Assistant
             </NavLink>
+
+            <ThemeToggle />
 
             <Button
               type="button"

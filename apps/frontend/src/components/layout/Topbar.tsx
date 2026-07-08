@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import Button from "../ui/Button";
+import ThemeToggle from "../ui/ThemeToggle";
 import { getMyPendingApprovalQueue } from "../../features/approvals/api/approvalApi";
 import type { ApprovalInstance } from "../../features/approvals/types/approval.types";
 import GlobalSearch from "../../features/global-search/components/GlobalSearch";
@@ -218,6 +219,8 @@ function Topbar({ onMenuClick }: TopbarProps) {
           <div className="hidden xl:block">
             <GlobalSearch placeholder="Search Tendaflow..." variant="inline" />
           </div>
+
+          <ThemeToggle />
 
           <MyTasksDropdown />
 
