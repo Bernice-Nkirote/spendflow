@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
 import Button from "./Button";
 
 type ConfirmDialogVariant = "danger" | "warning" | "info";
@@ -38,7 +39,7 @@ function ConfirmDialog({
 
   const confirmVariant = variant === "danger" ? "danger" : "primary";
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 px-4">
       <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
         <div
@@ -78,7 +79,8 @@ function ConfirmDialog({
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
