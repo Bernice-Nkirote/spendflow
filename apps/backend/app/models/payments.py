@@ -68,8 +68,7 @@ class Payment(Base):
 
     paid_at = Column(
         DateTime(timezone=True),
-        nullable=False,
-        server_default=func.now(),
+        nullable=True,
     )
 
     created_at = Column(

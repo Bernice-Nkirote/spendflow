@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -75,15 +76,6 @@ class PaymentService:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Payments can only be created for approved or partially paid invoices",
-            )
-
-        if payment_data.payment_method in {
-            PaymentMethodEnum.MPESA,
-            PaymentMethodEnum.BANK_TRANSFER,
-        } and not payment_data.reference:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Reference is required for this payment method",
             )
 
         total_reserved = self.payment_repo.get_total_reserved_amount(
@@ -373,18 +365,6 @@ class PaymentService:
             reference = update_data["reference"].strip()
             update_data["reference"] = reference or None
 
-        payment_method = update_data.get("payment_method", payment.payment_method)
-        reference = update_data.get("reference", payment.reference)
-
-        if payment_method in {
-            PaymentMethodEnum.MPESA,
-            PaymentMethodEnum.BANK_TRANSFER,
-        } and not reference:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Reference is required for this payment method",
-            )
-
         if "amount" in update_data:
             invoice = self.invoice_repo.get_by_id(
                 invoice_id=payment.invoice_id,
@@ -489,15 +469,6 @@ class PaymentService:
                 detail="Payment can only be submitted for approved or partially paid invoices",
             )
 
-        if payment.payment_method in {
-            PaymentMethodEnum.MPESA,
-            PaymentMethodEnum.BANK_TRANSFER,
-        } and not payment.reference:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Reference is required for this payment method",
-            )
-
         total_reserved = self.payment_repo.get_total_reserved_amount(
             invoice_id=payment.invoice_id,
             company_id=company_id,
@@ -592,6 +563,101 @@ class PaymentService:
 
         return self._enrich_payment(updated_payment)
 
+    def record_payment(
+        self,
+        payment_id: UUID,
+        payment_data,
+        company_id: UUID,
+        role_id: UUID,
+        actor_user_id: UUID | None = None,
+    ) -> Payment:
+        if not self.permission_service.role_has_permission(
+            role_id=role_id,
+            permission_name="payment.create",
+            company_id=company_id,
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You do not have permission to record payments",
+            )
+
+        payment = self.get_payment(payment_id, company_id)
+
+        if payment.status != PaymentStatusEnum.APPROVED:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Only approved payments can be recorded as paid",
+            )
+
+        if payment_data.payment_method in {
+            PaymentMethodEnum.MPESA,
+            PaymentMethodEnum.BANK_TRANSFER,
+        } and not payment_data.reference:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Reference is required for this payment method",
+            )
+
+        old_status = payment.status
+
+        payment.payment_method = payment_data.payment_method
+        payment.reference = payment_data.reference
+        payment.status = PaymentStatusEnum.COMPLETED
+        payment.paid_at = datetime.now(timezone.utc)
+
+        updated_payment = self.payment_repo.update(payment)
+
+        invoice = self.invoice_repo.get_by_id(
+            invoice_id=payment.invoice_id,
+            company_id=company_id,
+        )
+        if not invoice:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Invoice not found for payment sync",
+            )
+
+        total_paid = self.payment_repo.get_total_paid(
+            invoice_id=invoice.id,
+            company_id=company_id,
+        )
+
+        if total_paid >= invoice.total_amount:
+            invoice.status = InvoiceStatusEnum.PAID
+        else:
+            invoice.status = InvoiceStatusEnum.PARTIALLY_PAID
+
+        self.invoice_repo.update(invoice)
+
+        self.audit_log_service.log_action(
+            company_id=company_id,
+            entity_type="PAYMENT",
+            entity_id=payment.id,
+            action="PAYMENT_RECORDED",
+            actor_user_id=actor_user_id,
+            description=f"Payment {payment.id} recorded as paid",
+            old_values_json={
+                "status": enum_value(old_status),
+            },
+            new_values_json={
+                "status": enum_value(payment.status),
+                "payment_method": enum_value(payment.payment_method),
+                "reference": payment.reference,
+                "paid_at": payment.paid_at.isoformat()
+                if payment.paid_at
+                else None,
+            },
+        )
+
+        self.payment_repo.db.commit()
+        self.payment_repo.db.refresh(updated_payment)
+
+        updated_payment = self.payment_repo.get_by_id(
+            payment_id=updated_payment.id,
+            company_id=company_id,
+        )
+
+        return self._enrich_payment(updated_payment)
     def delete_payment(
         self,
         payment_id: UUID,

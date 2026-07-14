@@ -134,7 +134,8 @@ export default function CreatePaymentPage() {
     .reduce((total, payment) => total + Number(payment.amount ?? 0), 0);
 
   const pendingApprovalTotal = invoicePayments
-    .filter((payment) => payment.status === "PENDING_APPROVAL")
+    .filter((payment) =>
+      payment.status === "PENDING_APPROVAL" || payment.status === "APPROVED")
     .reduce((total, payment) => total + Number(payment.amount ?? 0), 0);
 
   const balanceRemaining = Math.max(
@@ -169,13 +170,6 @@ export default function CreatePaymentPage() {
       return;
     }
 
-    if (
-      (paymentMethod === "BANK_TRANSFER" || paymentMethod === "MPESA") &&
-      !reference.trim()
-    ) {
-      setActionError("Reference is required for this payment method.");
-      return;
-    }
 
     try {
       setSaving(true);
@@ -185,7 +179,7 @@ export default function CreatePaymentPage() {
         invoice_id: invoiceId,
         amount: numericAmount,
         payment_method: paymentMethod,
-        reference: reference.trim() || null,
+        reference: null,
       });
 
       clearCreatePaymentDraft(invoiceId);
@@ -228,8 +222,8 @@ export default function CreatePaymentPage() {
       />
 
       <PageHeader
-        title="Create Payment"
-        description={`Create a payment record for invoice ${invoice.invoice_number}.`}
+        title="Create Payment Request"
+        description={`Request approval before paying invoice ${invoice.invoice_number}.`}
       />
 
       <PaymentBalanceSummaryCards
@@ -251,10 +245,10 @@ export default function CreatePaymentPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <h2 className="text-lg font-semibold text-primary-black">
-              Payment Details
+              Payment Request Details
             </h2>
             <p className="mt-1 text-sm text-gray-600">
-              Enter the payment amount, method, and reference details.
+              Enter the amount and intended payment method. Record the transaction reference after approval, when payment is actually made.
             </p>
           </div>
 
@@ -275,7 +269,7 @@ export default function CreatePaymentPage() {
 
             <div className="space-y-1">
               <label className="block text-sm font-medium text-primary-black">
-                Payment Method
+                Planned Payment Method
               </label>
               <select
                 value={paymentMethod}
@@ -291,18 +285,8 @@ export default function CreatePaymentPage() {
                 ))}
               </select>
             </div>
-
-            <div className="md:col-span-2">
-              <Input
-                label="Reference"
-                type="text"
-                value={reference}
-                onChange={(event) => setReference(event.target.value)}
-                placeholder="Example: BANK-REF-001 or MPESA-REF-001"
-              />
-              <p className="mt-1 text-xs text-primary-gray">
-                Required for Bank Transfer and M-Pesa payments.
-              </p>
+            <div className="md:col-span-2 rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm text-primary-gray">
+              Record the bank, M-Pesa, or cash reference after this payment request is approved and the actual payment has been made.
             </div>
           </div>
 
@@ -317,7 +301,7 @@ export default function CreatePaymentPage() {
             </Button>
 
             <Button type="submit" disabled={saving || balanceRemaining <= 0}>
-              {saving ? "Creating..." : "Create Payment"}
+              {saving ? "Creating..." : "Create Payment Request"}
             </Button>
           </div>
         </form>

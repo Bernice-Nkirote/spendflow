@@ -1,6 +1,7 @@
 export type PaymentStatus =
   | "DRAFT"
   | "PENDING_APPROVAL"
+  | "APPROVED"
   | "COMPLETED"
   | "REJECTED"
   | "FAILED";
@@ -23,7 +24,7 @@ export type PaymentDetails = {
   payment_method: PaymentMethod;
   status: PaymentStatus;
   reference: string | null;
-  paid_at: string;
+  paid_at: string | null;
   created_at: string;
 
   invoice_number: string | null;
@@ -43,6 +44,11 @@ export type PaymentCreatePayload = {
 export type PaymentUpdatePayload = {
   amount?: number;
   payment_method?: PaymentMethod;
+  reference?: string | null;
+};
+
+export type PaymentRecordPayload = {
+  payment_method: PaymentMethod;
   reference?: string | null;
 };
 

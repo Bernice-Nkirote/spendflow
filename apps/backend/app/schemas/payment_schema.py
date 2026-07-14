@@ -43,6 +43,20 @@ class PaymentUpdate(BaseModel):
             return None
         return value
 
+class PaymentRecord(BaseModel):
+    payment_method: PaymentMethodEnum
+    reference: Optional[str] = None
+
+    @field_validator("reference")
+    @classmethod
+    def validate_reference(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+
+        value = value.strip()
+        if not value:
+            return None
+        return value
 
 class PaymentRead(BaseModel):
     id: UUID
@@ -60,7 +74,7 @@ class PaymentRead(BaseModel):
     payment_method: PaymentMethodEnum
     status: PaymentStatusEnum
     reference: Optional[str]
-    paid_at: datetime
+    paid_at: Optional[datetime] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

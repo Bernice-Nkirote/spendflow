@@ -12,6 +12,8 @@ import PageHeader from "../../../components/ui/PageHeader";
 
 import { getDepartmentOptions } from "../../Departments/api/departmentApi";
 import type { Department } from "../../Departments/types/department.types";
+import { getPurchaseRequisitionById } from "../../purchase_requisition/api/purchaseRequisitionApi";
+import type { PurchaseRequisitionDetails } from "../../purchase_requisition/types/purchaseRequisition.types";
 import { getSuppliers } from "../../suppliers/api/supplierApi";
 import type { Supplier } from "../../suppliers/types/supplier.types";
 
@@ -43,6 +45,8 @@ export default function EditPurchaseOrderPage() {
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<PurchaseOrderItemCreate[]>([]);
   const [status, setStatus] = useState<PurchaseOrderStatus | null>(null);
+  const [linkedPurchaseRequisition, setLinkedPurchaseRequisition] =
+    useState<PurchaseRequisitionDetails | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -87,6 +91,13 @@ export default function EditPurchaseOrderPage() {
           })),
         );
 
+        if (purchaseOrder.purchase_requisition_id) {
+          const requisitionResponse = await getPurchaseRequisitionById(
+            purchaseOrder.purchase_requisition_id,
+          );
+          setLinkedPurchaseRequisition(requisitionResponse);
+        }
+
         setSuppliers(supplierResponse.filter((supplier) => supplier.is_active));
         setDepartments(
           departmentResponse.filter((department) => department.is_active),
@@ -120,6 +131,46 @@ export default function EditPurchaseOrderPage() {
       quantity: item.quantity || "0",
       unit_price: item.unit_price || "0",
     }));
+
+    if (linkedPurchaseRequisition) {
+      const approvedQuantities = new Map<string, number>();
+
+      linkedPurchaseRequisition.items.forEach((item) => {
+        const key = item.item_name.trim().toLowerCase();
+        approvedQuantities.set(
+          key,
+          (approvedQuantities.get(key) ?? 0) + Number(item.quantity ?? 0),
+        );
+      });
+
+      const requestedQuantities = new Map<string, number>();
+
+      for (const item of cleanedItems) {
+        const key = item.item_name.trim().toLowerCase();
+        const approvedQuantity = approvedQuantities.get(key);
+
+        if (!approvedQuantity) {
+          setError(
+            "POs linked to a PR can only include items from the approved requisition.",
+          );
+          return;
+        }
+
+        requestedQuantities.set(
+          key,
+          (requestedQuantities.get(key) ?? 0) + Number(item.quantity),
+        );
+      }
+
+      for (const [key, requestedQuantity] of requestedQuantities.entries()) {
+        if (requestedQuantity > (approvedQuantities.get(key) ?? 0)) {
+          setError(
+            "PO item quantities cannot exceed the approved PR quantities.",
+          );
+          return;
+        }
+      }
+    }
 
     const hasInvalidItem = cleanedItems.some(
       (item) =>
@@ -246,6 +297,15 @@ export default function EditPurchaseOrderPage() {
             </div>
           </Card>
 
+          {linkedPurchaseRequisition && (
+            <Card>
+              <p className="text-sm text-primary-gray">
+                This PO is linked to PR {linkedPurchaseRequisition.pr_number}.
+                You may reduce or remove approved PR items, but you cannot add
+                unrelated items or exceed the approved PR quantities.
+              </p>
+            </Card>
+          )}
           <PurchaseOrderItemsForm items={items} onChange={setItems} />
 
           <Card className="flex flex-col gap-3 sm:flex-row sm:justify-end">

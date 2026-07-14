@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+﻿from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 from shutil import copyfileobj
@@ -369,6 +369,65 @@ class PurchaseOrderService:
             unit_price_decimal,
         )
 
+    def _normalize_pr_item_key(self, item_name: str) -> str:
+        return item_name.strip().casefold()
+
+    def _validate_po_items_against_requisition(
+        self,
+        requisition_id: UUID,
+        company_id: UUID,
+        items_data,
+    ) -> None:
+        requisition_items = self.pr_item_repo.get_by_requisition_id(
+            requisition_id,
+            company_id,
+        )
+        if not requisition_items:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Linked purchase requisition has no items to validate against",
+            )
+
+        approved_quantities: dict[str, Decimal] = {}
+        approved_names: dict[str, str] = {}
+
+        for pr_item in requisition_items:
+            item_name, _, quantity, _ = self._extract_pr_item_values(pr_item)
+            key = self._normalize_pr_item_key(item_name)
+            approved_quantities[key] = approved_quantities.get(key, Decimal("0")) + quantity
+            approved_names[key] = item_name
+
+        requested_quantities: dict[str, Decimal] = {}
+
+        for item_data in items_data:
+            self._validate_item_fields(item_data)
+
+            item_name = str(item_data.item_name).strip()
+            key = self._normalize_pr_item_key(item_name)
+
+            if key not in approved_quantities:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        "POs linked to a purchase requisition can only include "
+                        "items from the approved requisition"
+                    ),
+                )
+
+            requested_quantities[key] = (
+                requested_quantities.get(key, Decimal("0"))
+                + Decimal(item_data.quantity)
+            )
+
+        for key, requested_quantity in requested_quantities.items():
+            if requested_quantity > approved_quantities[key]:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=(
+                        f"PO quantity for {approved_names[key]} cannot exceed "
+                        "the approved purchase requisition quantity"
+                    ),
+                )
     def get_po(
         self,
         po_id: UUID,
@@ -529,6 +588,13 @@ class PurchaseOrderService:
         )
 
         created_po = self.po_repo.create(po)
+
+        if po_data.items:
+            self._validate_po_items_against_requisition(
+                requisition_id=requisition.id,
+                company_id=company_id,
+                items_data=po_data.items,
+            )
 
         items_source = po_data.items if po_data.items else requisition_items
 
@@ -858,6 +924,13 @@ class PurchaseOrderService:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Purchase order must have at least one item",
+                )
+
+            if po.purchase_requisition_id:
+                self._validate_po_items_against_requisition(
+                    requisition_id=po.purchase_requisition_id,
+                    company_id=company_id,
+                    items_data=po_data.items,
                 )
 
             self._replace_po_items(updated_po.id, company_id, po_data.items)

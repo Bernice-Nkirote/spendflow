@@ -44,9 +44,7 @@ export default function PaymentBalanceGuidanceCard({
       </div>
 
       <p className="mt-3 text-xs text-yellow-700">
-        Draft payments do not reserve the invoice balance. Submitted payments
-        awaiting approval and completed payments are counted before allowing
-        another payment.
+        Draft payments do not reserve the invoice balance. Submitted payments awaiting approval, approved payment requests, and completed payments are counted before allowing another payment.
       </p>
     </Card>
   );

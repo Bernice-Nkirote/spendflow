@@ -4,10 +4,16 @@ import { useState } from "react";
 import Button from "../../../components/ui/Button";
 import ConfirmDialog from "../../../components/ui/ConfirmDialog";
 import StatusBadge from "../../../components/ui/StatusBadge";
-import { deletePayment, submitPayment } from "../api/paymentApi";
-import type { PaymentDetails } from "../types/payment.types";
+import { deletePayment, recordPayment, submitPayment } from "../api/paymentApi";
+import type { PaymentDetails, PaymentMethod } from "../types/payment.types";
 import { userHasPermission } from "../../../utils/permissions";
 import { refreshWorkQueues } from "../../../utils/refreshWorkQueues";
+
+const paymentMethods: { label: string; value: PaymentMethod }[] = [
+  { label: "Bank Transfer", value: "BANK_TRANSFER" },
+  { label: "M-Pesa", value: "MPESA" },
+  { label: "Cash", value: "CASH" },
+];
 
 type PaymentActionsProps = {
   payment: PaymentDetails;
@@ -36,11 +42,20 @@ export default function PaymentActions({
 }: PaymentActionsProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showRecordConfirm, setShowRecordConfirm] = useState(false);
+  const [recordMethod, setRecordMethod] = useState<PaymentMethod>(
+    payment.payment_method,
+  );
+  const [recordReference, setRecordReference] = useState(
+    payment.reference ?? "",
+  );
   const [confirmError, setConfirmError] = useState("");
 
   const hasSubmitPermission = userHasPermission("payment.submit");
   const hasCancelPermission = userHasPermission("payment.cancel");
+  const hasRecordPermission = userHasPermission("payment.create");
 
   const canSubmit =
     hasSubmitPermission &&
@@ -49,6 +64,8 @@ export default function PaymentActions({
   const canDelete =
     hasCancelPermission &&
     (payment.status === "DRAFT" || payment.status === "REJECTED");
+
+  const canRecord = hasRecordPermission && payment.status === "APPROVED";
   const isSubmittedForApproval = payment.status === "PENDING_APPROVAL";
 
   async function handleSubmit() {
@@ -68,6 +85,36 @@ export default function PaymentActions({
     }
   }
 
+  async function handleRecordPayment() {
+    if (
+      (recordMethod === "BANK_TRANSFER" || recordMethod === "MPESA") &&
+      !recordReference.trim()
+    ) {
+      setConfirmError(
+        "Reference is required for Bank Transfer and M-Pesa payments.",
+      );
+      return;
+    }
+
+    try {
+      setIsRecording(true);
+      setConfirmError("");
+
+      const updatedPayment = await recordPayment(payment.id, {
+        payment_method: recordMethod,
+        reference: recordReference.trim() || null,
+      });
+
+      setShowRecordConfirm(false);
+      onUpdated(updatedPayment);
+      refreshWorkQueues();
+    } catch (error) {
+      setConfirmError(getApiErrorMessage(error, "Failed to record payment."));
+    } finally {
+      setIsRecording(false);
+    }
+  }
+
   async function confirmDelete() {
     try {
       setIsDeleting(true);
@@ -83,13 +130,73 @@ export default function PaymentActions({
       setIsDeleting(false);
     }
   }
-  const hasVisibleActions = isSubmittedForApproval || canSubmit || canDelete;
+
+  const hasVisibleActions =
+    isSubmittedForApproval || canSubmit || canRecord || canDelete;
 
   if (!hasVisibleActions) {
     return null;
   }
+
   return (
     <>
+      <ConfirmDialog
+        isOpen={showRecordConfirm}
+        title="Record payment"
+        message={
+          <div className="space-y-4">
+            <p>
+              Use this after the approved payment has actually been made. Enter
+              the final payment method and transaction reference.
+            </p>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-primary-black">
+                Payment Method
+              </label>
+              <select
+                value={recordMethod}
+                onChange={(event) =>
+                  setRecordMethod(event.target.value as PaymentMethod)
+                }
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
+              >
+                {paymentMethods.map((method) => (
+                  <option key={method.value} value={method.value}>
+                    {method.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-primary-black">
+                Transaction Reference
+              </label>
+              <input
+                type="text"
+                value={recordReference}
+                onChange={(event) => setRecordReference(event.target.value)}
+                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-primary-black outline-none transition placeholder:text-gray-400 focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
+                placeholder="Example: BANK-REF-001 or MPESA-REF-001"
+              />
+              <p className="text-xs text-primary-gray">
+                Required for Bank Transfer and M-Pesa payments.
+              </p>
+            </div>
+          </div>
+        }
+        confirmLabel="Record Payment"
+        variant="info"
+        isLoading={isRecording}
+        errorMessage={confirmError}
+        onConfirm={handleRecordPayment}
+        onCancel={() => {
+          setShowRecordConfirm(false);
+          setConfirmError("");
+        }}
+      />
+
       <ConfirmDialog
         isOpen={showDeleteConfirm}
         title="Delete payment"
@@ -112,6 +219,16 @@ export default function PaymentActions({
           <StatusBadge variant="warning">
             Payment submitted for approval
           </StatusBadge>
+        )}
+
+        {canRecord && (
+          <Button
+            type="button"
+            onClick={() => setShowRecordConfirm(true)}
+            disabled={isRecording || isDeleting}
+          >
+            {isRecording ? "Recording..." : "Record Payment"}
+          </Button>
         )}
 
         {canSubmit && (

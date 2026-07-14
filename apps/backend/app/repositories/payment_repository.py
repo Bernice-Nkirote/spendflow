@@ -1,4 +1,4 @@
-from uuid import UUID
+﻿from uuid import UUID
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload
@@ -162,6 +162,7 @@ class PaymentRepository:
                 Payment.status.in_(
             [
                 PaymentStatusEnum.PENDING_APPROVAL,
+                PaymentStatusEnum.APPROVED,
                 PaymentStatusEnum.COMPLETED,
             ]
         ),

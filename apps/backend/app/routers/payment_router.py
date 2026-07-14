@@ -1,4 +1,4 @@
-from uuid import UUID
+﻿from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
@@ -25,6 +25,7 @@ from app.schemas.payment_schema import (
     PaymentCreate,
     PaymentRead,
     PaymentUpdate,
+    PaymentRecord,
     PaymentDetailRead,
 )
 
@@ -200,6 +201,21 @@ def submit_payment(
         actor_user_id=current_user.id,
     )
 
+
+@router.patch("/{payment_id}/record", response_model=PaymentDetailRead)
+def record_payment(
+    payment_id: UUID,
+    payment_data: PaymentRecord,
+    current_user=Depends(get_current_user),
+    service: PaymentService = Depends(get_payment_service),
+):
+    return service.record_payment(
+        payment_id=payment_id,
+        payment_data=payment_data,
+        company_id=current_user.company_id,
+        role_id=current_user.role_id,
+        actor_user_id=current_user.id,
+    )
 
 @router.delete("/{payment_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_payment(

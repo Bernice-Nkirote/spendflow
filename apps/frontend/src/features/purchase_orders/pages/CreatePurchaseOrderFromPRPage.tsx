@@ -30,6 +30,7 @@ type POItemDraft = {
   item_name: string;
   description: string | null;
   quantity: string;
+  original_quantity: string;
   unit_price: string;
 };
 
@@ -121,6 +122,7 @@ export default function CreatePurchaseOrderFromPRPage() {
             item_name: item.item_name,
             description: item.description || null,
             quantity: item.quantity,
+            original_quantity: item.quantity,
             unit_price: item.unit_price || "",
           })),
         );
@@ -139,6 +141,25 @@ export default function CreatePurchaseOrderFromPRPage() {
 
     loadPageData();
   }, [requisitionId, canCreatePO]);
+
+  function handleQuantityChange(itemId: string, value: string) {
+    setPoItems((currentItems) =>
+      currentItems.map((item) =>
+        item.id === itemId
+          ? {
+              ...item,
+              quantity: value,
+            }
+          : item,
+      ),
+    );
+  }
+
+  function handleRemoveItem(itemId: string) {
+    setPoItems((currentItems) =>
+      currentItems.filter((item) => item.id !== itemId),
+    );
+  }
 
   function handleUnitPriceChange(itemId: string, value: string) {
     setPoItems((currentItems) =>
@@ -166,6 +187,28 @@ export default function CreatePurchaseOrderFromPRPage() {
       return;
     }
 
+    if (poItems.length === 0) {
+      setError("A purchase order must have at least one item.");
+      return;
+    }
+
+    const hasInvalidItemQuantity = poItems.some((item) => {
+      const quantity = Number(item.quantity);
+      const originalQuantity = Number(item.original_quantity);
+
+      return (
+        Number.isNaN(quantity) ||
+        quantity <= 0 ||
+        quantity > originalQuantity
+      );
+    });
+
+    if (hasInvalidItemQuantity) {
+      setError(
+        "PO quantities must be greater than zero and cannot exceed the approved PR quantities.",
+      );
+      return;
+    }
     const hasInvalidItemPrice = poItems.some((item) => {
       const unitPrice = Number(item.unit_price);
       return Number.isNaN(unitPrice) || unitPrice <= 0;
@@ -352,6 +395,9 @@ export default function CreatePurchaseOrderFromPRPage() {
                     <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
                       Line Total
                     </th>
+                    <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-primary-gray">
+                      Action
+                    </th>
                   </tr>
                 </thead>
 
@@ -383,9 +429,22 @@ export default function CreatePurchaseOrderFromPRPage() {
                             {item.description || "-"}
                           </span>
                         </td>
-
                         <td className="whitespace-nowrap px-4 py-3 text-right text-primary-black">
-                          {formatQuantity(item.quantity)}
+                          <input
+                            type="number"
+                            min="0.01"
+                            max={item.original_quantity}
+                            step="0.01"
+                            value={item.quantity}
+                            onChange={(event) =>
+                              handleQuantityChange(item.id, event.target.value)
+                            }
+                            className="w-28 rounded-lg border border-gray-300 px-3 py-2 text-right text-sm text-primary-black outline-none transition focus:border-primary-blue focus:ring-2 focus:ring-primary-blue/20"
+                            required
+                          />
+                          <p className="mt-1 text-xs text-primary-gray">
+                            Max: {formatQuantity(item.original_quantity)}
+                          </p>
                         </td>
 
                         <td className="whitespace-nowrap px-4 py-3 text-right text-primary-black">
@@ -406,6 +465,18 @@ export default function CreatePurchaseOrderFromPRPage() {
                           {formatCurrency(
                             lineTotal,
                             purchaseRequisition.currency,
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-right">
+                          {poItems.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="danger"
+                              size="sm"
+                              onClick={() => handleRemoveItem(item.id)}
+                            >
+                              Remove
+                            </Button>
                           )}
                         </td>
                       </tr>

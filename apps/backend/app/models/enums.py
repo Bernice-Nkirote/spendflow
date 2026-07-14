@@ -1,4 +1,4 @@
-from sqlalchemy.dialects.postgresql import ENUM
+﻿from sqlalchemy.dialects.postgresql import ENUM
 import enum
 
 
@@ -58,6 +58,7 @@ class InvoiceStatusEnum(str, enum.Enum):
 class PaymentStatusEnum(str, enum.Enum):
     DRAFT="DRAFT"
     PENDING_APPROVAL = "PENDING_APPROVAL"
+    APPROVED = "APPROVED"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
     REJECTED = "REJECTED"

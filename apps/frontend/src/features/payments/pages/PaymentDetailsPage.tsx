@@ -55,7 +55,9 @@ function getReservedPaymentTotal(payments: PaymentDetails[]) {
   return payments
     .filter(
       (payment) =>
-        payment.status === "PENDING_APPROVAL" || payment.status === "COMPLETED",
+        payment.status === "PENDING_APPROVAL" ||
+        payment.status === "APPROVED" ||
+        payment.status === "COMPLETED",
     )
     .reduce((total, payment) => total + Number(payment.amount ?? 0), 0);
 }
@@ -200,7 +202,9 @@ export default function PaymentDetailsPage() {
                   setPayment(updatedPayment);
                   setActionError(null);
                   setActionSuccess(
-                    "Payment submitted for approval successfully.",
+                    updatedPayment.status === "COMPLETED"
+                      ? "Payment recorded successfully."
+                      : "Payment submitted for approval successfully.",
                   );
 
                   getApprovalInstancesByEntity(updatedPayment.id).then(

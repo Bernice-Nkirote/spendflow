@@ -6,6 +6,7 @@ import type {
   PaymentListParams,
   PaginatedPaymentResponse,
   PaymentUpdatePayload,
+  PaymentRecordPayload,
 } from "../types/payment.types";
 
 export async function getPayments(
@@ -76,6 +77,17 @@ export async function submitPayment(id: string): Promise<PaymentDetails> {
   return response.data;
 }
 
+export async function recordPayment(
+  id: string,
+  payload: PaymentRecordPayload,
+): Promise<PaymentDetails> {
+  const response = await axiosInstance.patch<PaymentDetails>(
+    `/payments/${id}/record`,
+    payload,
+  );
+
+  return response.data;
+}
 export async function deletePayment(id: string): Promise<void> {
   await axiosInstance.delete(`/payments/${id}`);
 }

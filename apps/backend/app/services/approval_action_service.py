@@ -645,7 +645,7 @@ class ApprovalActionService:
             old_payment_status = payment.status
 
             payment.status = (
-                PaymentStatusEnum.COMPLETED
+                PaymentStatusEnum.APPROVED
                 if approved
                 else PaymentStatusEnum.REJECTED
             )
@@ -659,7 +659,7 @@ class ApprovalActionService:
                 action="PAYMENT_APPROVED" if approved else "PAYMENT_REJECTED",
                 actor_user_id=actor_user_id,
                 description=(
-                    f"Payment {payment.id} approved and completed"
+                    f"Payment {payment.id} approved for payment recording"
                     if approved
                     else f"Payment {payment.id} rejected"
                 ),
@@ -670,26 +670,6 @@ class ApprovalActionService:
                     "status": enum_value(payment.status),
                 },
             )
-
-            if approved:
-                invoice = self.invoice_repo.get_by_id(payment.invoice_id, company_id)
-                if not invoice:
-                    raise HTTPException(
-                        status_code=status.HTTP_404_NOT_FOUND,
-                        detail="Invoice not found for payment sync",
-                    )
-
-                total_paid = self.payment_repo.get_total_paid(
-                    invoice_id=invoice.id,
-                    company_id=company_id,
-                )
-
-                if total_paid >= invoice.total_amount:
-                    invoice.status = InvoiceStatusEnum.PAID
-                else:
-                    invoice.status = InvoiceStatusEnum.PARTIALLY_PAID
-
-                self.invoice_repo.update(invoice)
 
             return
 

@@ -12,6 +12,7 @@ const statusVariantMap: Record<
 > = {
   DRAFT: "neutral",
   PENDING_APPROVAL: "warning",
+  APPROVED: "info",
   COMPLETED: "success",
   REJECTED: "danger",
   FAILED: "danger",
