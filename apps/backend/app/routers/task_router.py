@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.auth_dependancy import get_current_user
 from app.core.database import get_db
-from app.models.enums import InvoiceStatusEnum, POStatusEnum
+from app.models.enums import InvoiceStatusEnum, PaymentStatusEnum, POStatusEnum
 from app.models.permission import Permission
 from app.models.role_permission import RolePermission
 from app.models.user import User
@@ -117,6 +117,25 @@ def get_my_action_tasks(
             )
 
     if role_has_permission(db, role_id, company_id, "payment.create"):
+        approved_payments = payment_repo.get_by_status(
+            payment_status=PaymentStatusEnum.APPROVED,
+            company_id=company_id,
+            skip=0,
+            limit=20,
+        )
+
+        for payment in approved_payments:
+            tasks.append(
+                TaskRead(
+                    id=f"RECORD_PAYMENT:{payment.id}",
+                    type="RECORD_PAYMENT",
+                    reference=payment.invoice.invoice_number,
+                    message="Payment request approved and ready to record",
+                    url=f"/payments/{payment.id}",
+                    created_at=payment.created_at,
+                )
+            )
+
         payable_statuses = [
             InvoiceStatusEnum.APPROVED,
             InvoiceStatusEnum.PARTIALLY_PAID,
