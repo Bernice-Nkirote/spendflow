@@ -31,7 +31,7 @@ export default function FloatingAlert({
   return (
     <div className="fixed right-4 top-20 z-[100] w-[calc(100%-2rem)] max-w-md sm:right-6">
       <div
-        className={`flex items-start justify-between gap-3 rounded-xl border px-4 py-3 text-sm shadow-lg ${alertStyles[type]}`}
+        className={`floating-alert floating-alert-${type} flex items-start justify-between gap-3 rounded-xl border px-4 py-3 text-sm shadow-lg ${alertStyles[type]}`}
       >
         <p>{message}</p>
 
